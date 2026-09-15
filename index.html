@@ -874,6 +874,52 @@
             color: var(--text-muted);
             pointer-events: none;
         }
+        .btn-details {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 11px;
+            border-radius: var(--radius-full);
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--duration);
+        }
+        .btn-details:hover {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+            background: rgba(139, 92, 246, 0.14);
+        }
+        .mf-card-favorite,
+        .mf-api-favorite {
+            width: 31px;
+            height: 31px;
+            display: inline-grid;
+            place-items: center;
+            padding: 0;
+            border-radius: 9px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+        }
+        .mf-card-favorite.is-favorite,
+        .mf-api-favorite.is-favorite {
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.45);
+            background: rgba(251, 191, 36, 0.12);
+        }
+        .download-card.mf-search-focus,
+        .semox-card.mf-search-focus {
+            animation: mfSearchFocus 1.8s ease both;
+        }
+        @keyframes mfSearchFocus {
+            0%, 100% { box-shadow: var(--shadow-md); }
+            35% { box-shadow: 0 0 0 4px rgba(139, 92, 246, .5), 0 0 34px rgba(139, 92, 246, .35); }
+        }
 
         .download-count-badge {
             display: inline-flex;
@@ -3347,6 +3393,17 @@
         .mf-account-action:hover, .mf-creator-nav-action:hover { color: var(--text-primary); border-color: var(--border-hover); background: rgba(139,92,246,.1); }
         .mf-account-action.creator, .mf-creator-nav-action { color: #dfd2ff; border-color: rgba(139,92,246,.28); background: rgba(139,92,246,.12); }
         .mf-account-action.danger { color: #fda4af; }
+        .mf-account-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:16px 0 12px; }
+        .mf-account-stat { padding:10px 6px; border:1px solid var(--border-subtle); border-radius:10px; background:rgba(255,255,255,.035); }
+        .mf-account-stat strong { display:block; color:var(--text-primary); font-size:1.05rem; }
+        .mf-account-stat span { display:block; color:var(--text-muted); font-size:.65rem; margin-top:2px; }
+        .mf-account-panel { text-align:left; margin-top:16px; }
+        .mf-account-panel h4 { margin:0 0 10px; font-size:.9rem; }
+        .mf-account-panel-list { display:grid; gap:7px; max-height:260px; overflow:auto; }
+        .mf-account-panel-item { padding:9px 10px; border:1px solid var(--border-subtle); border-radius:9px; background:rgba(255,255,255,.035); }
+        .mf-account-panel-item strong { display:block; color:var(--text-primary); font-size:.78rem; }
+        .mf-account-panel-item span { color:var(--text-muted); font-size:.68rem; }
+        .mf-account-back { margin-top:14px; width:100%; }
         .mf-upload-box { max-width: 650px !important; text-align: left !important; padding: 28px !important; }
         .mf-upload-box h3 { text-align: left; }
         .mf-upload-box .mf-upload-intro { color: var(--text-secondary); font-size: .85rem; margin: 5px 0 20px; }
@@ -3365,48 +3422,7 @@
         .mf-primary-button { color: #fff; background: linear-gradient(135deg, var(--violet), var(--violet-dark)); }
         .mf-secondary-button { color: var(--text-secondary); border: 1px solid var(--border-subtle); background: rgba(255,255,255,.04); }
         .mf-auth-note { color: var(--text-muted); font-size: .72rem; line-height: 1.6; margin-top: 15px; }
-         @media (max-width: 620px) { .mf-form-grid { grid-template-columns: 1fr; } .mf-upload-box { padding: 24px 18px !important; } }
-
-        /* ============================================================
-           ACCESS FEATURES — PUBLIC PREVIEW + SIGNED-IN BENEFITS
-           ============================================================ */
-        .mf-feature-section {
-            margin: 10px 0 34px;
-            padding: 24px;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            background: linear-gradient(135deg, rgba(139,92,246,.09), rgba(20,184,166,.04) 55%, rgba(255,255,255,.02));
-            box-shadow: var(--shadow-glow);
-        }
-        .mf-feature-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:18px; }
-        .mf-feature-heading h2 { margin:0; font-size:1.15rem; letter-spacing:-.02em; }
-        .mf-feature-heading p { margin:5px 0 0; color:var(--text-secondary); font-size:.78rem; }
-        .mf-feature-status { flex:0 0 auto; padding:7px 11px; border-radius:var(--radius-full); color:#d8ccff; border:1px solid rgba(139,92,246,.28); background:rgba(139,92,246,.12); font-size:.72rem; font-weight:700; white-space:nowrap; }
-        .mf-feature-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }
-        .mf-feature-card { min-height:104px; padding:14px; border:1px solid var(--border-subtle); border-radius:12px; background:rgba(10,10,15,.36); }
-        .mf-feature-card i { display:inline-grid; place-items:center; width:29px; height:29px; margin-bottom:10px; border-radius:9px; color:#c4b5fd; background:rgba(139,92,246,.16); }
-        .mf-feature-card strong { display:block; font-size:.78rem; }
-        .mf-feature-card span { display:block; margin-top:4px; color:var(--text-muted); font-size:.68rem; line-height:1.45; }
-        .mf-feature-card.is-locked { opacity:.72; }
-        .mf-feature-card.is-locked i { color:#fbbf24; background:rgba(245,158,11,.12); }
-        .mf-premium-features { display:none; }
-        body.mf-authenticated .mf-premium-features { display:grid; }
-        body.mf-authenticated .mf-feature-status { color:#bbf7d0; border-color:rgba(52,211,153,.28); background:rgba(52,211,153,.1); }
-        body.mf-authenticated .mf-feature-status .mf-status-guest { display:none; }
-        body:not(.mf-authenticated) .mf-feature-status .mf-status-member { display:none; }
-        .mf-feature-section .mf-login-cta { margin-top:15px; display:inline-flex; align-items:center; gap:7px; padding:9px 13px; border-radius:9px; color:#fff; background:linear-gradient(135deg,var(--violet),var(--violet-dark)); font-size:.74rem; font-weight:700; }
-        body.mf-authenticated .mf-login-cta { display:none; }
-        .mf-premium-label { grid-column:1/-1; margin:7px 0 0; color:#fbbf24; font-size:.7rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
-        .mf-account-feature-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 12px; margin:16px 0 18px; padding:13px; border:1px solid rgba(52,211,153,.16); border-radius:11px; background:rgba(52,211,153,.05); color:var(--text-secondary); font-size:.72rem; }
-        .mf-account-feature-list div { display:flex; align-items:center; gap:7px; }
-        .mf-account-feature-list i { color:var(--emerald); }
-        .mf-account-tier { display:inline-flex; align-items:center; gap:6px; margin:3px 0 2px; padding:5px 9px; border-radius:var(--radius-full); color:#bbf7d0; background:rgba(52,211,153,.1); font-size:.68rem; font-weight:800; }
-        @media (max-width: 820px) { .mf-feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width: 520px) { .mf-feature-section { padding:18px 14px; } .mf-feature-heading { display:block; } .mf-feature-status { display:inline-block; margin-top:10px; } .mf-account-feature-list { grid-template-columns:1fr; } }
-
-        /* Creator upload/dashboard entry is intentionally retired. */
-        .mf-creator-nav-action, [data-mf-open-upload], #mfUploadModal,
-        .semox-project-menu-btn, .semox-project-menu { display:none !important; }
+        @media (max-width: 620px) { .mf-form-grid { grid-template-columns: 1fr; } .mf-upload-box { padding: 24px 18px !important; } }
     </style>
 </head>
 
@@ -3451,40 +3467,6 @@
                 <span class="stat"><i class="fas fa-tag"></i> <strong id="totalCategoriesStat">0</strong> categories</span>
                 <span class="stat"><i class="fas fa-clock"></i> updated regularly</span>
             </div>
-        </section>
-
-        <!-- Access-aware features: four are available to everyone; the rest unlock after sign-in. -->
-        <section class="mf-feature-section" aria-labelledby="mfFeatureTitle">
-            <div class="mf-feature-heading">
-                <div>
-                    <h2 id="mfFeatureTitle">A better way to find your next release</h2>
-                    <p>Useful tools are available before sign-in. Extra personalization unlocks with your account.</p>
-                </div>
-                <div class="mf-feature-status" aria-live="polite">
-                    <span class="mf-status-guest"><i class="fas fa-unlock"></i> Free access</span>
-                    <span class="mf-status-member"><i class="fas fa-crown"></i> Member features unlocked</span>
-                </div>
-            </div>
-            <div class="mf-feature-grid">
-                <div class="mf-feature-card"><i class="fas fa-compass"></i><strong>Browse the catalog</strong><span>Explore every download by category.</span></div>
-                <div class="mf-feature-card"><i class="fas fa-magnifying-glass"></i><strong>Smart search</strong><span>Find titles, versions, loaders, and tags quickly.</span></div>
-                <div class="mf-feature-card"><i class="fas fa-sliders"></i><strong>Version filters</strong><span>Filter compatible releases without leaving the page.</span></div>
-                <div class="mf-feature-card"><i class="fas fa-circle-info"></i><strong>Release details</strong><span>Review descriptions, badges, and download options.</span></div>
-
-                <div class="mf-premium-label"><i class="fas fa-crown"></i> Included with a free Google account</div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-heart"></i><strong>Favorites</strong><span>Keep your best finds in one place.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-clock-rotate-left"></i><strong>Download history</strong><span>Revisit items you opened or downloaded.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-bell"></i><strong>Update alerts</strong><span>Keep track of releases you care about.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-wand-magic-sparkles"></i><strong>Personalized feed</strong><span>See recommendations based on your interests.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-bookmark"></i><strong>Saved searches</strong><span>Save a search so it is ready next time.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-layer-group"></i><strong>Compare releases</strong><span>Line up versions and features before choosing.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-list-check"></i><strong>Download queue</strong><span>Collect several releases before opening them.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-eye"></i><strong>Recently viewed</strong><span>Return to details you checked earlier.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-gauge-high"></i><strong>Performance mode</strong><span>Remember your preferred browsing settings.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-cloud"></i><strong>Cross-device profile</strong><span>Keep your preferences tied to your account.</span></div>
-                <div class="mf-feature-card is-locked mf-premium-features"><i class="fas fa-shield-heart"></i><strong>Account recovery</strong><span>Return to your saved experience after reopening Chrome.</span></div>
-            </div>
-            <button type="button" class="mf-login-cta" id="mfFeatureLogin"><i class="fab fa-google"></i> Unlock member features</button>
         </section>
 
         <div class="category-indicator" id="categoryIndicator">
@@ -3646,15 +3628,8 @@
             <button class="modal-close" id="closeAccountBtn"><i class="fas fa-times"></i></button>
             <div class="modal-icon"><i class="fas fa-user-circle"></i></div>
              <h3 id="accountModalTitle">Account</h3>
-            <p>Manage your downloads and preferences.</p>
-            <div class="coming-badge"><i class="fas fa-clock"></i> Coming Soon</div>
-            <div class="feature-list">
-                <div><i class="fas fa-check-circle"></i> Download history</div>
-                <div><i class="fas fa-check-circle"></i> Favourite items</div>
-                <div><i class="fas fa-check-circle"></i> Update notifications</div>
-                <div><i class="fas fa-check-circle"></i> Personalised feed</div>
-            </div>
-            <p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">We're building something great. Stay tuned!</p>
+             <p class="mf-auth-copy">Sign in to save releases, track downloads, and publish your own Minecraft assets.</p>
+             <div class="mf-google-button" id="mfGoogleButton"></div>
         </div>
     </div>
 
@@ -4442,9 +4417,6 @@
             }
 
             function renderProjectMenuButton(project, type, name) {
-                // The old per-card three-dot/dashboard action is retired.
-                return '';
-                /*
                 const projectId = project.project_id || project.id || '';
                 const projectSlug = project.slug || projectId;
                 const sourceId = `${type}:${projectId}`;
@@ -4460,7 +4432,6 @@
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
                 `;
-                */
             }
 
             async function copyProjectLink(url) {
@@ -4670,6 +4641,58 @@
 
             function getTotalItems() {
                 return PRODUCTS.length;
+            }
+
+            function readLocalList(key) {
+                try {
+                    const value = JSON.parse(localStorage.getItem(key) || '[]');
+                    return Array.isArray(value) ? value : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function isFavorite(productId) {
+                return readLocalList('mob-forge-favorites').some(item => item.id === productId);
+            }
+
+            function toggleSavedFavorite(item) {
+                const favorites = readLocalList('mob-forge-favorites');
+                const index = favorites.findIndex(saved => saved.id === item.id);
+                if (index >= 0) {
+                    favorites.splice(index, 1);
+                    localStorage.setItem('mob-forge-favorites', JSON.stringify(favorites));
+                    showToast('Removed from saved items');
+                    return false;
+                }
+                favorites.unshift(item);
+                localStorage.setItem('mob-forge-favorites', JSON.stringify(favorites.slice(0, 100)));
+                showToast('✓ Saved to your account');
+                return true;
+            }
+
+            function toggleFavorite(productId) {
+                const product = PRODUCTS.find(item => item.id === productId);
+                if (!product) return false;
+                return toggleSavedFavorite({
+                    id: product.id,
+                    title: stripColorTags(product.title),
+                    category: product.category,
+                    version: product.primaryVersion?.version || ''
+                });
+            }
+
+            function recordDownload(product) {
+                if (!product) return;
+                const historyItems = readLocalList('mob-forge-download-history');
+                historyItems.unshift({
+                    id: product.id,
+                    title: stripColorTags(product.title || product.name || 'Download'),
+                    category: product.category || '',
+                    version: product.version || product.primaryVersion?.version || '',
+                    at: new Date().toISOString()
+                });
+                localStorage.setItem('mob-forge-download-history', JSON.stringify(historyItems.slice(0, 100)));
             }
 
             function parseColorTitle(text) {
@@ -4900,15 +4923,15 @@
                         product.versions.forEach((v, idx) => {
                             const vClass = getBadgeClass(v.badgeText) || '';
                             const isSelected = idx === 0 ? 'selected' : '';
-                            versionOptions += `<option value="${idx}" ${isSelected} 
-                                        data-badge="${v.badgeText || ''}" 
-                                        data-badge-class="${vClass}" 
-                                        data-url="${v.downloadUrl || ''}"
-                                        data-description="${v.description || ''}"
-                                        data-features="${(v.features || []).join(',')}"
-                                        data-edition="${v.edition || ''}"
-                                        data-title="${v.title || ''}"
-                                        data-version="${v.version || ''}">
+                                versionOptions += `<option value="${idx}" ${isSelected} 
+                                        data-badge="${escapeHtml(v.badgeText || '')}" 
+                                        data-badge-class="${escapeHtml(vClass)}" 
+                                        data-url="${escapeHtml(v.downloadUrl || '')}"
+                                        data-description="${escapeHtml(v.description || '')}"
+                                        data-features="${escapeHtml((v.features || []).join(','))}"
+                                        data-edition="${escapeHtml(v.edition || '')}"
+                                        data-title="${escapeHtml(v.title || '')}"
+                                        data-version="${escapeHtml(v.version || '')}">
                                         ${v.version || 'unknown'}
                                     </option>`;
                         });
@@ -4938,8 +4961,10 @@
                                         </div>
                                         <div class="footer-right">
                                             ${badgeHtml}
-                                            <button class="btn-download" data-product-id="${product.id}" data-url="${primaryVer.downloadUrl || ''}" ${!primaryVer.downloadUrl ? 'disabled' : ''}>
-                                                <i class="fas fa-download"></i> ${primaryVer.downloadUrl ? 'Download' : 'Unavailable'}
+                                            <button class="btn-details" data-product-id="${escapeHtml(product.id)}" type="button"><i class="fas fa-circle-info"></i> Details</button>
+                                            <button class="mf-card-favorite ${isFavorite(product.id) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(product.id)}" type="button" aria-label="Save ${escapeHtml(cleanTitle)}"><i class="fas fa-star"></i></button>
+                                            <button class="btn-download" data-product-id="${escapeHtml(product.id)}" data-url="${escapeHtml(primaryVer.downloadUrl || '')}" type="button">
+                                                <i class="fas fa-download"></i> Download
                                             </button>
                                         </div>
                                     `;
@@ -4948,8 +4973,10 @@
                                         <div style="flex:1;min-width:10px;"></div>
                                         <div class="footer-right">
                                             ${badgeHtml}
-                                            <button class="btn-download" data-product-id="${product.id}" data-url="${primaryVer.downloadUrl || ''}" ${!primaryVer.downloadUrl ? 'disabled' : ''}>
-                                                <i class="fas fa-download"></i> ${primaryVer.downloadUrl ? 'Download' : 'Unavailable'}
+                                            <button class="btn-details" data-product-id="${escapeHtml(product.id)}" type="button"><i class="fas fa-circle-info"></i> Details</button>
+                                            <button class="mf-card-favorite ${isFavorite(product.id) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(product.id)}" type="button" aria-label="Save ${escapeHtml(cleanTitle)}"><i class="fas fa-star"></i></button>
+                                            <button class="btn-download" data-product-id="${escapeHtml(product.id)}" data-url="${escapeHtml(primaryVer.downloadUrl || '')}" type="button">
+                                                <i class="fas fa-download"></i> Download
                                             </button>
                                         </div>
                                     `;
@@ -5095,58 +5122,36 @@
 
                             const downloadBtn = card.querySelector(`.btn-download[data-product-id="${productId}"]`);
                             if (downloadBtn) {
-                                if (url && url.trim() !== '') {
-                                    downloadBtn.disabled = false;
-                                    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download';
-                                    downloadBtn.dataset.url = url;
-                                } else {
-                                    downloadBtn.disabled = true;
-                                    downloadBtn.innerHTML = '<i class="fas fa-ban"></i> Unavailable';
-                                    downloadBtn.dataset.url = '';
-                                }
+                                downloadBtn.disabled = false;
+                                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download';
+                                downloadBtn.dataset.url = url;
                             }
 
                             e.preventDefault();
                         }
 
-                        const downloadTarget = target.closest('.btn-download:not([disabled])');
+                        const favoriteTarget = target.closest('.mf-card-favorite');
+                        if (favoriteTarget) {
+                            const saved = toggleFavorite(favoriteTarget.dataset.favoriteId);
+                            favoriteTarget.classList.toggle('is-favorite', saved);
+                            e.preventDefault();
+                            return;
+                        }
+
+                        const detailsTarget = target.closest('.btn-details');
+                        if (detailsTarget) {
+                            const product = PRODUCTS.find(item => item.id === detailsTarget.dataset.productId);
+                            if (product) openCatalogDetailsModal(product);
+                            e.preventDefault();
+                            return;
+                        }
+
+                        const downloadTarget = target.closest('.btn-download');
                         if (downloadTarget) {
                             const btn = downloadTarget;
-                            const url = btn.dataset.url;
                             const productId = btn.dataset.productId;
-                            const card = btn.closest('.download-card');
-                            if (!card) return;
-                            const cleanTitle = card.dataset.cleanTitle || '';
-
-                            const select = card.querySelector('.version-select');
-                            let version = '';
-                            if (select) {
-                                const selectedIndex = parseInt(select.value, 10);
-                                const option = select.options[selectedIndex];
-                                version = option.dataset.version || option.textContent.trim();
-                            } else {
-                                const verDisplay = card.querySelector('[data-version-display]');
-                                if (verDisplay) {
-                                    version = verDisplay.textContent.trim().replace(/^v/, '');
-                                } else {
-                                    const product = PRODUCTS.find(p => p.id === productId);
-                                    if (product) version = product.primaryVersion?.version || '';
-                                }
-                            }
-
-                            if (url && url.trim() !== '' && url !== '#') {
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.target = '_blank';
-                                a.rel = 'noopener noreferrer';
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                            } else {
-                                alert(
-                                    `Download URL for "${card.querySelector('.title')?.textContent || 'file'}" is not available.`
-                                    );
-                            }
+                            const product = PRODUCTS.find(item => item.id === productId);
+                            if (product) openCatalogDownloadModal(product);
                             e.preventDefault();
                         }
                     };
@@ -5164,6 +5169,113 @@
                                 </div>
                             `;
                 }
+            }
+
+            function openCatalogDetailsModal(product) {
+                if (!product || !detailsModal || !dmBody) return;
+                const primary = product.primaryVersion || product.versions?.[0] || {};
+                const icon = product.icon || product.image || '';
+                const title = stripColorTags(product.title || 'Untitled');
+                const category = getCategoryLabel(product.category);
+                const features = product.features || primary.features || [];
+                dmBody.innerHTML = `
+                    <div class="semox-dm-header">
+                        ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:64px;height:64px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
+                        <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span></div>
+                    </div>
+                    <div class="semox-dm-desc">${escapeHtml(product.description || 'Explore this curated Mob Forge release.')}</div>
+                    <div class="semox-dm-meta">
+                        <span><i class="fas fa-tag"></i> ${escapeHtml(primary.version || 'Latest')}</span>
+                        ${primary.edition ? `<span><i class="fas fa-cube"></i> ${escapeHtml(primary.edition)}</span>` : ''}
+                        <span><i class="fas fa-layer-group"></i> ${product.versions.length} version${product.versions.length === 1 ? '' : 's'}</span>
+                    </div>
+                    ${features.length ? `<div class="semox-dm-meta">${features.map(feature => `<span><i class="fas fa-check"></i> ${escapeHtml(feature)}</span>`).join('')}</div>` : ''}
+                    <button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button"><i class="fas fa-download"></i> Choose version &amp; download</button>
+                `;
+                detailsModal.classList.add('open');
+                document.getElementById('mfCatalogDetailDownload')?.addEventListener('click', () => {
+                    closeDetailsModal();
+                    openCatalogDownloadModal(product);
+                });
+            }
+
+            function openCatalogDownloadModal(product) {
+                if (!product || !downloadModal || !dlBody) return;
+                const versions = Array.isArray(product.versions) && product.versions.length
+                    ? product.versions
+                    : [product.primaryVersion || {}];
+                const platforms = [...new Set(versions.map(version => version.edition).filter(Boolean).map(value => value.toLowerCase()))];
+                const platformOptions = ['all', ...platforms];
+                const icon = product.icon || product.image || '';
+                const title = stripColorTags(product.title || 'Download');
+                const platformLabel = product.category === 'launchers' ? 'Platform' : 'Edition / Platform';
+                dlBody.innerHTML = `
+                    <div class="semox-dl-header">
+                        ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:40px;height:40px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
+                        <div class="semox-dl-title">${escapeHtml(title)}</div>
+                    </div>
+                    <div class="semox-dl-field">
+                        <label>Minecraft Version</label>
+                        <select id="mfCatalogVersionSelect">
+                            ${versions.map((version, index) => `<option value="${index}">${escapeHtml(version.version || 'Latest')}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="semox-dl-field">
+                        <label>${platformLabel}</label>
+                        <select id="mfCatalogPlatformSelect">
+                            ${platformOptions.map(platform => `<option value="${escapeHtml(platform)}">${platform === 'all' ? 'All platforms' : escapeHtml(platform.charAt(0).toUpperCase() + platform.slice(1))}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="semox-dl-info" id="mfCatalogDownloadInfo">Select a version to see the available file.</div>
+                    <button class="semox-dl-action-btn" id="mfCatalogDownloadAction" type="button"><i class="fas fa-download"></i> Download</button>
+                `;
+                downloadModal.classList.add('open');
+
+                const versionSelect = document.getElementById('mfCatalogVersionSelect');
+                const platformSelect = document.getElementById('mfCatalogPlatformSelect');
+                const info = document.getElementById('mfCatalogDownloadInfo');
+                const action = document.getElementById('mfCatalogDownloadAction');
+
+                function updateCatalogDownload() {
+                    const selected = versions[parseInt(versionSelect.value, 10)] || versions[0];
+                    const platform = platformSelect.value;
+                    const compatible = versions.find(version => {
+                        const sameVersion = version.version === selected.version;
+                        const samePlatform = platform === 'all' || !version.edition || version.edition.toLowerCase() === platform;
+                        return sameVersion && samePlatform;
+                    }) || selected;
+                    const url = String(compatible.downloadUrl || '').trim();
+                    const displayVersion = compatible.version || 'Latest';
+                    info.innerHTML = url
+                        ? `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><strong>File:</strong> Ready to download`
+                        : `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><span style="color:var(--orange);">This release has no download link yet.</span>`;
+                    action.disabled = !url || url === '#';
+                    action.dataset.url = url;
+                    action.dataset.version = displayVersion;
+                }
+
+                versionSelect.addEventListener('change', updateCatalogDownload);
+                platformSelect.addEventListener('change', updateCatalogDownload);
+                updateCatalogDownload();
+                action.addEventListener('click', function () {
+                    const url = this.dataset.url;
+                    if (!url) return;
+                    recordDownload({
+                        id: product.id,
+                        title: title,
+                        category: product.category,
+                        version: this.dataset.version
+                    });
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    showToast('✓ Download started');
+                    window.setTimeout(() => downloadModal.classList.remove('open'), 450);
+                });
             }
 
             // ============================================================
@@ -5208,7 +5320,7 @@
                         const primaryVer = p.primaryVersion || p.versions[0];
                         const count = '—';
                         html += `
-                                    <div class="result-item" data-category="${p.category}">
+                                    <div class="result-item" data-category="${escapeHtml(p.category)}" data-product-id="${escapeHtml(p.id)}">
                                         <div class="ri-icon">${thumbContent}</div>
                                         <div class="ri-info">
                                             <div class="ri-title">${parsedTitle}</div>
@@ -5227,10 +5339,26 @@
                         el.addEventListener('click', function() {
                             const cat = this.dataset.category;
                             if (cat) {
+                                const productId = this.dataset.productId;
                                 currentSearchQuery = '';
                                 searchInput.value = '';
-                                setActiveCategory(cat);
+                                if (currentCategory === cat) {
+                                    renderGrid(cat);
+                                } else {
+                                    setActiveCategory(cat);
+                                }
                                 searchOverlay.classList.remove('open');
+                                window.setTimeout(() => {
+                                    const card = productId
+                                        ? [...document.querySelectorAll('.download-card')].find(item => item.dataset.productId === productId)
+                                        : null;
+                                    const target = card || document.querySelector('.download-card');
+                                    if (target) {
+                                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        target.classList.add('mf-search-focus');
+                                        window.setTimeout(() => target.classList.remove('mf-search-focus'), 1800);
+                                    }
+                                }, 80);
                             }
                         });
                     });
@@ -5531,7 +5659,8 @@
                                             <span class="semox-count" data-plugin-count="${projectId}">${downloads}</span>
                                         </div>
                                         <div style="display:flex;gap:8px;">
-                                            <button class="semox-btn-details" data-project-id="${projectId}" data-type="plugin">Details</button>
+                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="plugin">Details</button>
+                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="plugins" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
                                             <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="plugin"><i class="fas fa-download"></i> Download</button>
                                         </div>
                                     </div>
@@ -5767,7 +5896,8 @@
                                             <span class="semox-count" data-rp-count="${projectId}">${downloads}</span>
                                         </div>
                                         <div style="display:flex;gap:8px;">
-                                            <button class="semox-btn-details" data-project-id="${projectId}" data-type="resourcepack">Details</button>
+                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="resourcepack">Details</button>
+                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="resource-packs" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
                                             <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="resourcepack"><i class="fas fa-download"></i> Download</button>
                                         </div>
                                     </div>
@@ -5993,7 +6123,8 @@
                                             <span class="semox-count" data-mod-count="${projectId}">${downloads}</span>
                                         </div>
                                         <div style="display:flex;gap:8px;">
-                                            <button class="semox-btn-details" data-project-id="${projectId}" data-type="mod">Details</button>
+                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="mod">Details</button>
+                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="mods" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
                                             <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="mod"><i class="fas fa-download"></i> Download</button>
                                         </div>
                                     </div>
@@ -6227,7 +6358,8 @@
                                             <span class="semox-count" data-shader-count="${projectId}">${downloads}</span>
                                         </div>
                                         <div style="display:flex;gap:8px;">
-                                            <button class="semox-btn-details" data-project-id="${projectId}" data-type="shader">Details</button>
+                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="shader">Details</button>
+                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="shaders" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
                                             <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="shader"><i class="fas fa-download"></i> Download</button>
                                         </div>
                                     </div>
@@ -6262,6 +6394,20 @@
             // ============================================================
 
             function attachSemoxEvents(type) {
+                document.querySelectorAll('.mf-api-favorite').forEach(btn => {
+                    btn.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const saved = toggleSavedFavorite({
+                            id: this.dataset.favoriteId,
+                            title: this.dataset.favoriteTitle || 'Saved project',
+                            category: this.dataset.favoriteCategory || type,
+                            version: ''
+                        });
+                        this.classList.toggle('is-favorite', saved);
+                    });
+                });
+
                 document.querySelectorAll('.semox-btn-details').forEach(btn => {
                     btn.addEventListener('click', function() {
                         this.classList.remove('is-opening');
@@ -6534,6 +6680,7 @@
                 });
 
                 const allLoaders = [...new Set(versionsData.flatMap(v => v.loaders || []))];
+                const loaderOptions = ['all', ...allLoaders];
 
                 let html = `
                             <div class="semox-dl-header">
@@ -6547,9 +6694,9 @@
                                 </select>
                             </div>
                             <div class="semox-dl-field">
-                                <label>Platform</label>
+                                 <label>Platform / Loader</label>
                                 <select id="semoxDlLoaderSelect">
-                                    ${allLoaders.map(l => `<option value="${l}">${l}</option>`).join('')}
+                                     ${loaderOptions.map(l => `<option value="${escapeHtml(l)}">${l === 'all' ? 'All platforms' : escapeHtml(l)}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="semox-dl-info" id="semoxDlInfo">
@@ -6571,8 +6718,8 @@
 
                     const compatible = versionsData.find(v =>
                         (v.game_versions || []).includes(selectedVersion) &&
-                        (v.loaders || []).includes(selectedLoader)
-                    );
+                        (selectedLoader === 'all' || !(v.loaders || []).length || (v.loaders || []).includes(selectedLoader))
+                    ) || versionsData.find(v => (v.game_versions || []).includes(selectedVersion));
 
                     if (compatible && compatible.files && compatible.files.length > 0) {
                         const file = compatible.files.find(f => f.primary) || compatible.files[0];
@@ -6603,6 +6750,7 @@
                     const projectId = this.dataset.projectId;
                     if (!url) return;
 
+                    recordDownload({ id: projectId, name, category: type, version });
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = '';
@@ -6999,10 +7147,9 @@
     'use strict';
     var USERNAME_KEY = 'mob-forge-username';
     var CREATOR_ASSETS_KEY = 'mob-forge-creator-assets';
-    var SESSION_KEY = 'mob-forge-google-session-v1';
     var GOOGLE_CLIENT_ID = '809488850172-uoj4sa9gcuomddbekb5sj525ulldp0fa.apps.googleusercontent.com';
     var profile = null;
-    var username = '';
+    var username = localStorage.getItem(USERNAME_KEY) || '';
     var gisInitialized = false;
     var assetsRestored = false;
     var accountModal = document.getElementById('accountModal');
@@ -7019,45 +7166,6 @@
     var uploadFile = document.getElementById('mfAssetFile');
     var uploadAuthor = document.getElementById('mfAssetAuthor');
     var maxFileSize = 50 * 1024 * 1024;
-
-    function storageGet(key) {
-        try { return localStorage.getItem(key); } catch (error) { return null; }
-    }
-
-    function storageSet(key, value) {
-        try { localStorage.setItem(key, value); return true; } catch (error) { return false; }
-    }
-
-    function storageRemove(key) {
-        try { localStorage.removeItem(key); } catch (error) {}
-    }
-
-    function restoreSession() {
-        username = storageGet(USERNAME_KEY) || '';
-        try {
-            var saved = JSON.parse(storageGet(SESSION_KEY) || 'null');
-            if (saved && typeof saved === 'object' && (saved.name || saved.picture)) {
-                profile = {
-                    name: typeof saved.name === 'string' ? saved.name : '',
-                    picture: typeof saved.picture === 'string' ? saved.picture : ''
-                };
-            }
-        } catch (error) {
-            storageRemove(SESSION_KEY);
-        }
-    }
-
-    function persistSession() {
-        if (!profile) {
-            storageRemove(SESSION_KEY);
-            return;
-        }
-        /* Never store the Google credential/JWT; only the display profile is kept. */
-        storageSet(SESSION_KEY, JSON.stringify({
-            name: profile.name || '',
-            picture: profile.picture || ''
-        }));
-    }
 
     function escapeHtml(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -7083,7 +7191,6 @@
 
     function setAccountButton() {
         if (!openAccountButton) return;
-        document.body.classList.toggle('mf-authenticated', Boolean(profile));
         openAccountButton.innerHTML = profile ? '<span class="mf-profile-avatar" style="width:26px;height:26px;font-size:.65rem;">' + avatarMarkup() + '</span><span>' + escapeHtml(username || 'Account') + '</span>' : '<i class="fas fa-user"></i><span>Account</span>';
         openAccountButton.setAttribute('aria-label', profile ? 'Open creator account' : 'Sign in to Mob Forge');
     }
@@ -7109,6 +7216,28 @@
         }
     }
 
+    function storedList(key) {
+        try {
+            var value = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(value) ? value : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function renderAccountPanel(panel) {
+        if (!accountModal) return;
+        var box = accountModal.querySelector('.modal-box');
+        if (!box) return;
+        var items = panel === 'saved' ? storedList('mob-forge-favorites') : storedList('mob-forge-download-history');
+        var title = panel === 'saved' ? 'Saved items' : 'Download history';
+        var empty = panel === 'saved' ? 'Your saved releases will appear here.' : 'Your downloads will appear here after you start a download.';
+        var list = items.length ? items.map(function (item) {
+            return '<div class="mf-account-panel-item"><strong>' + escapeHtml(item.title || 'Mob Forge release') + '</strong><span>' + escapeHtml(item.category || 'Minecraft') + (item.version ? ' · ' + escapeHtml(item.version) : '') + '</span></div>';
+        }).join('') : '<div class="mf-account-panel-item"><span>' + empty + '</span></div>';
+        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas ' + (panel === 'saved' ? 'fa-star' : 'fa-clock-rotate-left') + '"></i></div><h3>' + title + '</h3><div class="mf-account-panel"><div class="mf-account-panel-list">' + list + '</div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home><i class="fas fa-arrow-left"></i> Back to dashboard</button></div>';
+    }
+
     function renderAccount() {
         if (!accountModal) return;
         var box = accountModal.querySelector('.modal-box');
@@ -7117,14 +7246,17 @@
             box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-user-circle"></i></div><h3>Account</h3><p class="mf-auth-copy">Sign in to publish your own Minecraft releases.</p><div class="mf-google-button" id="mfGoogleButton"></div><p class="mf-auth-note">We only show your chosen username and profile image. Email addresses and OAuth credentials never appear in the public catalog.</p>';
             renderGoogleButton();
         } else {
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Member') + '</div><div class="mf-profile-label">Mob Forge member</div></div></div><div class="mf-account-tier"><i class="fas fa-crown"></i> Member features unlocked</div><div class="mf-account-feature-list"><div><i class="fas fa-heart"></i> Favorites</div><div><i class="fas fa-clock-rotate-left"></i> Download history</div><div><i class="fas fa-bell"></i> Update alerts</div><div><i class="fas fa-wand-magic-sparkles"></i> Personalized feed</div><div><i class="fas fa-bookmark"></i> Saved searches</div><div><i class="fas fa-layer-group"></i> Compare releases</div><div><i class="fas fa-list-check"></i> Download queue</div><div><i class="fas fa-cloud"></i> Cross-device profile</div><div><i class="fas fa-eye"></i> Recently viewed</div><div><i class="fas fa-gauge-high"></i> Performance mode</div></div><div class="mf-account-actions"><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            var savedCount = storedList('mob-forge-favorites').length;
+            var historyCount = storedList('mob-forge-download-history').length;
+            var uploadsCount = readStoredAssets().length;
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><div><div class="mf-profile-name">' + escapeHtml(username || 'Creator') + '</div><div class="mf-profile-label">Creator account</div></div></div><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div><div class="mf-account-stat"><strong>' + uploadsCount + '</strong><span>Uploads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-upload"></i> Creator Dashboard / Upload Asset</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
     function renderCreatorNav() {
         if (!mobileNav) return;
         var existing = mobileNav.querySelector('[data-mf-creator-nav]');
-        if (false && profile && !existing) {
+        if (profile && !existing) {
             var divider = document.createElement('div');
             divider.setAttribute('data-mf-creator-nav', 'divider');
             divider.style.cssText = 'height:1px;background:var(--border-subtle);margin:10px 12px;';
@@ -7196,8 +7328,9 @@
         var id = 'creator-' + Date.now();
         var category = mapUploadCategory(document.getElementById('mfAssetCategory').value);
         var edition = document.getElementById('mfAssetPlatform').value.toLowerCase();
-        var version = { id: id, version: document.getElementById('mfAssetVersion').value, badgeText: 'NEW', edition: edition, downloadUrl: '' };
-        var asset = { id: id, groupKey: id, title: title, cleanTitle: title, category: category, description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.', features: [document.getElementById('mfAssetLoader').value, document.getElementById('mfAssetPlatform').value, file.name.split('.').pop().toUpperCase()], image: '', icon: '', imageCandidates: [], edition: edition, versions: [version], primaryVersion: version, author: username, userCreated: true, fileName: file.name, fileSize: file.size };
+        var localDownloadUrl = URL.createObjectURL(file);
+        var version = { id: id, version: document.getElementById('mfAssetVersion').value, badgeText: 'NEW', edition: edition, downloadUrl: localDownloadUrl };
+        var asset = { id: id, groupKey: id, title: title, cleanTitle: title, category: category, description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.', features: [document.getElementById('mfAssetLoader').value, document.getElementById('mfAssetPlatform').value, file.name.split('.').pop().toUpperCase()], image: '', icon: '', imageCandidates: [], edition: edition, versions: [version], primaryVersion: version, author: username, userCreated: true, fileName: file.name, fileSize: file.size, downloadUrl: localDownloadUrl };
         var stored = readStoredAssets();
         localStorage.setItem(CREATOR_ASSETS_KEY, JSON.stringify([asset].concat(stored)));
         if (window.__build && Array.isArray(window.__build.products)) {
@@ -7217,9 +7350,8 @@
         if (gisInitialized || !window.google || !window.google.accounts || !window.google.accounts.id) return;
         window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: function (response) {
             profile = decodeProfile(response.credential);
-            persistSession();
             closeModal(accountModal);
-            username = storageGet(USERNAME_KEY) || '';
+            username = localStorage.getItem(USERNAME_KEY) || '';
             setAccountButton();
             renderCreatorNav();
             if (!username) showUsernamePrompt();
@@ -7235,22 +7367,23 @@
     if (accountModal) accountModal.addEventListener('click', function (event) {
         var target = event.target.closest('[data-mf-account-close]');
         if (target) closeModal(accountModal);
+        var panel = event.target.closest('[data-mf-show-panel]');
+        if (panel) { renderAccountPanel(panel.dataset.mfShowPanel); return; }
+        var home = event.target.closest('[data-mf-account-home]');
+        if (home) { renderAccount(); return; }
         var upload = event.target.closest('[data-mf-open-upload]');
         if (upload) { closeModal(accountModal); openUpload(); }
         var edit = event.target.closest('[data-mf-edit-username]');
         if (edit) { closeModal(accountModal); showUsernamePrompt(); }
         var signOut = event.target.closest('[data-mf-sign-out]');
-        if (signOut) { profile = null; storageRemove(SESSION_KEY); if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect(); closeModal(accountModal); setAccountButton(); renderCreatorNav(); var toast = document.getElementById('semoxToast'); if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); } }
+        if (signOut) { profile = null; if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect(); closeModal(accountModal); setAccountButton(); renderCreatorNav(); var toast = document.getElementById('semoxToast'); if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); } }
     });
     if (mobileNav) mobileNav.addEventListener('click', function (event) { if (event.target.closest('[data-mf-creator-nav]')) { mobileNav.classList.remove('open'); document.getElementById('hamburgerBtn').classList.remove('open'); openUpload(); } });
-    if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; storageSet(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
+    if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
     if (uploadForm) uploadForm.addEventListener('submit', publishAsset);
     if (uploadFile) uploadFile.addEventListener('change', function () { uploadError.hidden = true; });
     document.addEventListener('click', function (event) { var close = event.target.closest('[data-mf-close]'); if (close) closeModal(close.dataset.mfClose === 'username' ? usernameModal : uploadModal); });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeModal(usernameModal); closeModal(uploadModal); } });
-    var featureLoginButton = document.getElementById('mfFeatureLogin');
-    if (featureLoginButton) featureLoginButton.addEventListener('click', function () { if (openAccountButton) openAccountButton.click(); });
-    restoreSession();
     var readyTimer = setInterval(function () { initializeGIS(); if (!assetsRestored && window.__build && Array.isArray(window.__build.products) && window.__build.products.length) restoreCreatorAssets(); if (assetsRestored) clearInterval(readyTimer); }, 250);
     setAccountButton();
 })();
