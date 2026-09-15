@@ -895,6 +895,7 @@
         }
         .mf-card-favorite,
         .mf-api-favorite {
+            display: none !important;
             width: 31px;
             height: 31px;
             display: inline-grid;
@@ -911,6 +912,10 @@
             color: #fbbf24;
             border-color: rgba(251, 191, 36, 0.45);
             background: rgba(251, 191, 36, 0.12);
+        }
+        body.mf-authenticated .mf-card-favorite,
+        body.mf-authenticated .mf-api-favorite {
+            display: inline-grid !important;
         }
         .download-card.mf-search-focus,
         .semox-card.mf-search-focus {
@@ -960,6 +965,7 @@
             align-items: center;
             gap: 10px;
             flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
         /* ============================================================
@@ -2436,6 +2442,15 @@
             .btn-download {
                 font-size: 0.7rem;
                 padding: 6px 14px;
+            }
+            .btn-details {
+                font-size: 0.68rem;
+                padding: 6px 9px;
+            }
+            .mf-card-favorite,
+            .mf-api-favorite {
+                width: 30px;
+                height: 30px;
             }
             .download-count-badge {
                 font-size: 0.6rem;
@@ -4645,11 +4660,17 @@
 
             function readLocalList(key) {
                 try {
-                    const value = JSON.parse(localStorage.getItem(key) || '[]');
+                    const scopedKey = `${key}:${window.__mfAccountId || 'guest'}`;
+                    const value = JSON.parse(localStorage.getItem(scopedKey) || '[]');
                     return Array.isArray(value) ? value : [];
                 } catch (error) {
                     return [];
                 }
+            }
+
+            function writeLocalList(key, value) {
+                const scopedKey = `${key}:${window.__mfAccountId || 'guest'}`;
+                localStorage.setItem(scopedKey, JSON.stringify(value));
             }
 
             function isFavorite(productId) {
@@ -4657,16 +4678,20 @@
             }
 
             function toggleSavedFavorite(item) {
+                if (!document.body.classList.contains('mf-authenticated')) {
+                    showToast('Sign in to save items to your account');
+                    return false;
+                }
                 const favorites = readLocalList('mob-forge-favorites');
                 const index = favorites.findIndex(saved => saved.id === item.id);
                 if (index >= 0) {
                     favorites.splice(index, 1);
-                    localStorage.setItem('mob-forge-favorites', JSON.stringify(favorites));
+                    writeLocalList('mob-forge-favorites', favorites);
                     showToast('Removed from saved items');
                     return false;
                 }
                 favorites.unshift(item);
-                localStorage.setItem('mob-forge-favorites', JSON.stringify(favorites.slice(0, 100)));
+                writeLocalList('mob-forge-favorites', favorites.slice(0, 100));
                 showToast('✓ Saved to your account');
                 return true;
             }
@@ -4692,7 +4717,7 @@
                     version: product.version || product.primaryVersion?.version || '',
                     at: new Date().toISOString()
                 });
-                localStorage.setItem('mob-forge-download-history', JSON.stringify(historyItems.slice(0, 100)));
+                writeLocalList('mob-forge-download-history', historyItems.slice(0, 100));
             }
 
             function parseColorTitle(text) {
@@ -5141,7 +5166,9 @@
                         const detailsTarget = target.closest('.btn-details');
                         if (detailsTarget) {
                             const product = PRODUCTS.find(item => item.id === detailsTarget.dataset.productId);
-                            if (product) openCatalogDetailsModal(product);
+                            const card = detailsTarget.closest('.download-card');
+                            const selectedVersion = product && getSelectedCatalogVersion(product, card);
+                            if (product) openCatalogDetailsModal(product, selectedVersion);
                             e.preventDefault();
                             return;
                         }
@@ -5151,7 +5178,9 @@
                             const btn = downloadTarget;
                             const productId = btn.dataset.productId;
                             const product = PRODUCTS.find(item => item.id === productId);
-                            if (product) openCatalogDownloadModal(product);
+                            const card = btn.closest('.download-card');
+                            const selectedVersion = product && getSelectedCatalogVersion(product, card);
+                            if (product) openCatalogDownloadModal(product, selectedVersion);
                             e.preventDefault();
                         }
                     };
@@ -5171,19 +5200,29 @@
                 }
             }
 
-            function openCatalogDetailsModal(product) {
+            function getSelectedCatalogVersion(product, card) {
+                if (!product) return null;
+                const select = card && card.querySelector('.version-select');
+                if (!select) return product.primaryVersion || product.versions?.[0] || null;
+                const selectedIndex = parseInt(select.value, 10);
+                return product.versions[selectedIndex] || product.primaryVersion || product.versions[0] || null;
+            }
+
+            function openCatalogDetailsModal(product, selectedVersion) {
                 if (!product || !detailsModal || !dmBody) return;
-                const primary = product.primaryVersion || product.versions?.[0] || {};
+                const primary = selectedVersion || product.primaryVersion || product.versions?.[0] || {};
                 const icon = product.icon || product.image || '';
-                const title = stripColorTags(product.title || 'Untitled');
+                const title = stripColorTags(primary.title || product.title || 'Untitled');
                 const category = getCategoryLabel(product.category);
-                const features = product.features || primary.features || [];
+                const features = Array.isArray(primary.features) && primary.features.length
+                    ? primary.features
+                    : (product.features || []);
                 dmBody.innerHTML = `
                     <div class="semox-dm-header">
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:64px;height:64px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
                         <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span></div>
                     </div>
-                    <div class="semox-dm-desc">${escapeHtml(product.description || 'Explore this curated Mob Forge release.')}</div>
+                    <div class="semox-dm-desc">${escapeHtml(primary.description || product.description || 'Explore this curated Mob Forge release.')}</div>
                     <div class="semox-dm-meta">
                         <span><i class="fas fa-tag"></i> ${escapeHtml(primary.version || 'Latest')}</span>
                         ${primary.edition ? `<span><i class="fas fa-cube"></i> ${escapeHtml(primary.edition)}</span>` : ''}
@@ -5195,11 +5234,11 @@
                 detailsModal.classList.add('open');
                 document.getElementById('mfCatalogDetailDownload')?.addEventListener('click', () => {
                     closeDetailsModal();
-                    openCatalogDownloadModal(product);
+                    openCatalogDownloadModal(product, primary);
                 });
             }
 
-            function openCatalogDownloadModal(product) {
+            function openCatalogDownloadModal(product, selectedVersion) {
                 if (!product || !downloadModal || !dlBody) return;
                 const versions = Array.isArray(product.versions) && product.versions.length
                     ? product.versions
@@ -5208,6 +5247,7 @@
                 const platformOptions = ['all', ...platforms];
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(product.title || 'Download');
+                const initialIndex = Math.max(0, versions.indexOf(selectedVersion));
                 const platformLabel = product.category === 'launchers' ? 'Platform' : 'Edition / Platform';
                 dlBody.innerHTML = `
                     <div class="semox-dl-header">
@@ -5217,7 +5257,7 @@
                     <div class="semox-dl-field">
                         <label>Minecraft Version</label>
                         <select id="mfCatalogVersionSelect">
-                            ${versions.map((version, index) => `<option value="${index}">${escapeHtml(version.version || 'Latest')}</option>`).join('')}
+                            ${versions.map((version, index) => `<option value="${index}" ${index === initialIndex ? 'selected' : ''}>${escapeHtml(version.version || 'Latest')}</option>`).join('')}
                         </select>
                     </div>
                     <div class="semox-dl-field">
@@ -5239,16 +5279,17 @@
                 function updateCatalogDownload() {
                     const selected = versions[parseInt(versionSelect.value, 10)] || versions[0];
                     const platform = platformSelect.value;
-                    const compatible = versions.find(version => {
-                        const sameVersion = version.version === selected.version;
-                        const samePlatform = platform === 'all' || !version.edition || version.edition.toLowerCase() === platform;
-                        return sameVersion && samePlatform;
-                    }) || selected;
-                    const url = String(compatible.downloadUrl || '').trim();
-                    const displayVersion = compatible.version || 'Latest';
-                    info.innerHTML = url
-                        ? `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><strong>File:</strong> Ready to download`
-                        : `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><span style="color:var(--orange);">This release has no download link yet.</span>`;
+                    const sameVersion = versions.filter(version => version.version === selected.version);
+                    const compatible = platform === 'all'
+                        ? sameVersion[0]
+                        : sameVersion.find(version => version.edition && version.edition.toLowerCase() === platform);
+                    const url = compatible ? String(compatible.downloadUrl || '').trim() : '';
+                    const displayVersion = selected.version || 'Latest';
+                    info.innerHTML = !compatible
+                        ? `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><span style="color:var(--orange);">No file is available for this platform.</span>`
+                        : (url
+                            ? `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><strong>File:</strong> Ready to download`
+                            : `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><span style="color:var(--orange);">This release has no download link yet.</span>`);
                     action.disabled = !url || url === '#';
                     action.dataset.url = url;
                     action.dataset.version = displayVersion;
@@ -7120,35 +7161,24 @@
             </form>
         </div>
     </div>
-    <div class="account-modal" id="mfUploadModal" role="dialog" aria-modal="true" aria-labelledby="mfUploadTitle">
-        <div class="modal-box mf-upload-box">
-            <button class="modal-close" type="button" data-mf-close="upload" aria-label="Close upload portal"><i class="fas fa-times"></i></button>
-            <h3 id="mfUploadTitle"><i class="fas fa-cloud-arrow-up" style="color:var(--violet);margin-right:8px;"></i>Creator Dashboard</h3>
-            <p class="mf-upload-intro">Publish a new asset to the Mob Forge catalog.</p>
-            <form id="mfUploadForm" class="mf-upload-form">
-                <label class="mf-form-label">Asset Title<input id="mfAssetTitle" class="mf-form-control" type="text" maxlength="80" placeholder="A memorable name" required /></label>
-                <div class="mf-form-grid">
-                    <label class="mf-form-label">Category<select id="mfAssetCategory" class="mf-form-control"><option>Plugin</option><option>Mod</option><option>Resource Pack</option><option>Map</option><option>Shader</option></select></label>
-                    <label class="mf-form-label">Minecraft Version<select id="mfAssetVersion" class="mf-form-control"><option>1.21.4</option><option>1.21.1</option><option>1.20.6</option><option>1.20.4</option><option>1.19.4</option><option>1.18.2</option></select></label>
-                    <label class="mf-form-label">Platform<select id="mfAssetPlatform" class="mf-form-control"><option>Java</option><option>Bedrock</option></select></label>
-                    <label class="mf-form-label">Loader<select id="mfAssetLoader" class="mf-form-control"><option>Paper</option><option>Purpur</option><option>Fabric</option><option>Forge</option><option>Velocity</option></select></label>
-                </div>
-                <label class="mf-form-label">Author<input id="mfAssetAuthor" class="mf-form-control" type="text" readonly /></label>
-                <label class="mf-form-label">Description<textarea id="mfAssetDescription" class="mf-form-control" rows="3" maxlength="240" placeholder="Tell players what makes this release useful."></textarea></label>
-                <div class="mf-file-wrap"><i class="fas fa-file-zipper" style="font-size:1.45rem;color:var(--violet);"></i><label class="mf-form-label" style="display:block;margin-top:8px;text-align:center;color:var(--text-primary);">Release File<input id="mfAssetFile" type="file" accept=".jar,.zip,.mrpack" required /></label><span class="mf-file-help">.jar, .zip, or .mrpack · 50MB maximum</span></div>
-                <p class="mf-form-error" id="mfUploadError" hidden></p>
-                <div class="mf-form-actions"><button class="mf-secondary-button" type="button" data-mf-close="upload">Cancel</button><button class="mf-primary-button" type="submit"><i class="fas fa-upload"></i> Publish Asset</button></div>
-            </form>
-        </div>
-    </div>
 <script>
 
 (function () {
     'use strict';
     var USERNAME_KEY = 'mob-forge-username';
     var CREATOR_ASSETS_KEY = 'mob-forge-creator-assets';
+    var PROFILE_KEY = 'mob-forge-google-profile';
     var GOOGLE_CLIENT_ID = '809488850172-uoj4sa9gcuomddbekb5sj525ulldp0fa.apps.googleusercontent.com';
-    var profile = null;
+    function readStoredProfile() {
+        try {
+            var saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+            return saved && typeof saved === 'object' ? saved : null;
+        } catch (error) {
+            return null;
+        }
+    }
+    var profile = readStoredProfile();
+    window.__mfAccountId = profile && profile.id ? profile.id : '';
     var username = localStorage.getItem(USERNAME_KEY) || '';
     var gisInitialized = false;
     var assetsRestored = false;
@@ -7178,9 +7208,13 @@
             var part = credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
             var decoded = decodeURIComponent(atob(part).split('').map(function (char) { return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2); }).join(''));
             var data = JSON.parse(decoded);
-            return { picture: typeof data.picture === 'string' ? data.picture : '', name: typeof data.name === 'string' ? data.name : '' };
+            return {
+                id: typeof data.sub === 'string' ? data.sub : '',
+                picture: typeof data.picture === 'string' ? data.picture : '',
+                name: typeof data.name === 'string' ? data.name : ''
+            };
         } catch (error) {
-            return { picture: '', name: '' };
+            return { id: '', picture: '', name: '' };
         }
     }
 
@@ -7191,6 +7225,7 @@
 
     function setAccountButton() {
         if (!openAccountButton) return;
+        document.body.classList.toggle('mf-authenticated', Boolean(profile));
         openAccountButton.innerHTML = profile ? '<span class="mf-profile-avatar" style="width:26px;height:26px;font-size:.65rem;">' + avatarMarkup() + '</span><span>' + escapeHtml(username || 'Account') + '</span>' : '<i class="fas fa-user"></i><span>Account</span>';
         openAccountButton.setAttribute('aria-label', profile ? 'Open creator account' : 'Sign in to Mob Forge');
     }
@@ -7218,7 +7253,8 @@
 
     function storedList(key) {
         try {
-            var value = JSON.parse(localStorage.getItem(key) || '[]');
+            var scopedKey = key + ':' + (window.__mfAccountId || 'guest');
+            var value = JSON.parse(localStorage.getItem(scopedKey) || '[]');
             return Array.isArray(value) ? value : [];
         } catch (error) {
             return [];
@@ -7243,33 +7279,18 @@
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
         if (!profile) {
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-user-circle"></i></div><h3>Account</h3><p class="mf-auth-copy">Sign in to publish your own Minecraft releases.</p><div class="mf-google-button" id="mfGoogleButton"></div><p class="mf-auth-note">We only show your chosen username and profile image. Email addresses and OAuth credentials never appear in the public catalog.</p>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-user-circle"></i></div><h3>Account</h3><p class="mf-auth-copy">Sign in to save releases and track your downloads.</p><div class="mf-google-button" id="mfGoogleButton"></div><p class="mf-auth-note">Your account avatar and saved items stay on this browser until you sign out or clear browser data.</p>';
             renderGoogleButton();
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            var uploadsCount = readStoredAssets().length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><div><div class="mf-profile-name">' + escapeHtml(username || 'Creator') + '</div><div class="mf-profile-label">Creator account</div></div></div><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div><div class="mf-account-stat"><strong>' + uploadsCount + '</strong><span>Uploads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-upload"></i> Creator Dashboard / Upload Asset</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">Google account</div></div></div><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
     function renderCreatorNav() {
         if (!mobileNav) return;
-        var existing = mobileNav.querySelector('[data-mf-creator-nav]');
-        if (profile && !existing) {
-            var divider = document.createElement('div');
-            divider.setAttribute('data-mf-creator-nav', 'divider');
-            divider.style.cssText = 'height:1px;background:var(--border-subtle);margin:10px 12px;';
-            var item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'mf-creator-nav-action';
-            item.setAttribute('data-mf-creator-nav', 'action');
-            item.innerHTML = '<i class="fas fa-upload"></i> Creator Dashboard / Upload Asset';
-            mobileNav.appendChild(divider);
-            mobileNav.appendChild(item);
-        } else if (!profile && existing) {
-            mobileNav.querySelectorAll('[data-mf-creator-nav]').forEach(function (node) { node.remove(); });
-        }
+        mobileNav.querySelectorAll('[data-mf-creator-nav]').forEach(function (node) { node.remove(); });
     }
 
     function showUsernamePrompt() {
@@ -7350,8 +7371,12 @@
         if (gisInitialized || !window.google || !window.google.accounts || !window.google.accounts.id) return;
         window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: function (response) {
             profile = decodeProfile(response.credential);
+            if (!profile.id) profile.id = profile.name || 'google-account';
+            window.__mfAccountId = profile.id;
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
             closeModal(accountModal);
             username = localStorage.getItem(USERNAME_KEY) || '';
+            if (!username && profile.name) username = profile.name;
             setAccountButton();
             renderCreatorNav();
             if (!username) showUsernamePrompt();
@@ -7371,20 +7396,28 @@
         if (panel) { renderAccountPanel(panel.dataset.mfShowPanel); return; }
         var home = event.target.closest('[data-mf-account-home]');
         if (home) { renderAccount(); return; }
-        var upload = event.target.closest('[data-mf-open-upload]');
-        if (upload) { closeModal(accountModal); openUpload(); }
         var edit = event.target.closest('[data-mf-edit-username]');
         if (edit) { closeModal(accountModal); showUsernamePrompt(); }
         var signOut = event.target.closest('[data-mf-sign-out]');
-        if (signOut) { profile = null; if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect(); closeModal(accountModal); setAccountButton(); renderCreatorNav(); var toast = document.getElementById('semoxToast'); if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); } }
+        if (signOut) {
+            profile = null;
+            window.__mfAccountId = '';
+            localStorage.removeItem(PROFILE_KEY);
+            localStorage.removeItem(USERNAME_KEY);
+            if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect();
+            closeModal(accountModal);
+            setAccountButton();
+            renderCreatorNav();
+            var toast = document.getElementById('semoxToast');
+            if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+        }
     });
-    if (mobileNav) mobileNav.addEventListener('click', function (event) { if (event.target.closest('[data-mf-creator-nav]')) { mobileNav.classList.remove('open'); document.getElementById('hamburgerBtn').classList.remove('open'); openUpload(); } });
     if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
     if (uploadForm) uploadForm.addEventListener('submit', publishAsset);
     if (uploadFile) uploadFile.addEventListener('change', function () { uploadError.hidden = true; });
     document.addEventListener('click', function (event) { var close = event.target.closest('[data-mf-close]'); if (close) closeModal(close.dataset.mfClose === 'username' ? usernameModal : uploadModal); });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeModal(usernameModal); closeModal(uploadModal); } });
-    var readyTimer = setInterval(function () { initializeGIS(); if (!assetsRestored && window.__build && Array.isArray(window.__build.products) && window.__build.products.length) restoreCreatorAssets(); if (assetsRestored) clearInterval(readyTimer); }, 250);
+    var readyTimer = setInterval(function () { initializeGIS(); if (gisInitialized) clearInterval(readyTimer); }, 250);
     setAccountButton();
 })();
 </script>
