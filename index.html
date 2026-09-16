@@ -322,6 +322,32 @@
         .header-account-btn i {
             font-size: 0.8rem;
         }
+        .mf-header-avatar {
+            width: 26px;
+            height: 26px;
+            flex: 0 0 26px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            border-radius: 50%;
+            color: #fff;
+            background: linear-gradient(135deg, var(--violet), var(--pink));
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+        .mf-header-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .header-account-btn .mf-account-label {
+            min-width: 0;
+            max-width: 110px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .hamburger {
             display: none;
             width: 38px;
@@ -412,6 +438,7 @@
         .hero-badge {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             background: rgba(139, 92, 246, 0.08);
             border: 1px solid rgba(139, 92, 246, 0.15);
@@ -426,22 +453,6 @@
         }
         .hero-badge i {
             font-size: 0.6rem;
-        }
-        .hero-badge .server-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            margin-left: 8px;
-            padding-left: 8px;
-            border-left: 1px solid rgba(255, 255, 255, 0.18);
-            color: var(--emerald);
-        }
-        .hero-badge .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--emerald);
-            box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
         }
         .hero h1 {
             font-size: clamp(2.4rem, 6vw, 4.2rem);
@@ -2347,7 +2358,7 @@
             .hamburger {
                 display: flex;
             }
-            .header-account-btn span {
+            .header-account-btn .mf-account-label {
                 display: none;
             }
             .header-account-btn {
@@ -3464,7 +3475,7 @@
             <nav class="nav-categories" id="navCategories"></nav>
             <div class="header-actions">
                 <button class="header-search-btn" id="openSearchBtn" aria-label="Search"><i class="fas fa-search"></i></button>
-                <button class="header-account-btn" id="openAccountBtn"><i class="fas fa-user"></i><span>Account</span></button>
+                <button class="header-account-btn" id="openAccountBtn" type="button" aria-label="Sign in to Mob Forge"><span class="mf-header-avatar" aria-hidden="true"><i class="fas fa-user"></i></span><span class="mf-account-label">Account</span></button>
                 <button class="hamburger" id="hamburgerBtn" aria-label="Menu"><i class="fas fa-bars"></i></button>
             </div>
         </div>
@@ -3479,10 +3490,7 @@
 
         <section class="hero fade-in">
             <div class="hero-badge">
-                <i class="fas fa-bolt"></i> SemxPro
-                <span class="server-status" role="status" aria-label="Server status: online">
-                    <span class="status-dot" aria-hidden="true"></span> Server Online
-                </span>
+                <i class="fas fa-bolt" aria-hidden="true"></i><span>SEMXPRO</span>
             </div>
             <h1>Minecraft <span class="highlight">Mods &amp; Downloads</span><br />Built for Your Game</h1>
             <p>Discover premium Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins — curated for a clean, fast download experience.</p>
@@ -4732,6 +4740,28 @@
                 writeLocalList('mob-forge-download-history', historyItems.slice(0, 100));
             }
 
+            function startCatalogDownload(product, selectedVersion) {
+                const url = String(selectedVersion?.downloadUrl || '').trim();
+                if (!product || !url || url === '#') return false;
+
+                recordDownload({
+                    id: product.id,
+                    title: stripColorTags(product.title || 'Download'),
+                    category: product.category,
+                    version: selectedVersion.version || ''
+                });
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                showToast('✓ Download started');
+                return true;
+            }
+
             function parseColorTitle(text) {
                 if (!text) return text;
                 if (!/<[^>]+>/.test(text)) return text;
@@ -4929,8 +4959,12 @@
                     products.forEach((product, index) => {
                         const catLabel = getCategoryLabel(product.category);
                         const catIcon = getCategoryIcon(product.category);
-                        const hasMultipleVersions = product.versions.length > 1;
-                        const primaryVer = product.primaryVersion || product.versions[0];
+                        const versionedEntries = product.versions
+                            .map((version, originalIndex) => ({ version, originalIndex }))
+                            .filter(item => String(item.version?.version || '').trim() !== '');
+                        const hasMultipleVersions = versionedEntries.length > 1;
+                        const primaryVer = product.primaryVersion || product.versions[0] || {};
+                        const displayPrimaryVer = versionedEntries[0]?.version || primaryVer;
                         const parsedTitle = parseColorTitle(product.title);
 
                         let thumbContent;
@@ -4957,10 +4991,10 @@
                         const currentVersion = primaryVer.version || '';
 
                         let versionOptions = '';
-                        product.versions.forEach((v, idx) => {
+                        versionedEntries.forEach(({ version: v, originalIndex }) => {
                             const vClass = getBadgeClass(v.badgeText) || '';
-                            const isSelected = idx === 0 ? 'selected' : '';
-                                versionOptions += `<option value="${idx}" ${isSelected} 
+                            const isSelected = versionedEntries[0].originalIndex === originalIndex ? 'selected' : '';
+                                versionOptions += `<option value="${originalIndex}" ${isSelected} 
                                         data-badge="${escapeHtml(v.badgeText || '')}" 
                                         data-badge-class="${escapeHtml(vClass)}" 
                                         data-url="${escapeHtml(v.downloadUrl || '')}"
@@ -4969,62 +5003,54 @@
                                         data-edition="${escapeHtml(v.edition || '')}"
                                         data-title="${escapeHtml(v.title || '')}"
                                         data-version="${escapeHtml(v.version || '')}">
-                                        ${v.version || 'unknown'}
+                                        ${escapeHtml(v.version)}
                                     </option>`;
                         });
 
                         let featuresHtml = '';
-                        const primaryFeatures = product.features || primaryVer.features || [];
+                        const primaryFeatures = product.features || displayPrimaryVer.features || [];
                         if (primaryFeatures.length > 0) {
                             featuresHtml =
                                 `<ul class="feature-list">${primaryFeatures.map(f => `<li><i class="fas fa-circle"></i> ${f}</li>`).join('')}</ul>`;
                         }
 
                         const badgeHtml = renderDownloadBadge();
-                        const primaryBadgeText = primaryVer.badgeText || '';
+                        const primaryBadgeText = displayPrimaryVer.badgeText || '';
                         const badgeClass = getBadgeClass(primaryBadgeText);
 
-                        let footerHtml = '';
-                        if (hasMultipleVersions) {
-                            footerHtml = `
+                        const primaryUrl = String(displayPrimaryVer.downloadUrl || '').trim();
+                        const primaryAvailable = Boolean(primaryUrl && primaryUrl !== '#');
+                        const initialDownloadLabel = primaryAvailable
+                            ? '<i class="fas fa-download"></i> Download'
+                            : '<i class="fas fa-ban"></i> Unavailable';
+                        const footerHtml = `
+                                    ${hasMultipleVersions ? `
                                         <div class="version-select-wrapper">
                                             <span class="version-label">Version</span>
-                                            <select class="version-select" data-product-id="${product.id}">
+                                            <select class="version-select" data-product-id="${escapeHtml(product.id)}">
                                                 ${versionOptions}
                                             </select>
-                                            <span class="version-badge-display ${badgeClass}" data-badge-display="${product.id}">
-                                                ${primaryBadgeText || 'STABLE'}
+                                            <span class="version-badge-display ${badgeClass}" data-badge-display="${escapeHtml(product.id)}">
+                                                ${escapeHtml(primaryBadgeText || 'STABLE')}
                                             </span>
                                         </div>
-                                        <div class="footer-right">
-                                            ${badgeHtml}
-                                            <button class="btn-details" data-product-id="${escapeHtml(product.id)}" type="button"><i class="fas fa-circle-info"></i> Details</button>
-                                            <button class="mf-card-favorite ${isFavorite(product.id) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(product.id)}" type="button" aria-label="Save ${escapeHtml(cleanTitle)}"><i class="fas fa-star"></i></button>
-                                            <button class="btn-download" data-product-id="${escapeHtml(product.id)}" data-url="${escapeHtml(primaryVer.downloadUrl || '')}" type="button">
-                                                <i class="fas fa-download"></i> Download
-                                            </button>
-                                        </div>
-                                    `;
-                        } else {
-                            footerHtml = `
-                                        <div style="flex:1;min-width:10px;"></div>
-                                        <div class="footer-right">
-                                            ${badgeHtml}
-                                            <button class="btn-details" data-product-id="${escapeHtml(product.id)}" type="button"><i class="fas fa-circle-info"></i> Details</button>
-                                            <button class="mf-card-favorite ${isFavorite(product.id) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(product.id)}" type="button" aria-label="Save ${escapeHtml(cleanTitle)}"><i class="fas fa-star"></i></button>
-                                            <button class="btn-download" data-product-id="${escapeHtml(product.id)}" data-url="${escapeHtml(primaryVer.downloadUrl || '')}" type="button">
-                                                <i class="fas fa-download"></i> Download
-                                            </button>
-                                        </div>
-                                    `;
-                        }
+                                    ` : '<div style="flex:1;min-width:10px;"></div>'}
+                                    <div class="footer-right">
+                                        ${badgeHtml}
+                                        <button class="btn-details" data-product-id="${escapeHtml(product.id)}" type="button"><i class="fas fa-circle-info"></i> Details</button>
+                                        <button class="mf-card-favorite ${isFavorite(product.id) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(product.id)}" type="button" aria-label="Save ${escapeHtml(cleanTitle)}"><i class="fas fa-star"></i></button>
+                                        <button class="btn-download" data-product-id="${escapeHtml(product.id)}" data-url="${escapeHtml(primaryUrl)}" type="button" ${primaryAvailable ? '' : 'disabled'}>
+                                            ${initialDownloadLabel}
+                                        </button>
+                                    </div>
+                                `;
 
                         const displayVersion = (ver) => {
                             if (!ver || ver.trim() === '') return '';
                             if (ver.trim().toLowerCase().startsWith('v')) return ver.trim();
                             return 'v' + ver.trim();
                         };
-                        const primaryVersionDisplay = displayVersion(primaryVer.version || '');
+                        const primaryVersionDisplay = displayVersion(displayPrimaryVer.version || '');
 
                         html += `
                                     <div class="download-card fade-in fade-in-d${Math.min(index % 4 + 1, 4)}" data-product-id="${product.id}" data-group-key="${product.groupKey}" data-clean-title="${cleanTitle}">
@@ -5035,7 +5061,7 @@
                                             <div class="card-info">
                                                 <div class="title-row">
                                                     <span class="title" data-title-display="${product.id}">${parsedTitle}</span>
-                                                    ${hasMultipleVersions ? `<span class="version" data-version-display="${product.id}">${primaryVersionDisplay}</span>` : (primaryVersionDisplay ? `<span class="version">${primaryVersionDisplay}</span>` : '')}
+                                                    ${primaryVersionDisplay ? `<span class="version" data-version-display="${escapeHtml(product.id)}">${primaryVersionDisplay}</span>` : ''}
                                                     ${!hasMultipleVersions && primaryBadgeText ? `<span class="badge-pill ${badgeClass}">${primaryBadgeText}</span>` : ''}
                                                     ${editionBadge}
                                                 </div>
@@ -5158,9 +5184,12 @@
                             }
 
                             const downloadBtn = card.querySelector(`.btn-download[data-product-id="${productId}"]`);
+                            const hasDownloadUrl = Boolean(url && url !== '#');
                             if (downloadBtn) {
-                                downloadBtn.disabled = false;
-                                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download';
+                                downloadBtn.disabled = !hasDownloadUrl;
+                                downloadBtn.innerHTML = hasDownloadUrl
+                                    ? '<i class="fas fa-download"></i> Download'
+                                    : '<i class="fas fa-ban"></i> Unavailable';
                                 downloadBtn.dataset.url = url;
                             }
 
@@ -5192,7 +5221,9 @@
                             const product = PRODUCTS.find(item => item.id === productId);
                             const card = btn.closest('.download-card');
                             const selectedVersion = product && getSelectedCatalogVersion(product, card);
-                            if (product) openCatalogDownloadModal(product, selectedVersion);
+                            if (product && selectedVersion && selectedVersion.downloadUrl && selectedVersion.downloadUrl !== '#') {
+                                startCatalogDownload(product, selectedVersion);
+                            }
                             e.preventDefault();
                         }
                     };
@@ -5215,7 +5246,10 @@
             function getSelectedCatalogVersion(product, card) {
                 if (!product) return null;
                 const select = card && card.querySelector('.version-select');
-                if (!select) return product.primaryVersion || product.versions?.[0] || null;
+                if (!select) {
+                    return product.versions?.find(version => String(version.version || '').trim() !== '') ||
+                        product.primaryVersion || product.versions?.[0] || null;
+                }
                 const selectedIndex = parseInt(select.value, 10);
                 return product.versions[selectedIndex] || product.primaryVersion || product.versions[0] || null;
             }
@@ -7071,8 +7105,6 @@
                 }
             });
 
-            openAccountBtn.addEventListener('click', function() { accountModal.classList.add('open'); });
-            closeAccountBtn.addEventListener('click', function() { accountModal.classList.remove('open'); });
             accountModal.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
 
             shareClose.addEventListener('click', closeShareFallback);
@@ -7247,7 +7279,10 @@
     function setAccountButton() {
         if (!openAccountButton) return;
         document.body.classList.toggle('mf-authenticated', Boolean(profile));
-        openAccountButton.innerHTML = profile ? '<span class="mf-profile-avatar" style="width:26px;height:26px;font-size:.65rem;">' + avatarMarkup() + '</span><span>' + escapeHtml(username || 'Account') + '</span>' : '<i class="fas fa-user"></i><span>Account</span>';
+        var headerAvatar = profile
+            ? avatarMarkup()
+            : '<i class="fas fa-user" aria-hidden="true"></i>';
+        openAccountButton.innerHTML = '<span class="mf-header-avatar" aria-hidden="true">' + headerAvatar + '</span><span class="mf-account-label">' + escapeHtml(profile ? (username || 'Account') : 'Account') + '</span>';
         openAccountButton.setAttribute('aria-label', profile ? 'Open creator account' : 'Sign in to Mob Forge');
     }
 
@@ -7437,9 +7472,13 @@
         if (accountModal && accountModal.classList.contains('open')) renderGoogleButton();
     }
 
-    if (openAccountButton) openAccountButton.addEventListener('click', function () {
+    if (openAccountButton) openAccountButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        openModal(accountModal);
         renderAccount();
-        if (!profile && window.google && window.google.accounts && window.google.accounts.id) setTimeout(function () { window.google.accounts.id.prompt(); }, 120);
+        if (!profile && window.google && window.google.accounts && window.google.accounts.id) {
+            window.google.accounts.id.prompt();
+        }
     });
     if (accountModal) accountModal.addEventListener('click', function (event) {
         var savedDownload = event.target.closest('[data-mf-saved-download]');
