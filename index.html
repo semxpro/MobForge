@@ -473,6 +473,12 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        .hero h1 .website-title-auto {
+            background: linear-gradient(110deg, #c4b5fd 0%, #8b5cf6 48%, #22d3ee 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
         .hero p {
             max-width: 560px;
             margin: 0 auto 24px;
@@ -937,8 +943,8 @@
         .mf-card-favorite,
         .mf-api-favorite {
             display: inline-grid;
-            width: 31px;
-            height: 31px;
+            width: 30px;
+            height: 30px;
             place-items: center;
             padding: 0;
             border-radius: 9px;
@@ -946,6 +952,22 @@
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-subtle);
             cursor: pointer;
+            transition: all 0.18s var(--ease);
+            flex: 0 0 auto;
+        }
+        .mf-card-favorite:hover,
+        .mf-api-favorite:hover,
+        .mf-card-favorite:focus-visible,
+        .mf-api-favorite:focus-visible {
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.45);
+            background: rgba(251, 191, 36, 0.1);
+            transform: translateY(-1px);
+            outline: none;
+        }
+        .mf-card-favorite i,
+        .mf-api-favorite i {
+            pointer-events: none;
         }
         body:not(.mf-authenticated) .mf-card-favorite,
         body:not(.mf-authenticated) .mf-api-favorite {
@@ -1830,6 +1852,10 @@
             color: var(--text-primary);
             line-height: 1.3;
             margin-bottom: 1px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
         }
         .semox-card .semox-p-info .semox-p-badge {
             font-size: 0.55rem;
@@ -1842,8 +1868,10 @@
             color: #fff;
             box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
             display: inline-block;
-            margin-left: 6px;
             vertical-align: middle;
+        }
+        .semox-card .semox-p-info .semox-p-name .mf-api-favorite {
+            margin-left: auto;
         }
         .semox-card .semox-p-desc {
             font-size: 0.85rem;
@@ -2086,6 +2114,55 @@
             line-height: 1.7;
             margin: 12px 0 16px;
         }
+        .semox-dm-version-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0 14px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.035);
+        }
+        .semox-dm-version-picker label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .semox-dm-version-picker select {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 7px 30px 7px 11px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-full);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 0.78rem;
+            outline: none;
+        }
+        .semox-dm-version-picker select:focus {
+            border-color: var(--violet);
+            box-shadow: 0 0 0 2px var(--violet-glow);
+        }
+        .semox-dm-availability {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 14px 0 0;
+            padding: 9px 12px;
+            border-radius: var(--radius);
+            color: var(--emerald);
+            background: rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+            font-size: 0.78rem;
+        }
+        .semox-dm-availability.is-unavailable {
+            color: var(--orange);
+            background: rgba(249, 115, 22, 0.08);
+            border-color: rgba(249, 115, 22, 0.22);
+        }
         .semox-details-modal .semox-dm-meta {
             display: flex;
             flex-wrap: wrap;
@@ -2144,6 +2221,14 @@
         .semox-details-modal .semox-dm-download-btn:hover {
             transform: scale(1.02);
             box-shadow: 0 0 30px var(--violet-glow);
+        }
+        .semox-details-modal .semox-dm-download-btn:disabled {
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            box-shadow: none;
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none;
         }
 
         /* Download Modal */
@@ -2794,14 +2879,17 @@
             gap: 8px;
         }
         .catalog-version-row .version-select {
-            width: 132px;
-            min-width: 132px;
-            max-width: 132px;
-            flex: 0 0 132px;
+            width: 92px;
+            min-width: 78px;
+            max-width: min(168px, 100%);
+            flex: 0 0 auto;
             padding: 5px 24px 5px 12px;
         }
         .catalog-version-row .catalog-latest-badge {
             margin-top: 2px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .semox-card .semox-p-actions {
             width: auto;
@@ -3769,6 +3857,10 @@
         .mf-account-stat span { display:block; color:var(--text-muted); font-size:.65rem; margin-top:2px; }
         .mf-account-panel { text-align:left; margin-top:16px; }
         .mf-account-panel h4 { margin:0 0 10px; font-size:.9rem; }
+        .mf-account-panel-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+        .mf-account-panel-toolbar span { color:var(--text-secondary); font-size:.78rem; font-weight:600; }
+        .mf-account-clear { padding:6px 9px; border:1px solid rgba(244,63,94,.25); border-radius:8px; color:#fda4af; background:rgba(244,63,94,.08); font-size:.68rem; cursor:pointer; }
+        .mf-account-clear:hover { color:#fff; border-color:rgba(244,63,94,.5); background:rgba(244,63,94,.16); }
         .mf-account-panel-list { display:grid; gap:7px; max-height:260px; overflow:auto; }
         .mf-account-panel-item { padding:9px 10px; border:1px solid var(--border-subtle); border-radius:9px; background:rgba(255,255,255,.035); }
         .mf-account-panel-item strong { display:block; color:var(--text-primary); font-size:.78rem; }
@@ -4150,6 +4242,22 @@
                 return config;
             }
 
+            function normalizeImageUrl(value) {
+                let url = String(value || '').trim();
+                const imageFormula = url.match(/^=IMAGE\(\s*["']([^"']+)["']/i);
+                if (imageFormula) url = imageFormula[1].trim();
+                url = url.replace(/^["']|["']$/g, '').trim();
+                if (url.startsWith('//')) url = `${window.location.protocol}${url}`;
+                if (!url) return '';
+                if (/^(data:image\/|https?:\/\/|blob:)/i.test(url)) return url;
+                try {
+                    const resolved = new URL(url, document.baseURI);
+                    return /^(https?:|data:|blob:)$/i.test(resolved.protocol) ? resolved.href : '';
+                } catch (error) {
+                    return '';
+                }
+            }
+
             function applyWebsiteConfig(config) {
                 const safeConfig = { ...DEFAULT_SITE_CONFIG, ...(config || {}) };
                 const tagEl = document.getElementById('siteTagDisplay');
@@ -4161,28 +4269,37 @@
 
                 if (tagEl && safeConfig.tag) tagEl.textContent = safeConfig.tag;
                 if (nameEl && safeConfig.name) nameEl.textContent = safeConfig.name;
-                if (titleEl && safeConfig.title) titleEl.textContent = safeConfig.title;
+                if (titleEl && safeConfig.title) titleEl.innerHTML = parseWebsiteTitle(safeConfig.title);
                 if (descriptionEl && safeConfig.description) descriptionEl.textContent = safeConfig.description;
 
                 if (logoEl && logoFallbackEl) {
-                    logoEl.onerror = () => {
+                    const showFallbackLogo = () => {
                         logoEl.hidden = true;
                         logoEl.style.display = 'none';
                         logoFallbackEl.hidden = false;
                         logoFallbackEl.style.display = 'inline-block';
                     };
-                    if (safeConfig.logo) {
-                        logoEl.src = safeConfig.logo;
+                    const showConfiguredLogo = () => {
                         logoEl.hidden = false;
                         logoEl.style.display = 'block';
                         logoFallbackEl.hidden = true;
                         logoFallbackEl.style.display = 'none';
-                    } else {
-                        logoEl.removeAttribute('src');
+                    };
+                    logoEl.onload = showConfiguredLogo;
+                    logoEl.onerror = showFallbackLogo;
+                    logoEl.alt = safeConfig.name ? `${safeConfig.name} logo` : 'Website logo';
+                    const logoUrl = normalizeImageUrl(safeConfig.logo);
+                    if (logoUrl) {
+                        logoEl.src = logoUrl;
+                        // Keep the fallback visible until the remote image has
+                        // actually loaded, avoiding a blank logo on slow links.
                         logoEl.hidden = true;
                         logoEl.style.display = 'none';
                         logoFallbackEl.hidden = false;
                         logoFallbackEl.style.display = 'inline-block';
+                    } else {
+                        logoEl.removeAttribute('src');
+                        showFallbackLogo();
                     }
                 }
             }
@@ -5163,6 +5280,17 @@
                 return readLocalList('mob-forge-favorites').some(item => item.id === productId);
             }
 
+            function refreshFavoriteButtons() {
+                document.querySelectorAll('.mf-card-favorite, .mf-api-favorite').forEach(button => {
+                    const saved = isFavorite(button.dataset.favoriteId);
+                    button.classList.toggle('is-favorite', saved);
+                    button.setAttribute('aria-pressed', saved ? 'true' : 'false');
+                    button.setAttribute('aria-label', saved
+                        ? 'Remove from saved items'
+                        : (button.classList.contains('mf-api-favorite') ? 'Save this project' : 'Save this release'));
+                });
+            }
+
             function toggleSavedFavorite(item) {
                 if (!document.body.classList.contains('mf-authenticated')) {
                     showToast('Sign in to save items to your account');
@@ -5199,11 +5327,21 @@
             function recordDownload(product) {
                 if (!product) return;
                 const historyItems = readLocalList('mob-forge-download-history');
+                const categoryMap = {
+                    plugin: 'plugins',
+                    resourcepack: 'resource-packs',
+                    mod: 'mods',
+                    shader: 'shaders'
+                };
+                const sourceType = product.modrinthType || product.category || '';
                 historyItems.unshift({
                     id: product.id,
                     title: stripColorTags(product.title || product.name || 'Download'),
-                    category: product.category || '',
+                    category: categoryMap[sourceType] || product.category || '',
                     version: product.version || product.primaryVersion?.version || '',
+                    projectId: product.projectId || '',
+                    modrinthType: product.modrinthType || '',
+                    icon: product.icon || product.image || '',
                     at: new Date().toISOString()
                 });
                 writeLocalList('mob-forge-download-history', historyItems.slice(0, 100));
@@ -5233,7 +5371,7 @@
 
             function parseColorTitle(text) {
                 if (!text) return text;
-                if (!/<[^>]+>/.test(text)) return text;
+                if (!/<[^>]+>/.test(text)) return escapeHtml(text);
 
                 let result = '';
                 let i = 0;
@@ -5248,13 +5386,14 @@
                         if (closeIndex !== -1) {
                             if (buffer) {
                                 if (currentColor) {
-                                    result += `<span style="color: ${currentColor};">${buffer}</span>`;
+                                    result += `<span style="color: ${safeTitleColor(currentColor)};">${escapeHtml(buffer)}</span>`;
                                 } else {
-                                    result += buffer;
+                                    result += escapeHtml(buffer);
                                 }
                                 buffer = '';
                             }
-                            currentColor = text.substring(i + 1, closeIndex).trim();
+                            const candidateColor = text.substring(i + 1, closeIndex).trim();
+                            currentColor = isSafeTitleColor(candidateColor) ? candidateColor : null;
                             i = closeIndex + 1;
                             continue;
                         }
@@ -5266,13 +5405,32 @@
 
                 if (buffer) {
                     if (currentColor) {
-                        result += `<span style="color: ${currentColor};">${buffer}</span>`;
+                        result += `<span style="color: ${safeTitleColor(currentColor)};">${escapeHtml(buffer)}</span>`;
                     } else {
-                        result += buffer;
+                        result += escapeHtml(buffer);
                     }
                 }
 
                 return result;
+            }
+
+            function isSafeTitleColor(value) {
+                return /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.,%\s]+\)|hsla?\(\s*[\d.,%\s]+%?\)|[a-z]{3,20})$/i.test(String(value || '').trim());
+            }
+
+            function safeTitleColor(value) {
+                return isSafeTitleColor(value) ? escapeHtml(String(value).trim()) : 'var(--violet)';
+            }
+
+            function parseWebsiteTitle(text) {
+                const value = String(text || '').trim();
+                if (!value) return '';
+                if (/<[^>]+>/.test(value)) return parseColorTitle(value);
+
+                const words = value.split(/\s+/);
+                if (words.length < 2) return `<span class="website-title-auto">${escapeHtml(value)}</span>`;
+                const splitAt = Math.max(1, Math.ceil(words.length * 0.55));
+                return `${escapeHtml(words.slice(0, splitAt).join(' '))} <span class="website-title-auto">${escapeHtml(words.slice(splitAt).join(' '))}</span>`;
             }
 
             // ============================================================
@@ -5313,6 +5471,9 @@
 
                 currentCategory = categoryId;
                 if (options.updateUrl !== false) updateUrlForCategory(categoryId);
+                // Paint the selected tab before starting any remote category
+                // request so navigation never waits for Modrinth.
+                updateNavButtons(categoryId);
 
                 // Show/hide filter bars
                 pluginFilterBar.style.display = (categoryId === 'plugins') ? 'flex' : 'none';
@@ -5352,8 +5513,6 @@
                 } else {
                     loadShadersFromModrinth();
                 }
-
-                updateNavButtons(categoryId);
 
                 // Update indicator
                 if (categoryId === 'all') {
@@ -5410,6 +5569,39 @@
                 }).join('');
             }
 
+            function fitVersionSelect(select) {
+                if (!select) return;
+                const longestLabel = [...select.options].reduce((longest, option) => {
+                    return Math.max(longest, String(option.textContent || '').trim().length);
+                }, 0);
+                const width = Math.min(168, Math.max(82, longestLabel * 8 + 34));
+                select.style.width = `${width}px`;
+                select.style.maxWidth = '100%';
+            }
+
+            function defaultPlatformForType(type, options) {
+                const values = Array.isArray(options) ? options : [];
+                const preferred = {
+                    plugin: ['paper', 'spigot', 'velocity'],
+                    plugins: ['paper', 'spigot', 'velocity'],
+                    mod: ['fabric', 'forge', 'quilt', 'neoforge'],
+                    mods: ['fabric', 'forge', 'quilt', 'neoforge'],
+                    shader: ['iris', 'optifine'],
+                    shaders: ['iris', 'optifine'],
+                    resourcepack: ['bedrock', 'java', 'optifine'],
+                    'resource-packs': ['bedrock', 'java', 'optifine']
+                }[type] || [];
+                return preferred.find(value => values.some(option => String(option).toLowerCase() === value)) || values[0] || '';
+            }
+
+            function prioritizeDefaultPlatform(type, options) {
+                const values = Array.isArray(options) ? options : [];
+                const defaultValue = defaultPlatformForType(type, values);
+                return defaultValue
+                    ? [defaultValue, ...values.filter(value => value !== defaultValue)]
+                    : values;
+            }
+
             function renderCatalogCard(product, index) {
                 const catIcon = getCategoryIcon(product.category);
                 const parsedTitle = parseColorTitle(product.title);
@@ -5442,6 +5634,16 @@
                 const latestBadgeMarkup = isLatestBadge
                     ? `<span class="version-badge-display ${badgeClass} catalog-latest-badge" data-badge-display="${safeProductId}">${escapeHtml(badge)}</span>`
                     : '';
+                const favoriteSaved = isFavorite(product.id);
+                const favoriteMarkup = `
+                    <button class="mf-card-favorite ${favoriteSaved ? 'is-favorite' : ''}"
+                            data-favorite-id="${safeProductId}"
+                            type="button"
+                            aria-label="${favoriteSaved ? 'Remove from saved items' : 'Save this release'}"
+                            aria-pressed="${favoriteSaved ? 'true' : 'false'}">
+                        <i class="fas fa-star" aria-hidden="true"></i>
+                    </button>
+                `;
                 const versionControl = validVersions.length > 1 || latestBadgeMarkup
                     ? `
                             <div class="catalog-version-row">
@@ -5471,6 +5673,7 @@
                                     <span class="title" data-title-display="${safeProductId}">${parsedTitle}</span>
                                     ${versionMeta}
                                     ${isLatestBadge ? '' : `<span class="version-badge-display ${badgeClass}" data-badge-display="${safeProductId}">${escapeHtml(badge)}</span>`}
+                                    ${favoriteMarkup}
                                 </div>
                                 <div class="card-meta-row">
                                     <span class="category-tag">${escapeHtml(getCategoryLabel(product.category))}</span>
@@ -5537,6 +5740,8 @@
                         html += renderCatalogCard(product, index);
                     });
                     downloadGrid.innerHTML = html;
+
+                    downloadGrid.querySelectorAll('.catalog-version-row .version-select').forEach(fitVersionSelect);
 
                     document.querySelectorAll('.card-thumb img').forEach(img => {
                         img.addEventListener('error', function() {
@@ -5641,6 +5846,8 @@
                         if (favoriteTarget) {
                             const saved = toggleFavorite(favoriteTarget.dataset.favoriteId);
                             favoriteTarget.classList.toggle('is-favorite', saved);
+                            favoriteTarget.setAttribute('aria-pressed', saved ? 'true' : 'false');
+                            favoriteTarget.setAttribute('aria-label', saved ? 'Remove from saved items' : 'Save this release');
                             e.preventDefault();
                             return;
                         }
@@ -5712,6 +5919,28 @@
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(primary.title || product.title || 'Untitled');
                 const category = getCategoryLabel(product.category);
+                const selectedVersionIndex = Math.max(0, validVersions.findIndex(version =>
+                    version === primary ||
+                    (version.version === primary.version && version.downloadUrl === primary.downloadUrl)
+                ));
+                const selectedDownloadUrl = String(primary.downloadUrl || '').trim();
+                const versionPicker = validVersions.length > 1
+                    ? `
+                        <div class="semox-dm-version-picker">
+                            <label for="mfCatalogDetailsVersionSelect">Version</label>
+                            <select id="mfCatalogDetailsVersionSelect" aria-label="Select version for ${escapeHtml(title)}">
+                                ${validVersions.map((version, index) => `
+                                    <option value="${index}" ${index === selectedVersionIndex ? 'selected' : ''}>
+                                        ${escapeHtml(displayVersion(version.version))}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    `
+                    : '';
+                const availabilityMarkup = selectedDownloadUrl && selectedDownloadUrl !== '#'
+                    ? `<div class="semox-dm-availability"><i class="fas fa-circle-check"></i><span>Selected version is ready to download.</span></div>`
+                    : `<div class="semox-dm-availability is-unavailable"><i class="fas fa-circle-exclamation"></i><span>Download unavailable for this version.</span></div>`;
                 const features = Array.isArray(primary.features) && primary.features.length
                     ? primary.features
                     : (product.features || []);
@@ -5751,6 +5980,7 @@
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:64px;height:64px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
                         <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span></div>
                     </div>
+                    ${versionPicker}
                     <div class="semox-dm-desc">${escapeHtml(primary.description || product.description || 'Explore this curated Mob Forge release.')}</div>
                     <div class="semox-dm-meta">
                         ${versionMeta}
@@ -5767,13 +5997,29 @@
                         </div>
                     ` : ''}
                     ${directLinks}
+                    ${availabilityMarkup}
                     <div class="semox-share-actions">
                         <button type="button" class="semox-detail-share" data-project-url="${escapeHtml(productUrl)}" data-project-name="${escapeHtml(title)}"><i class="fas fa-arrow-up-right-from-square"></i> Share</button>
                         <button type="button" class="semox-detail-copy" data-project-url="${escapeHtml(productUrl)}"><i class="fas fa-link"></i> Copy Link</button>
                     </div>
-                    <button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button"><i class="fas fa-download"></i> ${validVersions.length ? 'Choose version &amp; download' : 'Download release'}</button>
+                    <button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button" ${selectedDownloadUrl && selectedDownloadUrl !== '#' ? '' : 'disabled'}><i class="fas fa-download"></i> ${selectedDownloadUrl && selectedDownloadUrl !== '#' ? (validVersions.length > 1 ? 'Download selected version' : 'Download release') : 'Unavailable'}</button>
                 `;
                 detailsModal.classList.add('open');
+                document.getElementById('mfCatalogDetailsVersionSelect')?.addEventListener('change', event => {
+                    const nextVersion = validVersions[parseInt(event.target.value, 10)] || validVersions[0];
+                    openCatalogDetailsModal(product, nextVersion);
+                });
+                dmBody.querySelectorAll('.semox-dm-direct-link').forEach(link => {
+                    link.addEventListener('click', () => {
+                        recordDownload({
+                            id: product.id,
+                            title,
+                            category: product.category,
+                            version: link.querySelector('span')?.textContent?.trim() || primary.version || '',
+                            icon
+                        });
+                    });
+                });
                 document.getElementById('mfCatalogDetailDownload')?.addEventListener('click', () => {
                     closeDetailsModal();
                     openCatalogDownloadModal(product, primary);
@@ -5788,11 +6034,12 @@
                     ? versions
                     : [product.primaryVersion || product.versions?.[0] || {}];
                 const platforms = [...new Set(releases.map(version => version.edition).filter(Boolean).map(value => value.toLowerCase()))];
-                const platformOptions = ['all', ...platforms];
+                const platformOptions = prioritizeDefaultPlatform(product.category, platforms);
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(product.title || 'Download');
                 const initialIndex = Math.max(0, releases.indexOf(selectedVersion));
                 const platformLabel = product.category === 'launchers' ? 'Platform' : 'Edition / Platform';
+                const defaultPlatform = defaultPlatformForType(product.category, platformOptions);
                 dlBody.innerHTML = `
                     <div class="semox-dl-header">
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:40px;height:40px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
@@ -5806,12 +6053,14 @@
                             </select>
                         </div>
                     ` : ''}
-                    <div class="semox-dl-field">
-                        <label>${platformLabel}</label>
-                        <select id="mfCatalogPlatformSelect">
-                            ${platformOptions.map(platform => `<option value="${escapeHtml(platform)}">${platform === 'all' ? 'All platforms' : escapeHtml(platform.charAt(0).toUpperCase() + platform.slice(1))}</option>`).join('')}
-                        </select>
-                    </div>
+                    ${platformOptions.length && product.category !== 'resource-packs' ? `
+                        <div class="semox-dl-field">
+                            <label>${platformLabel}</label>
+                            <select id="mfCatalogPlatformSelect">
+                                ${platformOptions.map(platform => `<option value="${escapeHtml(platform)}" ${platform === defaultPlatform ? 'selected' : ''}>${escapeHtml(platform.charAt(0).toUpperCase() + platform.slice(1))}</option>`).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
                     <div class="semox-dl-info" id="mfCatalogDownloadInfo">Select a version to see the available file.</div>
                     <button class="semox-dl-action-btn" id="mfCatalogDownloadAction" type="button"><i class="fas fa-download"></i> Download</button>
                 `;
@@ -5824,11 +6073,11 @@
 
                 function updateCatalogDownload() {
                     const selected = releases[hasVersionData ? parseInt(versionSelect.value, 10) : 0] || releases[0] || {};
-                    const platform = platformSelect.value;
+                    const platform = platformSelect ? platformSelect.value : '';
                     const sameVersion = hasVersionData
                         ? versions.filter(version => version.version === selected.version)
                         : [selected];
-                    const compatible = platform === 'all'
+                    const compatible = !platform
                         ? sameVersion[0]
                         : sameVersion.find(version => version.edition && version.edition.toLowerCase() === platform);
                     const url = compatible ? String(compatible.downloadUrl || '').trim() : '';
@@ -5844,11 +6093,14 @@
                 }
 
                 versionSelect?.addEventListener('change', updateCatalogDownload);
-                platformSelect.addEventListener('change', updateCatalogDownload);
+                platformSelect?.addEventListener('change', updateCatalogDownload);
                 updateCatalogDownload();
                 action.addEventListener('click', function () {
                     const url = this.dataset.url;
                     if (!url) return;
+                    if (this.dataset.downloading === 'true') return;
+                    this.dataset.downloading = 'true';
+                    this.disabled = true;
                     recordDownload({
                         id: product.id,
                         title: title,
@@ -6248,6 +6500,18 @@
                 const safeIcon = escapeHtml(icon);
                 const categoryLabel = getApiCategoryLabel(type);
                 const tags = getApiDisplayTags(project, type);
+                const favoriteSaved = isFavorite(projectId);
+                const favoriteMarkup = `
+                    <button class="mf-api-favorite ${favoriteSaved ? 'is-favorite' : ''}"
+                            data-favorite-id="${safeId}"
+                            data-favorite-title="${safeName}"
+                            data-favorite-category="${escapeHtml(type)}"
+                            type="button"
+                            aria-label="${favoriteSaved ? 'Remove from saved items' : 'Save this project'}"
+                            aria-pressed="${favoriteSaved ? 'true' : 'false'}">
+                        <i class="fas fa-star" aria-hidden="true"></i>
+                    </button>
+                `;
                 const iconHtml = icon
                     ? `<img src="${safeIcon}" alt="${safeName}" loading="lazy" /><div class="semox-icon-placeholder" style="display:none;"><i class="fas ${fallbackIcon}"></i></div>`
                     : `<div class="semox-icon-placeholder"><i class="fas ${fallbackIcon}"></i></div>`;
@@ -6266,7 +6530,7 @@
                         <div class="semox-p-top">
                             <div class="semox-p-icon">${iconHtml}</div>
                             <div class="semox-p-info">
-                                <div class="semox-p-name">${safeName}<span class="semox-p-badge">${escapeHtml(categoryLabel)}</span></div>
+                                <div class="semox-p-name">${safeName}<span class="semox-p-badge">${escapeHtml(categoryLabel)}</span>${favoriteMarkup}</div>
                                 <div class="semox-p-meta">${metaTags}</div>
                                 <div class="semox-p-desc">${escapeHtml(project.description || '')}</div>
                             </div>
@@ -6866,6 +7130,8 @@
                             modrinthType: type
                         });
                         this.classList.toggle('is-favorite', saved);
+                        this.setAttribute('aria-pressed', saved ? 'true' : 'false');
+                        this.setAttribute('aria-label', saved ? 'Remove from saved items' : 'Save this project');
                     });
                 });
 
@@ -7166,7 +7432,9 @@
                 });
 
                 const allLoaders = [...new Set(versionsData.flatMap(v => v.loaders || []))];
-                const loaderOptions = ['all', ...allLoaders];
+                const loaderOptions = prioritizeDefaultPlatform(type, allLoaders);
+                const defaultLoader = defaultPlatformForType(type, loaderOptions);
+                const hasLoaderSelect = type !== 'resourcepack' && loaderOptions.length > 0;
 
                 let html = `
                             <div class="semox-dl-header">
@@ -7179,12 +7447,14 @@
                                     ${gameVersions.map(v => `<option value="${escapeHtml(v)}" ${v === preferredVersion ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
                                 </select>
                             </div>
-                            <div class="semox-dl-field">
-                                 <label>Platform / Loader</label>
-                                <select id="semoxDlLoaderSelect">
-                                     ${loaderOptions.map(l => `<option value="${escapeHtml(l)}">${l === 'all' ? 'All platforms' : escapeHtml(l)}</option>`).join('')}
-                                </select>
-                            </div>
+                            ${hasLoaderSelect ? `
+                                <div class="semox-dl-field">
+                                    <label>Platform / Loader</label>
+                                    <select id="semoxDlLoaderSelect">
+                                        ${loaderOptions.map(l => `<option value="${escapeHtml(l)}" ${l === defaultLoader ? 'selected' : ''}>${escapeHtml(l.charAt(0).toUpperCase() + l.slice(1))}</option>`).join('')}
+                                    </select>
+                                </div>
+                            ` : ''}
                             <div class="semox-dl-info" id="semoxDlInfo">
                                 Select version and platform to see compatible file.
                             </div>
@@ -7200,11 +7470,11 @@
 
                 function updateDownloadInfo() {
                     const selectedVersion = versionSelect.value;
-                    const selectedLoader = loaderSelect.value;
+                    const selectedLoader = loaderSelect ? loaderSelect.value : '';
 
                     const compatible = versionsData.find(v =>
                         (v.game_versions || []).includes(selectedVersion) &&
-                        (selectedLoader === 'all' || !(v.loaders || []).length || (v.loaders || []).includes(selectedLoader))
+                        (!selectedLoader || !(v.loaders || []).length || (v.loaders || []).includes(selectedLoader))
                     ) || versionsData.find(v => (v.game_versions || []).includes(selectedVersion));
 
                     if (compatible && compatible.files && compatible.files.length > 0) {
@@ -7226,7 +7496,7 @@
                 }
 
                 versionSelect.addEventListener('change', updateDownloadInfo);
-                loaderSelect.addEventListener('change', updateDownloadInfo);
+                loaderSelect?.addEventListener('change', updateDownloadInfo);
                 updateDownloadInfo();
 
                 actionBtn.addEventListener('click', function() {
@@ -7235,8 +7505,19 @@
                     const loader = this.dataset.loader;
                     const projectId = this.dataset.projectId;
                     if (!url) return;
+                    if (this.dataset.downloading === 'true') return;
+                    this.dataset.downloading = 'true';
+                    this.disabled = true;
 
-                    recordDownload({ id: projectId, name, category: type, version });
+                    recordDownload({
+                        id: projectId,
+                        name,
+                        category: type,
+                        version,
+                        projectId,
+                        modrinthType: type,
+                        icon
+                    });
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = '';
@@ -7438,6 +7719,7 @@
                 const btn = e.target.closest('.cat-btn, .glassy-nav-item');
                 if (btn && btn.dataset.category) {
                     const cat = btn.dataset.category;
+                    e.preventDefault();
                     if (currentCategory === cat) {
                         closeDetailsModal();
                         return;
@@ -7573,6 +7855,7 @@
                 getProductsForCategory,
                 setActiveCategory,
                 currentCategory: () => currentCategory,
+                refreshFavoriteButtons,
                 parseColorTitle,
                 stripColorTags,
                 loadPluginsFromModrinth,
@@ -7677,6 +7960,9 @@
     function setAccountButton() {
         if (!openAccountButton) return;
         document.body.classList.toggle('mf-authenticated', Boolean(profile));
+        if (window.__build && typeof window.__build.refreshFavoriteButtons === 'function') {
+            window.__build.refreshFavoriteButtons();
+        }
         var headerAvatar = profile
             ? avatarMarkup()
             : '<i class="fas fa-user" aria-hidden="true"></i>';
@@ -7715,6 +8001,29 @@
         }
     }
 
+    function writeStoredList(key, value) {
+        var scopedKey = key + ':' + (window.__mfAccountId || 'guest');
+        localStorage.setItem(scopedKey, JSON.stringify(Array.isArray(value) ? value : []));
+    }
+
+    function formatDownloadDate(value) {
+        if (!value) return '';
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        try {
+            return new Intl.DateTimeFormat(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            }).format(date);
+        } catch (error) {
+            return date.toLocaleString();
+        }
+    }
+
+    function normalizeVersion(value) {
+        return String(value || '').trim().replace(/^v/i, '');
+    }
+
     function savedCategoryIcon(category) {
         var icons = {
             'minecraft-pe': 'fa-cube',
@@ -7732,14 +8041,16 @@
         var catalogProducts = window.__build && window.__build.products;
         var catalogProduct = Array.isArray(catalogProducts) ? catalogProducts.find(function (product) { return product.id === item.id; }) : null;
         if (catalogProduct) {
-            var selectedVersion = (catalogProduct.versions || []).find(function (version) { return version.version === item.version; }) || catalogProduct.primaryVersion || (catalogProduct.versions || [])[0];
+            var selectedVersion = (catalogProduct.versions || []).find(function (version) {
+                return normalizeVersion(version.version) === normalizeVersion(item.version);
+            }) || catalogProduct.primaryVersion || (catalogProduct.versions || [])[0];
             closeModal(accountModal);
             window.__build.openCatalogDownloadModal(catalogProduct, selectedVersion);
             return;
         }
         var type = item.modrinthType || ({ plugins: 'plugin', 'resource-packs': 'resourcepack', mods: 'mod', shaders: 'shader' }[item.category] || 'mod');
         closeModal(accountModal);
-        window.__build.openDownloadModal(item.projectId || item.id, item.title || 'Saved project', item.icon || item.image || '', type);
+        window.__build.openDownloadModal(item.projectId || item.id, item.title || 'Saved project', item.icon || item.image || '', type, normalizeVersion(item.version));
     }
 
     function renderAccountPanel(panel) {
@@ -7754,9 +8065,11 @@
             var category = item.category || 'Minecraft';
             var version = item.version || 'Latest';
             var thumbnail = icon ? '<img src="' + escapeHtml(icon) + '" alt="" />' : '<i class="fas ' + savedCategoryIcon(item.category) + '"></i>';
-            return '<button type="button" class="mf-account-panel-item mf-account-panel-item-button" data-mf-saved-download data-mf-saved-id="' + escapeHtml(item.id || '') + '" data-mf-saved-project-id="' + escapeHtml(item.projectId || '') + '" data-mf-saved-title="' + escapeHtml(item.title || 'Mob Forge release') + '" data-mf-saved-category="' + escapeHtml(item.category || '') + '" data-mf-saved-version="' + escapeHtml(item.version || '') + '" data-mf-saved-icon="' + escapeHtml(icon) + '" data-mf-saved-type="' + escapeHtml(item.modrinthType || '') + '"><span class="mf-saved-item-icon">' + thumbnail + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Mob Forge release') + '</strong><span>' + escapeHtml(category) + ' · ' + escapeHtml(version) + '</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>';
+            var timestamp = panel === 'history' ? formatDownloadDate(item.at) : '';
+            var meta = escapeHtml(category) + ' · ' + escapeHtml(version) + (timestamp ? ' · ' + escapeHtml(timestamp) : '');
+            return '<button type="button" class="mf-account-panel-item mf-account-panel-item-button" data-mf-saved-download data-mf-saved-id="' + escapeHtml(item.id || '') + '" data-mf-saved-project-id="' + escapeHtml(item.projectId || '') + '" data-mf-saved-title="' + escapeHtml(item.title || 'Mob Forge release') + '" data-mf-saved-category="' + escapeHtml(item.category || '') + '" data-mf-saved-version="' + escapeHtml(item.version || '') + '" data-mf-saved-icon="' + escapeHtml(icon) + '" data-mf-saved-type="' + escapeHtml(item.modrinthType || '') + '"><span class="mf-saved-item-icon">' + thumbnail + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Mob Forge release') + '</strong><span>' + meta + '</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>';
         }).join('') : '<div class="mf-account-panel-item"><span>' + empty + '</span></div>';
-        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas ' + (panel === 'saved' ? 'fa-star' : 'fa-clock-rotate-left') + '"></i></div><h3>' + title + '</h3><div class="mf-account-panel"><div class="mf-account-panel-list">' + list + '</div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home><i class="fas fa-arrow-left"></i> Back to dashboard</button></div>';
+        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas ' + (panel === 'saved' ? 'fa-star' : 'fa-clock-rotate-left') + '"></i></div><h3>' + title + '</h3><div class="mf-account-panel"><div class="mf-account-panel-toolbar"><span>' + items.length + ' item' + (items.length === 1 ? '' : 's') + '</span><button type="button" class="mf-account-clear" data-mf-clear-panel="' + panel + '"><i class="fas fa-trash-can"></i> Clear</button></div><div class="mf-account-panel-list">' + list + '</div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home><i class="fas fa-arrow-left"></i> Back to dashboard</button></div>';
     }
 
     function renderAccount() {
@@ -7896,6 +8209,20 @@
         if (target) closeModal(accountModal);
         var panel = event.target.closest('[data-mf-show-panel]');
         if (panel) { renderAccountPanel(panel.dataset.mfShowPanel); return; }
+        var clearPanel = event.target.closest('[data-mf-clear-panel]');
+        if (clearPanel) {
+            var clearType = clearPanel.dataset.mfClearPanel;
+            var clearKey = clearType === 'saved' ? 'mob-forge-favorites' : 'mob-forge-download-history';
+            var clearLabel = clearType === 'saved' ? 'saved items' : 'download history';
+            if (window.confirm('Clear all ' + clearLabel + '?')) {
+                writeStoredList(clearKey, []);
+                if (clearType === 'saved' && window.__build && typeof window.__build.refreshFavoriteButtons === 'function') {
+                    window.__build.refreshFavoriteButtons();
+                }
+                renderAccountPanel(clearType);
+            }
+            return;
+        }
         var home = event.target.closest('[data-mf-account-home]');
         if (home) { renderAccount(); return; }
         var edit = event.target.closest('[data-mf-edit-username]');
