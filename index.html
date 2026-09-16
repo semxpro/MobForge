@@ -191,6 +191,13 @@
             box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
             transition: all 0.3s var(--ease);
         }
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            object-fit: contain;
+            border-radius: inherit;
+        }
         .logo:hover .logo-icon {
             box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
             transform: rotate(-3deg);
@@ -542,7 +549,7 @@
         .download-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            gap: 16px;
             padding-bottom: 40px;
         }
         .download-card {
@@ -754,21 +761,33 @@
 
         .download-card .card-footer {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+            gap: 9px;
             margin-top: auto;
-            padding-top: 14px;
+            padding-top: 11px;
             border-top: 1px solid var(--border-subtle);
-            flex-wrap: wrap;
         }
 
         .version-select-wrapper {
             display: flex;
             align-items: center;
             gap: 10px;
-            flex: 1;
-            min-width: 140px;
+            width: 100%;
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+
+        .catalog-version-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-width: 0;
+        }
+        .catalog-version-row .version-select-wrapper {
+            flex: 1 1 auto;
         }
 
         .version-select-wrapper .version-label {
@@ -780,6 +799,9 @@
         }
 
         .version-select {
+            flex: 1 1 auto;
+            width: 100%;
+            min-width: 0;
             background: var(--bg-secondary);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-full);
@@ -795,9 +817,10 @@
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 10px 6px;
-            min-width: 80px;
             transition: all var(--duration) var(--ease);
             outline: none;
+            text-overflow: ellipsis;
+            overflow: hidden;
         }
         .version-select:hover {
             border-color: var(--border-hover);
@@ -869,6 +892,7 @@
             box-shadow: 0 0 20px var(--violet-glow);
             flex-shrink: 0;
             cursor: pointer;
+            white-space: nowrap;
         }
         .btn-download:hover {
             transform: scale(1.04);
@@ -898,19 +922,23 @@
             font-size: 0.76rem;
             font-weight: 700;
             cursor: pointer;
-            transition: var(--duration);
+            white-space: nowrap;
+            backdrop-filter: blur(12px) saturate(1.2);
+            -webkit-backdrop-filter: blur(12px) saturate(1.2);
+            transition: all var(--duration) var(--ease);
         }
         .btn-details:hover {
             color: var(--text-primary);
-            border-color: var(--border-hover);
-            background: rgba(139, 92, 246, 0.14);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 24px rgba(139, 92, 246, 0.12);
+            transform: translateY(-1px);
         }
         .mf-card-favorite,
         .mf-api-favorite {
-            display: none !important;
+            display: inline-grid;
             width: 31px;
             height: 31px;
-            display: inline-grid;
             place-items: center;
             padding: 0;
             border-radius: 9px;
@@ -918,6 +946,10 @@
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-subtle);
             cursor: pointer;
+        }
+        body:not(.mf-authenticated) .mf-card-favorite,
+        body:not(.mf-authenticated) .mf-api-favorite {
+            display: none !important;
         }
         .mf-card-favorite.is-favorite,
         .mf-api-favorite.is-favorite {
@@ -1719,14 +1751,14 @@
         .semox-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 18px;
+            gap: 14px;
             padding-bottom: 40px;
         }
         .semox-card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-lg);
-            padding: 18px 20px 16px;
+            padding: 16px 18px 14px;
             transition: all var(--duration) var(--ease);
             display: flex;
             flex-direction: column;
@@ -1757,7 +1789,7 @@
             display: flex;
             gap: 14px;
             align-items: flex-start;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         .semox-card .semox-p-icon {
             width: 48px;
@@ -1817,7 +1849,7 @@
             font-size: 0.85rem;
             color: var(--text-secondary);
             line-height: 1.6;
-            margin: 6px 0 10px;
+            margin: 5px 0 8px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -1827,7 +1859,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 6px 12px;
-            margin: 4px 0 12px;
+            margin: 3px 0 8px;
         }
         .semox-card .semox-p-meta .semox-p-tag {
             font-size: 0.6rem;
@@ -1857,13 +1889,14 @@
         }
         .semox-card .semox-p-footer {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
+            align-items: stretch;
+            justify-content: flex-start;
             margin-top: auto;
-            padding-top: 12px;
+            padding-top: 10px;
             border-top: 1px solid var(--border-subtle);
-            flex-wrap: wrap;
-            gap: 8px;
+            gap: 7px;
         }
         .semox-card .semox-p-dl-count {
             display: flex;
@@ -1881,6 +1914,9 @@
             color: var(--text-primary);
             font-weight: 700;
         }
+        .catalog-latest-badge {
+            flex: 0 0 auto;
+        }
         .semox-btn-download {
             display: inline-flex;
             align-items: center;
@@ -1895,6 +1931,7 @@
             transition: all var(--duration) var(--ease);
             box-shadow: 0 0 20px var(--violet-glow);
             cursor: pointer;
+            white-space: nowrap;
         }
         .semox-btn-download:hover {
             transform: scale(1.04);
@@ -1910,18 +1947,28 @@
             pointer-events: none;
         }
         .semox-btn-details {
-            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-subtle);
             color: var(--text-secondary);
             padding: 6px 14px;
             border-radius: var(--radius-full);
             font-size: 0.7rem;
             font-weight: 600;
+            white-space: nowrap;
+            backdrop-filter: blur(12px) saturate(1.2);
+            -webkit-backdrop-filter: blur(12px) saturate(1.2);
             transition: all var(--duration) var(--ease);
         }
         .semox-btn-details:hover {
-            border-color: var(--border-hover);
             color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 24px rgba(139, 92, 246, 0.12);
+            transform: translateY(-1px);
         }
 
         /* Skeleton */
@@ -2402,6 +2449,9 @@
             .download-card {
                 padding: 16px;
             }
+            .semox-card {
+                padding: 14px 16px 13px;
+            }
             .download-card .card-top {
                 gap: 12px;
             }
@@ -2505,13 +2555,16 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+            .semox-card .semox-p-actions {
+                flex-direction: row;
+            }
             .semox-card .semox-p-footer .semox-btn-details,
             .semox-card .semox-p-footer .semox-btn-download {
-                width: 100%;
+                width: auto;
                 justify-content: center;
             }
             .semox-card .semox-p-footer .semox-btn-details+.semox-btn-download {
-                margin-top: 4px;
+                margin-top: 0;
             }
         }
 
@@ -2562,6 +2615,296 @@
             }
             .semox-details-modal .semox-dm-screenshots .semox-dm-gallery {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================================
+           UNIFIED CARD SURFACE — shared by Sheets and Modrinth cards
+           ============================================================ */
+        .logo-icon img[hidden] {
+            display: none !important;
+        }
+        .logo-icon img:not([hidden]) {
+            display: block;
+        }
+        .logo-icon {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        .logo-icon > i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .logo-icon > i[hidden],
+        .logo-icon > i[style*="display: none"] {
+            display: none !important;
+        }
+        .logo-icon > img {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            object-fit: contain;
+            object-position: center;
+            background: transparent;
+        }
+        .logo-icon > img:not([hidden]) {
+            display: block;
+        }
+        .download-card,
+        .semox-card {
+            min-width: 0;
+            min-height: 0;
+            height: auto;
+            padding: 16px 18px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(4px);
+        }
+        .download-card .card-thumb,
+        .semox-card .semox-p-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius);
+        }
+        .download-card .card-top,
+        .semox-card .semox-p-top {
+            min-width: 0;
+        }
+        .download-card .card-info,
+        .semox-card .semox-p-info {
+            padding-right: 26px;
+        }
+        .download-card .title-row,
+        .semox-card .semox-p-name {
+            min-width: 0;
+        }
+        .download-card .title,
+        .semox-card .semox-p-name {
+            overflow-wrap: anywhere;
+        }
+        .card-more-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 5;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 1rem;
+            transition: all var(--duration) var(--ease);
+        }
+        .card-more-btn:hover,
+        .card-more-btn:focus-visible {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+            background: rgba(139, 92, 246, 0.14);
+            outline: none;
+            transform: scale(1.05);
+        }
+        .card-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .card-footer,
+        .semox-card .semox-p-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+        .card-footer .version-select-wrapper,
+        .semox-card .semox-version-control {
+            width: 100%;
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+        .version-select-wrapper .version-select,
+        .semox-version-control .version-select {
+            flex: 1 1 auto;
+            min-width: 0;
+            width: 100%;
+        }
+        .footer-actions,
+        .semox-card .semox-p-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            width: 100%;
+            flex: 0 0 auto;
+            min-width: 0;
+        }
+        .footer-actions > button,
+        .semox-card .semox-p-actions > button {
+            flex: 1 1 0;
+            justify-content: center;
+            min-width: 0;
+        }
+        .footer-actions .download-count-badge {
+            flex: 0 0 auto;
+            align-self: center;
+        }
+        .footer-actions > .btn-download {
+            padding: 5px 13px;
+            font-size: 0.72rem;
+        }
+        .footer-actions > .btn-details {
+            padding: 5px 11px;
+            font-size: 0.67rem;
+        }
+        .semox-card .semox-version-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .semox-card .semox-version-control .version-label {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .semox-card .semox-p-meta {
+            margin-top: 7px;
+        }
+        .semox-card .semox-p-footer {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+        }
+        .catalog-version-row .version-select-wrapper {
+            width: auto;
+            min-width: 0;
+            flex: 0 0 auto;
+            flex-wrap: nowrap;
+            gap: 8px;
+        }
+        .catalog-version-row .version-select {
+            width: 132px;
+            min-width: 132px;
+            max-width: 132px;
+            flex: 0 0 132px;
+            padding: 5px 24px 5px 12px;
+        }
+        .catalog-version-row .catalog-latest-badge {
+            margin-top: 2px;
+        }
+        .semox-card .semox-p-actions {
+            width: auto;
+            margin-left: auto;
+        }
+        .semox-card .semox-p-actions > button {
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+        .semox-btn-download {
+            padding: 5px 13px;
+            font-size: 0.72rem;
+        }
+        .semox-btn-details {
+            padding: 5px 11px;
+            font-size: 0.67rem;
+        }
+        .semox-dm-direct-links {
+            margin: 16px 0 4px;
+        }
+        .semox-dm-direct-links h4 {
+            margin: 0 0 10px;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+        }
+        .semox-dm-direct-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+        .semox-dm-direct-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.035);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: all var(--duration) var(--ease);
+        }
+        .semox-dm-direct-link:hover,
+        .semox-dm-direct-link:focus-visible {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+            background: rgba(139, 92, 246, 0.12);
+            outline: none;
+        }
+        .semox-dm-direct-link i {
+            color: var(--violet);
+            flex: 0 0 auto;
+        }
+        .semox-dm-direct-link span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (max-width: 600px) {
+            .card-more-btn,
+            .semox-project-menu-btn {
+                top: 12px;
+                right: 12px;
+            }
+            .download-card .card-footer,
+            .semox-card .semox-p-footer {
+                gap: 10px;
+            }
+            .footer-actions,
+            .semox-card .semox-p-actions {
+                width: 100%;
+            }
+            .footer-actions > button,
+            .semox-card .semox-p-actions > button {
+                min-height: 34px;
+            }
+            .semox-card .semox-p-actions {
+                width: auto;
+            }
+            .semox-card .semox-version-control {
+                align-items: stretch;
+            }
+            .semox-card .semox-version-control .version-label {
+                flex: 0 0 100%;
+            }
+            .semox-dm-direct-list {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 380px) {
+            .footer-actions,
+            .semox-card .semox-p-actions {
+                flex-direction: column;
+            }
+            .semox-card .semox-p-actions {
+                width: 100%;
+                margin-left: 0;
+            }
+            .footer-actions > button,
+            .semox-card .semox-p-actions > button {
+                width: 100%;
             }
         }
 
@@ -3469,8 +3812,8 @@
     <header class="header" id="appHeader">
         <div class="header-inner">
             <a href="#" class="logo" id="logoHome">
-                <span class="logo-icon"><i class="fas fa-cube"></i></span>
-                <span>Mob Forge</span>
+                <span class="logo-icon"><i class="fas fa-cube" id="siteLogoFallback"></i><img id="siteLogoImage" src="" alt="" hidden /></span>
+                <span id="siteNameDisplay">Mob Forge</span>
             </a>
             <nav class="nav-categories" id="navCategories"></nav>
             <div class="header-actions">
@@ -3490,10 +3833,10 @@
 
         <section class="hero fade-in">
             <div class="hero-badge">
-                <i class="fas fa-bolt" aria-hidden="true"></i><span>SEMXPRO</span>
+                <i class="fas fa-bolt" aria-hidden="true"></i><span id="siteTagDisplay">SEMXPRO</span>
             </div>
-            <h1>Minecraft <span class="highlight">Mods &amp; Downloads</span><br />Built for Your Game</h1>
-            <p>Discover premium Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins — curated for a clean, fast download experience.</p>
+            <h1 id="heroTitleDisplay">Minecraft <span class="highlight">Mods &amp; Downloads</span><br />Built for Your Game</h1>
+            <p id="heroDescriptionDisplay">Discover premium Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins — curated for a clean, fast download experience.</p>
             <div class="hero-stats">
                 <span class="stat"><i class="fas fa-database"></i> <strong id="totalItemsStat">0</strong> items</span>
                 <span class="stat"><i class="fas fa-tag"></i> <strong id="totalCategoriesStat">0</strong> categories</span>
@@ -3761,6 +4104,88 @@
 
             let PRODUCTS = [];
             const CSV_URL = 'https://docs.google.com/spreadsheets/d/1MCyljQbTV0durL06lYcW-NuBeH19PvIrSxUqyKEzVAk/gviz/tq?tqx=out:csv';
+            const DEFAULT_SITE_CONFIG = {
+                tag: 'SEMXPRO',
+                logo: '',
+                name: 'Mob Forge',
+                title: '',
+                description: ''
+            };
+
+            function normalizeSheetHeader(value) {
+                return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            }
+
+            function getWebsiteConfig(rows, headers) {
+                const aliases = {
+                    tag: ['Website_Name_tag', 'Website Name tag', 'website_tag'],
+                    logo: ['Website_Logo', 'Website Logo', 'logo_url'],
+                    name: ['Website_Name', 'Website Name', 'site_name'],
+                    title: ['Website_description_title', 'Website description title', 'description_title'],
+                    description: ['Website_description', 'Website description', 'site_description']
+                };
+                const normalizedHeaders = headers.map(normalizeSheetHeader);
+
+                function getValue(row, key, columnIndex) {
+                    const headerIndex = aliases[key]
+                        .map(normalizeSheetHeader)
+                        .map(alias => normalizedHeaders.indexOf(alias))
+                        .find(index => index >= 0);
+                    const actualIndex = headerIndex >= 0 ? headerIndex : columnIndex;
+                    const actualHeader = headers[actualIndex];
+                    return actualHeader ? String(row[actualHeader] || '').trim() : '';
+                }
+
+                const config = { ...DEFAULT_SITE_CONFIG };
+                Object.keys(config).forEach(key => {
+                    const columnIndex = { tag: 12, logo: 13, name: 14, title: 15, description: 16 }[key];
+                    for (const row of rows) {
+                        const value = getValue(row, key, columnIndex);
+                        if (value) {
+                            config[key] = value;
+                            break;
+                        }
+                    }
+                });
+                return config;
+            }
+
+            function applyWebsiteConfig(config) {
+                const safeConfig = { ...DEFAULT_SITE_CONFIG, ...(config || {}) };
+                const tagEl = document.getElementById('siteTagDisplay');
+                const logoEl = document.getElementById('siteLogoImage');
+                const logoFallbackEl = document.getElementById('siteLogoFallback');
+                const nameEl = document.getElementById('siteNameDisplay');
+                const titleEl = document.getElementById('heroTitleDisplay');
+                const descriptionEl = document.getElementById('heroDescriptionDisplay');
+
+                if (tagEl && safeConfig.tag) tagEl.textContent = safeConfig.tag;
+                if (nameEl && safeConfig.name) nameEl.textContent = safeConfig.name;
+                if (titleEl && safeConfig.title) titleEl.textContent = safeConfig.title;
+                if (descriptionEl && safeConfig.description) descriptionEl.textContent = safeConfig.description;
+
+                if (logoEl && logoFallbackEl) {
+                    logoEl.onerror = () => {
+                        logoEl.hidden = true;
+                        logoEl.style.display = 'none';
+                        logoFallbackEl.hidden = false;
+                        logoFallbackEl.style.display = 'inline-block';
+                    };
+                    if (safeConfig.logo) {
+                        logoEl.src = safeConfig.logo;
+                        logoEl.hidden = false;
+                        logoEl.style.display = 'block';
+                        logoFallbackEl.hidden = true;
+                        logoFallbackEl.style.display = 'none';
+                    } else {
+                        logoEl.removeAttribute('src');
+                        logoEl.hidden = true;
+                        logoEl.style.display = 'none';
+                        logoFallbackEl.hidden = false;
+                        logoFallbackEl.style.display = 'inline-block';
+                    }
+                }
+            }
 
             // ============================================================
             // 2. CATEGORY MATCHING
@@ -3958,6 +4383,7 @@
                         columnMap[lowerKey] = key;
                     });
                     console.log('🗺️ Columns:', Object.keys(columnMap));
+                    applyWebsiteConfig(getWebsiteConfig(rawData, Object.keys(firstRow)));
 
                     const getVal = (row, name) => {
                         const actualKey = columnMap[name.toLowerCase().trim()];
@@ -3999,11 +4425,20 @@
                             let imageUrl = getVal(row, 'image_url');
                             if (!imageUrl) imageUrl = getVal(row, 'image');
 
+                            const screenshotsRaw = getVal(row, 'screenshots') ||
+                                getVal(row, 'screenshot') ||
+                                getVal(row, 'gallery');
+                            const screenshots = screenshotsRaw
+                                ? screenshotsRaw.split(/[\n,|]+/)
+                                    .map(url => url.trim())
+                                    .filter(url => /^https?:\/\//i.test(url))
+                                : [];
+
                             const title = getVal(row, 'title') || 'Untitled';
                             const groupKey = generateGroupKey(row, getVal);
 
                             return {
-                                id: row.id || 'id-' + Math.random().toString(36).substr(2, 6),
+                                id: row.id || `catalog-${groupKey}`,
                                 groupKey: groupKey,
                                 title: title,
                                 category: matchedCat,
@@ -4015,6 +4450,7 @@
                                 image: imageUrl,
                                 downloadUrl: getVal(row, 'download_url') || '',
                                 features: features,
+                                screenshots: screenshots,
                                 priority: priority
                             };
                         })
@@ -4051,7 +4487,8 @@
                             description: item.description || '',
                             features: item.features || [],
                             title: item.title || '',
-                            image: item.image || ''
+                            image: item.image || '',
+                            screenshots: item.screenshots || []
                         }));
 
                         const cleanTitle = stripColorTags(primary.title || '').trim();
@@ -4071,7 +4508,11 @@
                                 .filter((url, index, all) => url && all.indexOf(url) === index),
                             edition: primary.edition || null,
                             versions: versions,
-                            primaryVersion: versions[0]
+                            screenshots: items.flatMap(item => item.screenshots || [])
+                                .filter((url, index, all) => url && all.indexOf(url) === index),
+                            primaryVersion: items.find(item => String(item.version || '').trim()) 
+                                ? versions[items.findIndex(item => String(item.version || '').trim())]
+                                : versions[0]
                         });
                     });
 
@@ -4100,32 +4541,32 @@
 
             function getFallbackProducts() {
                 const raw = [{
-                    id: 'minecraft-26-32',
+                    id: 'minecraft-26-45',
                     groupKey: 'minecraft',
-                    title: 'Minecraft Release',
+                    title: 'Minecraft',
                     category: 'minecraft-pe',
-                    version: '1.26.45.1',
-                    badgeText: 'BEDROCK',
-                    edition: 'bedrock',
-                    description: 'Latest Minecraft PE version with new biomes, mobs, and performance improvements.',
-                    image: 'https://raw.githubusercontent.com/semxpro/Flat-Fusion-Website/main/file_00000000b9e081f5b35afc10ccbeef5c.png',
-                    icon: 'https://raw.githubusercontent.com/semxpro/Flat-Fusion-Website/main/file_00000000b9e081f5b35afc10ccbeef5c.png',
-                    downloadUrl: 'https://github.com/semxpro/Flat-Fusion-Website/releases/download/V1.0/Minecraft.1.26.32.apk',
+                    version: '26.45',
+                    badgeText: 'Latest version',
+                    edition: null,
+                    description: 'Latest Minecraft PE version with new biomes. mobs. and performance improvements. Experience the best of Minecraft Pocket Edition with enhanced gameplay and stunning visuals.',
+                    image: 'https://cdn.discordapp.com/attachments/1441292826238390391/1546187537855287416/Homepage_Discover-our-games_MC-Vanilla-KeyArt_864x864.jpg',
+                    icon: 'https://cdn.discordapp.com/attachments/1441292826238390391/1546187537855287416/Homepage_Discover-our-games_MC-Vanilla-KeyArt_864x864.jpg',
+                    downloadUrl: 'https://download.minecrftapkmod.com/minecraft-apk-latest-version-may-2026.apk',
                     features: ['New Biomes', 'Performance Boost', 'Multiplayer'],
                     priority: 1
                 }, {
-                    id: 'minecraft-27-0',
+                    id: 'minecraft-26-60',
                     groupKey: 'minecraft',
-                    title: 'Minecraft Beta',
+                    title: 'Minecraft',
                     category: 'minecraft-pe',
-                    version: '1.21.11',
-                    badgeText: null,
-                    edition: 'bedrock',
-                    description: 'Legacy version with classic gameplay and features.',
+                    version: '26.60',
+                    badgeText: 'BETA',
+                    edition: null,
+                    description: 'Experience the latest Minecraft PE beta with exciting new biomes and mobs. Enjoy performance boosts and improvements before the official release.',
                     image: '',
                     icon: '',
                     downloadUrl: '',
-                    features: ['Classic Gameplay', 'Stable', 'Compatible'],
+                    features: ['Experimental Gameplay', 'Early Access Features', 'Bug Fixes'],
                     priority: 2
                 }, {
                     id: 'mojo-launcher',
@@ -4135,9 +4576,9 @@
                     version: '2.1.0',
                     badgeText: 'SMOOTH FPS',
                     edition: null,
-                    description: 'Boost FPS and enjoy smooth gameplay with this optimized launcher.',
-                    image: '',
-                    icon: 'https://res.cloudinary.com/p35rwudq/image/upload/20260628_192515_sxwegq.png',
+                    description: 'Boost FPS and enjoy smooth gameplay with this optimized launcher. Mojo Launcher delivers exceptional performance and stability for all Minecraft versions.',
+                    image: 'https://i.postimg.cc/FKsJwRGk/Mojo-Launcher.png',
+                    icon: 'https://i.postimg.cc/FKsJwRGk/Mojo-Launcher.png',
                     downloadUrl: 'https://github.com/semxpro/Flat-Fusion-Website/releases/download/V1.0/Mojo.Launcher.xapk',
                     features: ['Smooth FPS', 'Low Latency', 'Stable'],
                     priority: 3
@@ -4146,12 +4587,12 @@
                     groupKey: 'action-stuff',
                     title: 'Action & Stuff',
                     category: 'resource-packs',
-                    version: '1.11',
+                    version: '',
                     badgeText: 'GLOBAL PACK',
-                    edition: 'bedrock',
-                    description: 'Vibrant textures and 3D models that bring your Bedrock world to life.',
-                    image: '',
-                    icon: 'https://res.cloudinary.com/p35rwudq/image/upload/20260628_192238_mflbn5.png',
+                    edition: null,
+                    description: 'Vibrant textures and 3D models that bring your Bedrock world to life. This premium resource pack transforms Minecraft Bedrock with stunning visuals and detailed animations.',
+                    image: 'https://i.postimg.cc/YSnm7HyW/Action-amp-Stuff.png',
+                    icon: 'https://i.postimg.cc/YSnm7HyW/Action-amp-Stuff.png',
                     downloadUrl: 'https://github.com/semxpro/Flat-Fusion-Website/releases/download/V1.0/Actions.Stuff.1.11.Make.By.Semx.mcpack.zip',
                     features: ['3D Models', 'Vibrant Textures', 'HD'],
                     priority: 4
@@ -4398,9 +4839,26 @@
                     }
                 }
 
+                if (hashValue.startsWith('product=')) {
+                    let productId = hashValue.slice('product='.length);
+                    try {
+                        productId = decodeURIComponent(productId);
+                    } catch (error) {
+                        // Keep the encoded value if a copied link is malformed.
+                    }
+                    if (productId) {
+                        return {
+                            category: 'all',
+                            projectSlug: null,
+                            catalogProductId: productId
+                        };
+                    }
+                }
+
                 return {
                     category: legacyCategory || 'all',
-                    projectSlug: null
+                    projectSlug: null,
+                    catalogProductId: null
                 };
             }
 
@@ -4445,6 +4903,14 @@
                 const url = new URL(window.location.href);
                 const projectRoute = getProjectRoute(type, slugOrId);
                 if (projectRoute) url.hash = projectRoute.slice(1);
+                return url.href;
+            }
+
+            function getCatalogProductUrl(product) {
+                const url = new URL(window.location.href);
+                if (product?.id) {
+                    url.hash = `product=${encodeURIComponent(product.id)}`;
+                }
                 return url.href;
             }
 
@@ -4510,10 +4976,12 @@
                 const rect = button.getBoundingClientRect();
                 const projectType = button.dataset.projectType || button.dataset.type || '';
                 projectMenu.dataset.sourceId = button.dataset.sourceId || '';
-                projectMenu.dataset.url = getCurrentProjectUrl(
-                    projectType,
-                    button.dataset.projectSlug || button.dataset.projectId
-                );
+                projectMenu.dataset.url = projectType === 'catalog'
+                    ? getCatalogProductUrl({ id: button.dataset.projectId })
+                    : getCurrentProjectUrl(
+                        projectType,
+                        button.dataset.projectSlug || button.dataset.projectId
+                    );
                 projectMenu.dataset.name = button.dataset.projectName || 'Mob Forge project';
                 projectMenu.dataset.type = projectType;
                 projectMenu.classList.add('open');
@@ -4587,7 +5055,8 @@
             function closeDetailsModal() {
                 detailsModal.classList.remove('open');
                 currentRouteProject = null;
-                if (window.location.hash.startsWith('#project=')) {
+                if (window.location.hash.startsWith('#project=') ||
+                    window.location.hash.startsWith('#product=')) {
                     const cleanUrl = `${window.location.pathname}${window.location.search}`;
                     history.replaceState({ category: currentCategory }, '', cleanUrl);
                 }
@@ -4920,6 +5389,114 @@
             // 13. RENDER GRID
             // ============================================================
 
+            function displayVersion(version) {
+                const value = String(version || '').trim();
+                if (!value) return '';
+                return value.toLowerCase().startsWith('v') ? value : `v${value}`;
+            }
+
+            function getValidCatalogVersions(product) {
+                return Array.isArray(product?.versions)
+                    ? product.versions.filter(version => String(version?.version || '').trim())
+                    : [];
+            }
+
+            function renderCatalogVersionOptions(product) {
+                return (product.versions || []).map((version, index) => {
+                    if (!String(version?.version || '').trim()) return '';
+                    return `
+                    <option value="${index}">${escapeHtml(displayVersion(version.version))}</option>
+                    `;
+                }).join('');
+            }
+
+            function renderCatalogCard(product, index) {
+                const catIcon = getCategoryIcon(product.category);
+                const parsedTitle = parseColorTitle(product.title);
+                const validVersions = getValidCatalogVersions(product);
+                const hasVersionData = validVersions.length > 0;
+                const primary = (product.primaryVersion && String(product.primaryVersion.version || '').trim())
+                    ? product.primaryVersion
+                    : (validVersions[0] || product.primaryVersion || product.versions?.[0] || {});
+                const icon = product.icon || product.image || '';
+                const safeProductId = escapeHtml(product.id);
+                const safeGroupKey = escapeHtml(product.groupKey || '');
+                const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
+                const safeTitle = escapeHtml(cleanTitle);
+                const badge = primary.badgeText || 'STABLE';
+                const badgeClass = getBadgeClass(badge);
+                const isLatestBadge = /latest/i.test(String(badge));
+                const edition = primary.edition || product.edition || '';
+                const thumbContent = icon
+                    ? `<img src="${escapeHtml(icon)}" alt="${safeTitle}" loading="lazy" data-image-candidates="${escapeHtml(JSON.stringify(product.imageCandidates || [icon]))}" /><div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>`
+                    : `<div class="image-placeholder"><i class="fas ${catIcon}"></i></div>`;
+                const features = Array.isArray(primary.features) && primary.features.length
+                    ? primary.features
+                    : (product.features || []);
+                const versionMeta = hasVersionData
+                    ? `<span class="version" data-version-display="${safeProductId}">${escapeHtml(displayVersion(primary.version))}</span>`
+                    : '';
+                // A single Sheet row is already the selected version. Only
+                // show a selector when the same product has two or more
+                // actual versions; blank helper rows must not create a menu.
+                const latestBadgeMarkup = isLatestBadge
+                    ? `<span class="version-badge-display ${badgeClass} catalog-latest-badge" data-badge-display="${safeProductId}">${escapeHtml(badge)}</span>`
+                    : '';
+                const versionControl = validVersions.length > 1 || latestBadgeMarkup
+                    ? `
+                            <div class="catalog-version-row">
+                            ${validVersions.length > 1 ? `
+                            <div class="version-select-wrapper">
+                                <span class="version-label">Version</span>
+                                <select class="version-select" data-product-id="${safeProductId}" aria-label="Select version for ${safeTitle}">
+                                    ${renderCatalogVersionOptions(product)}
+                                </select>
+                            </div>
+                            ` : ''}
+                            ${latestBadgeMarkup}
+                            </div>
+                        `
+                    : '';
+
+                return `
+                    <div class="download-card fade-in fade-in-d${Math.min(index % 4 + 1, 4)}"
+                         data-product-id="${safeProductId}"
+                         data-group-key="${safeGroupKey}"
+                         data-clean-title="${safeTitle}">
+                        ${renderProjectMenuButton({ id: product.id, slug: product.id }, 'catalog', cleanTitle)}
+                        <div class="card-top">
+                            <div class="card-thumb">${thumbContent}</div>
+                            <div class="card-info">
+                                <div class="title-row">
+                                    <span class="title" data-title-display="${safeProductId}">${parsedTitle}</span>
+                                    ${versionMeta}
+                                    ${isLatestBadge ? '' : `<span class="version-badge-display ${badgeClass}" data-badge-display="${safeProductId}">${escapeHtml(badge)}</span>`}
+                                </div>
+                                <div class="card-meta-row">
+                                    <span class="category-tag">${escapeHtml(getCategoryLabel(product.category))}</span>
+                                    <span class="edition-badge" data-edition-display="${safeProductId}" ${edition ? '' : 'style="display:none;"'}>${escapeHtml(edition)}</span>
+                                </div>
+                                <p class="desc" data-description-display="${safeProductId}">${escapeHtml(primary.description || product.description || '')}</p>
+                            </div>
+                        </div>
+                        <div data-features-container="${safeProductId}">
+                            ${features.length ? `<ul class="feature-list">${features.map(feature => `<li><i class="fas fa-circle"></i> ${escapeHtml(feature)}</li>`).join('')}</ul>` : ''}
+                        </div>
+                        <div class="card-footer">
+                            ${versionControl}
+                            <div class="footer-actions">
+                                ${renderDownloadBadge()}
+                                <button class="btn-details" data-product-id="${safeProductId}" type="button">Details</button>
+                                <button class="btn-download" data-product-id="${safeProductId}" data-url="${escapeHtml(primary.downloadUrl || '')}" type="button" ${primary.downloadUrl && primary.downloadUrl !== '#' ? '' : 'disabled'}>
+                                    <i class="fas ${primary.downloadUrl && primary.downloadUrl !== '#' ? 'fa-download' : 'fa-ban'}"></i>
+                                    ${primary.downloadUrl && primary.downloadUrl !== '#' ? 'Download' : 'Unavailable'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             function renderGrid(categoryId) {
                 try {
                     if (categoryId === 'plugins' || categoryId === 'resource-packs' ||
@@ -4957,128 +5534,7 @@
 
                     let html = '';
                     products.forEach((product, index) => {
-                        const catLabel = getCategoryLabel(product.category);
-                        const catIcon = getCategoryIcon(product.category);
-                        const versionedEntries = product.versions
-                            .map((version, originalIndex) => ({ version, originalIndex }))
-                            .filter(item => String(item.version?.version || '').trim() !== '');
-                        const hasMultipleVersions = versionedEntries.length > 1;
-                        const primaryVer = product.primaryVersion || product.versions[0] || {};
-                        const displayPrimaryVer = versionedEntries[0]?.version || primaryVer;
-                        const parsedTitle = parseColorTitle(product.title);
-
-                        let thumbContent;
-                        if (product.icon && product.icon.trim() !== '') {
-                            const imageCandidates = escapeHtml(JSON.stringify(product.imageCandidates || [product.icon]));
-                            thumbContent = `
-                                        <img src="${escapeHtml(product.icon)}" alt="${escapeHtml(product.title)}" loading="lazy" data-image-candidates="${imageCandidates}" />
-                                        <div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>
-                                    `;
-                        } else {
-                            thumbContent = `<div class="image-placeholder" style="display:flex;"><i class="fas ${catIcon}"></i></div>`;
-                        }
-
-                        let editionBadge = '';
-                        if (product.edition) {
-                            editionBadge =
-                                `<span class="edition-badge" data-edition-display="${product.id}">${product.edition.charAt(0).toUpperCase() + product.edition.slice(1)}</span>`;
-                        } else {
-                            editionBadge =
-                                `<span class="edition-badge" data-edition-display="${product.id}" style="display:none;"></span>`;
-                        }
-
-                        const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
-                        const currentVersion = primaryVer.version || '';
-
-                        let versionOptions = '';
-                        versionedEntries.forEach(({ version: v, originalIndex }) => {
-                            const vClass = getBadgeClass(v.badgeText) || '';
-                            const isSelected = versionedEntries[0].originalIndex === originalIndex ? 'selected' : '';
-                                versionOptions += `<option value="${originalIndex}" ${isSelected} 
-                                        data-badge="${escapeHtml(v.badgeText || '')}" 
-                                        data-badge-class="${escapeHtml(vClass)}" 
-                                        data-url="${escapeHtml(v.downloadUrl || '')}"
-                                        data-description="${escapeHtml(v.description || '')}"
-                                        data-features="${escapeHtml((v.features || []).join(','))}"
-                                        data-edition="${escapeHtml(v.edition || '')}"
-                                        data-title="${escapeHtml(v.title || '')}"
-                                        data-version="${escapeHtml(v.version || '')}">
-                                        ${escapeHtml(v.version)}
-                                    </option>`;
-                        });
-
-                        let featuresHtml = '';
-                        const primaryFeatures = product.features || displayPrimaryVer.features || [];
-                        if (primaryFeatures.length > 0) {
-                            featuresHtml =
-                                `<ul class="feature-list">${primaryFeatures.map(f => `<li><i class="fas fa-circle"></i> ${f}</li>`).join('')}</ul>`;
-                        }
-
-                        const badgeHtml = renderDownloadBadge();
-                        const primaryBadgeText = displayPrimaryVer.badgeText || '';
-                        const badgeClass = getBadgeClass(primaryBadgeText);
-
-                        const primaryUrl = String(displayPrimaryVer.downloadUrl || '').trim();
-                        const primaryAvailable = Boolean(primaryUrl && primaryUrl !== '#');
-                        const initialDownloadLabel = primaryAvailable
-                            ? '<i class="fas fa-download"></i> Download'
-                            : '<i class="fas fa-ban"></i> Unavailable';
-                        const footerHtml = `
-                                    ${hasMultipleVersions ? `
-                                        <div class="version-select-wrapper">
-                                            <span class="version-label">Version</span>
-                                            <select class="version-select" data-product-id="${escapeHtml(product.id)}">
-                                                ${versionOptions}
-                                            </select>
-                                            <span class="version-badge-display ${badgeClass}" data-badge-display="${escapeHtml(product.id)}">
-                                                ${escapeHtml(primaryBadgeText || 'STABLE')}
-                                            </span>
-                                        </div>
-                                    ` : '<div style="flex:1;min-width:10px;"></div>'}
-                                    <div class="footer-right">
-                                        ${badgeHtml}
-                                        <button class="btn-details" data-product-id="${escapeHtml(product.id)}" type="button"><i class="fas fa-circle-info"></i> Details</button>
-                                        <button class="mf-card-favorite ${isFavorite(product.id) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(product.id)}" type="button" aria-label="Save ${escapeHtml(cleanTitle)}"><i class="fas fa-star"></i></button>
-                                        <button class="btn-download" data-product-id="${escapeHtml(product.id)}" data-url="${escapeHtml(primaryUrl)}" type="button" ${primaryAvailable ? '' : 'disabled'}>
-                                            ${initialDownloadLabel}
-                                        </button>
-                                    </div>
-                                `;
-
-                        const displayVersion = (ver) => {
-                            if (!ver || ver.trim() === '') return '';
-                            if (ver.trim().toLowerCase().startsWith('v')) return ver.trim();
-                            return 'v' + ver.trim();
-                        };
-                        const primaryVersionDisplay = displayVersion(displayPrimaryVer.version || '');
-
-                        html += `
-                                    <div class="download-card fade-in fade-in-d${Math.min(index % 4 + 1, 4)}" data-product-id="${product.id}" data-group-key="${product.groupKey}" data-clean-title="${cleanTitle}">
-                                        <div class="card-top">
-                                            <div class="card-thumb">
-                                                ${thumbContent}
-                                            </div>
-                                            <div class="card-info">
-                                                <div class="title-row">
-                                                    <span class="title" data-title-display="${product.id}">${parsedTitle}</span>
-                                                    ${primaryVersionDisplay ? `<span class="version" data-version-display="${escapeHtml(product.id)}">${primaryVersionDisplay}</span>` : ''}
-                                                    ${!hasMultipleVersions && primaryBadgeText ? `<span class="badge-pill ${badgeClass}">${primaryBadgeText}</span>` : ''}
-                                                    ${editionBadge}
-                                                </div>
-                                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;">
-                                                    <span class="category-tag"><i class="fas ${catIcon}"></i> ${catLabel}</span>
-                                                </div>
-                                                <p class="desc" data-description-display="${product.id}">${product.description || ''}</p>
-                                            </div>
-                                        </div>
-                                        <div class="feature-list-container" data-features-container="${product.id}">
-                                            ${featuresHtml}
-                                        </div>
-                                        <div class="card-footer">
-                                            ${footerHtml}
-                                        </div>
-                                    </div>
-                                `;
+                        html += renderCatalogCard(product, index);
                     });
                     downloadGrid.innerHTML = html;
 
@@ -5122,51 +5578,32 @@
                             const select = target;
                             const productId = select.dataset.productId;
                             const selectedIndex = parseInt(select.value, 10);
-                            const option = select.options[selectedIndex];
-
-                            const url = option.dataset.url || '';
-                            const badge = option.dataset.badge || '';
-                            const badgeClass = option.dataset.badgeClass || '';
-                            const rawVersion = option.dataset.version || option.textContent.trim();
-                            const description = option.dataset.description || '';
-                            const featuresRaw = option.dataset.features || '';
-                            const edition = option.dataset.edition || '';
-                            const rawTitle = option.dataset.title || '';
-
-                            const features = featuresRaw ? featuresRaw.split(',').map(f => f.trim()).filter(f => f) : [];
-
-                            const card = document.querySelector(`.download-card[data-product-id="${productId}"]`);
+                            const product = PRODUCTS.find(item => item.id === productId);
+                            const selectedVersion = product?.versions?.[selectedIndex] || product?.primaryVersion;
+                            const card = select.closest('.download-card');
                             if (!card) return;
-
-                            const cleanTitle = card.dataset.cleanTitle || '';
-                            const parsedTitle = parseColorTitle(rawTitle);
-
-                            const displayVersion = (ver) => {
-                                if (!ver || ver.trim() === '') return '';
-                                if (ver.trim().toLowerCase().startsWith('v')) return ver.trim();
-                                return 'v' + ver.trim();
-                            };
-                            const versionDisplayStr = displayVersion(rawVersion);
+                            if (!product || !selectedVersion) return;
 
                             const titleDisplay = card.querySelector(`[data-title-display="${productId}"]`);
-                            if (titleDisplay) titleDisplay.innerHTML = parsedTitle || 'Untitled';
+                            if (titleDisplay) titleDisplay.innerHTML = parseColorTitle(selectedVersion.title || product.title) || 'Untitled';
 
                             const versionDisplay = card.querySelector(`[data-version-display="${productId}"]`);
-                            if (versionDisplay) versionDisplay.textContent = versionDisplayStr;
+                            if (versionDisplay) versionDisplay.textContent = displayVersion(selectedVersion.version);
 
                             const badgeDisplay = card.querySelector(`[data-badge-display="${productId}"]`);
                             if (badgeDisplay) {
-                                badgeDisplay.textContent = badge || 'STABLE';
-                                badgeDisplay.className = `version-badge-display ${badgeClass}`;
+                                const badge = selectedVersion.badgeText || 'STABLE';
+                                badgeDisplay.textContent = badge;
+                                badgeDisplay.className = `version-badge-display ${getBadgeClass(badge)}`;
                             }
 
                             const descElement = card.querySelector(`[data-description-display="${productId}"]`);
-                            if (descElement) descElement.textContent = description || '';
+                            if (descElement) descElement.textContent = selectedVersion.description || product.description || '';
 
                             const editionBadgeEl = card.querySelector(`[data-edition-display="${productId}"]`);
                             if (editionBadgeEl) {
-                                if (edition) {
-                                    editionBadgeEl.textContent = edition.charAt(0).toUpperCase() + edition.slice(1);
+                                if (selectedVersion.edition) {
+                                    editionBadgeEl.textContent = selectedVersion.edition.charAt(0).toUpperCase() + selectedVersion.edition.slice(1);
                                     editionBadgeEl.style.display = 'inline-block';
                                 } else {
                                     editionBadgeEl.style.display = 'none';
@@ -5175,15 +5612,19 @@
 
                             const featuresContainer = card.querySelector(`[data-features-container="${productId}"]`);
                             if (featuresContainer) {
+                                const features = Array.isArray(selectedVersion.features) && selectedVersion.features.length
+                                    ? selectedVersion.features
+                                    : (product.features || []);
                                 if (features.length > 0) {
                                     featuresContainer.innerHTML =
-                                        `<ul class="feature-list">${features.map(f => `<li><i class="fas fa-circle"></i> ${f}</li>`).join('')}</ul>`;
+                                        `<ul class="feature-list">${features.map(f => `<li><i class="fas fa-circle"></i> ${escapeHtml(f)}</li>`).join('')}</ul>`;
                                 } else {
                                     featuresContainer.innerHTML = '';
                                 }
                             }
 
                             const downloadBtn = card.querySelector(`.btn-download[data-product-id="${productId}"]`);
+                            const url = String(selectedVersion.downloadUrl || '').trim();
                             const hasDownloadUrl = Boolean(url && url !== '#');
                             if (downloadBtn) {
                                 downloadBtn.disabled = !hasDownloadUrl;
@@ -5200,6 +5641,16 @@
                         if (favoriteTarget) {
                             const saved = toggleFavorite(favoriteTarget.dataset.favoriteId);
                             favoriteTarget.classList.toggle('is-favorite', saved);
+                            e.preventDefault();
+                            return;
+                        }
+
+                        const moreTarget = target.closest('.card-more-btn');
+                        if (moreTarget) {
+                            const product = PRODUCTS.find(item => item.id === moreTarget.dataset.productId);
+                            const card = moreTarget.closest('.download-card');
+                            const selectedVersion = product && getSelectedCatalogVersion(product, card);
+                            if (product) openCatalogDetailsModal(product, selectedVersion);
                             e.preventDefault();
                             return;
                         }
@@ -5247,7 +5698,7 @@
                 if (!product) return null;
                 const select = card && card.querySelector('.version-select');
                 if (!select) {
-                    return product.versions?.find(version => String(version.version || '').trim() !== '') ||
+                    return getValidCatalogVersions(product)[0] ||
                         product.primaryVersion || product.versions?.[0] || null;
                 }
                 const selectedIndex = parseInt(select.value, 10);
@@ -5256,13 +5707,45 @@
 
             function openCatalogDetailsModal(product, selectedVersion) {
                 if (!product || !detailsModal || !dmBody) return;
-                const primary = selectedVersion || product.primaryVersion || product.versions?.[0] || {};
+                const validVersions = getValidCatalogVersions(product);
+                const primary = selectedVersion || validVersions[0] || product.primaryVersion || product.versions?.[0] || {};
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(primary.title || product.title || 'Untitled');
                 const category = getCategoryLabel(product.category);
                 const features = Array.isArray(primary.features) && primary.features.length
                     ? primary.features
                     : (product.features || []);
+                const screenshots = (product.screenshots || primary.screenshots || [])
+                    .filter((url, index, all) => url && all.indexOf(url) === index);
+                const directDownloads = (product.versions || [])
+                    .filter(version => String(version.downloadUrl || '').trim() && version.downloadUrl !== '#')
+                    .filter((version, index, all) => {
+                        const key = `${version.version || ''}|${version.downloadUrl}`;
+                        return all.findIndex(item => `${item.version || ''}|${item.downloadUrl}` === key) === index;
+                    });
+                const productUrl = getCatalogProductUrl(product);
+                const versionMeta = primary.version
+                    ? `<span><i class="fas fa-tag"></i> ${escapeHtml(displayVersion(primary.version))}</span>`
+                    : '';
+                const directLinks = directDownloads.length
+                    ? `
+                        <div class="semox-dm-direct-links">
+                            <h4>Direct downloads</h4>
+                            <div class="semox-dm-direct-list">
+                                ${directDownloads.map(version => `
+                                    <a class="semox-dm-direct-link"
+                                       href="${escapeHtml(version.downloadUrl)}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       download>
+                                        <i class="fas fa-download"></i>
+                                        <span>${escapeHtml(version.version ? displayVersion(version.version) : 'Download release')}</span>
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `
+                    : '';
                 dmBody.innerHTML = `
                     <div class="semox-dm-header">
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:64px;height:64px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
@@ -5270,12 +5753,25 @@
                     </div>
                     <div class="semox-dm-desc">${escapeHtml(primary.description || product.description || 'Explore this curated Mob Forge release.')}</div>
                     <div class="semox-dm-meta">
-                        <span><i class="fas fa-tag"></i> ${escapeHtml(primary.version || 'Latest')}</span>
+                        ${versionMeta}
                         ${primary.edition ? `<span><i class="fas fa-cube"></i> ${escapeHtml(primary.edition)}</span>` : ''}
-                        <span><i class="fas fa-layer-group"></i> ${product.versions.length} version${product.versions.length === 1 ? '' : 's'}</span>
+                        ${validVersions.length ? `<span><i class="fas fa-layer-group"></i> ${validVersions.length} version${validVersions.length === 1 ? '' : 's'}</span>` : ''}
                     </div>
                     ${features.length ? `<div class="semox-dm-meta">${features.map(feature => `<span><i class="fas fa-check"></i> ${escapeHtml(feature)}</span>`).join('')}</div>` : ''}
-                    <button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button"><i class="fas fa-download"></i> Choose version &amp; download</button>
+                    ${screenshots.length ? `
+                        <div class="semox-dm-screenshots">
+                            <h4>Screenshots</h4>
+                            <div class="semox-dm-gallery">
+                                ${screenshots.map(url => `<img src="${escapeHtml(url)}" alt="${escapeHtml(title)} screenshot" loading="lazy" data-src="${escapeHtml(url)}" />`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${directLinks}
+                    <div class="semox-share-actions">
+                        <button type="button" class="semox-detail-share" data-project-url="${escapeHtml(productUrl)}" data-project-name="${escapeHtml(title)}"><i class="fas fa-arrow-up-right-from-square"></i> Share</button>
+                        <button type="button" class="semox-detail-copy" data-project-url="${escapeHtml(productUrl)}"><i class="fas fa-link"></i> Copy Link</button>
+                    </div>
+                    <button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button"><i class="fas fa-download"></i> ${validVersions.length ? 'Choose version &amp; download' : 'Download release'}</button>
                 `;
                 detailsModal.classList.add('open');
                 document.getElementById('mfCatalogDetailDownload')?.addEventListener('click', () => {
@@ -5286,26 +5782,30 @@
 
             function openCatalogDownloadModal(product, selectedVersion) {
                 if (!product || !downloadModal || !dlBody) return;
-                const versions = Array.isArray(product.versions) && product.versions.length
-                    ? product.versions
-                    : [product.primaryVersion || {}];
-                const platforms = [...new Set(versions.map(version => version.edition).filter(Boolean).map(value => value.toLowerCase()))];
+                const versions = getValidCatalogVersions(product);
+                const hasVersionData = versions.length > 0;
+                const releases = hasVersionData
+                    ? versions
+                    : [product.primaryVersion || product.versions?.[0] || {}];
+                const platforms = [...new Set(releases.map(version => version.edition).filter(Boolean).map(value => value.toLowerCase()))];
                 const platformOptions = ['all', ...platforms];
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(product.title || 'Download');
-                const initialIndex = Math.max(0, versions.indexOf(selectedVersion));
+                const initialIndex = Math.max(0, releases.indexOf(selectedVersion));
                 const platformLabel = product.category === 'launchers' ? 'Platform' : 'Edition / Platform';
                 dlBody.innerHTML = `
                     <div class="semox-dl-header">
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:40px;height:40px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
                         <div class="semox-dl-title">${escapeHtml(title)}</div>
                     </div>
-                    <div class="semox-dl-field">
-                        <label>Minecraft Version</label>
-                        <select id="mfCatalogVersionSelect">
-                            ${versions.map((version, index) => `<option value="${index}" ${index === initialIndex ? 'selected' : ''}>${escapeHtml(version.version || 'Latest')}</option>`).join('')}
-                        </select>
-                    </div>
+                    ${hasVersionData ? `
+                        <div class="semox-dl-field">
+                            <label>Minecraft Version</label>
+                            <select id="mfCatalogVersionSelect">
+                                ${versions.map((version, index) => `<option value="${index}" ${index === initialIndex ? 'selected' : ''}>${escapeHtml(displayVersion(version.version))}</option>`).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
                     <div class="semox-dl-field">
                         <label>${platformLabel}</label>
                         <select id="mfCatalogPlatformSelect">
@@ -5323,25 +5823,27 @@
                 const action = document.getElementById('mfCatalogDownloadAction');
 
                 function updateCatalogDownload() {
-                    const selected = versions[parseInt(versionSelect.value, 10)] || versions[0];
+                    const selected = releases[hasVersionData ? parseInt(versionSelect.value, 10) : 0] || releases[0] || {};
                     const platform = platformSelect.value;
-                    const sameVersion = versions.filter(version => version.version === selected.version);
+                    const sameVersion = hasVersionData
+                        ? versions.filter(version => version.version === selected.version)
+                        : [selected];
                     const compatible = platform === 'all'
                         ? sameVersion[0]
                         : sameVersion.find(version => version.edition && version.edition.toLowerCase() === platform);
                     const url = compatible ? String(compatible.downloadUrl || '').trim() : '';
-                    const displayVersion = selected.version || 'Latest';
+                    const selectedVersionLabel = selected.version ? displayVersion(selected.version) : 'Release';
                     info.innerHTML = !compatible
-                        ? `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><span style="color:var(--orange);">No file is available for this platform.</span>`
+                        ? `<strong>${hasVersionData ? 'Version' : 'Release'}:</strong> ${escapeHtml(selectedVersionLabel)}<br><span style="color:var(--orange);">No file is available for this platform.</span>`
                         : (url
-                            ? `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><strong>File:</strong> Ready to download`
-                            : `<strong>Version:</strong> ${escapeHtml(displayVersion)}<br><span style="color:var(--orange);">This release has no download link yet.</span>`);
+                            ? `<strong>${hasVersionData ? 'Version' : 'Release'}:</strong> ${escapeHtml(selectedVersionLabel)}<br><strong>File:</strong> Ready to download`
+                            : `<strong>${hasVersionData ? 'Version' : 'Release'}:</strong> ${escapeHtml(selectedVersionLabel)}<br><span style="color:var(--orange);">This release has no download link yet.</span>`);
                     action.disabled = !url || url === '#';
                     action.dataset.url = url;
-                    action.dataset.version = displayVersion;
+                    action.dataset.version = selected.version || '';
                 }
 
-                versionSelect.addEventListener('change', updateCatalogDownload);
+                versionSelect?.addEventListener('change', updateCatalogDownload);
                 platformSelect.addEventListener('change', updateCatalogDownload);
                 updateCatalogDownload();
                 action.addEventListener('click', function () {
@@ -5687,7 +6189,104 @@
                 }
             }
 
+            function getApiCategoryLabel(type) {
+                return {
+                    plugin: 'Plugin',
+                    resourcepack: 'Resource Pack',
+                    mod: 'Mod',
+                    shader: 'Shader'
+                }[type] || 'Minecraft';
+            }
+
+            function clearCatalogGridListener() {
+                if (!downloadGrid?._listener) return;
+                downloadGrid.removeEventListener('change', downloadGrid._listener);
+                downloadGrid.removeEventListener('click', downloadGrid._listener);
+                downloadGrid._listener = null;
+            }
+
+            function getApiDisplayTags(project, type) {
+                const categoryMap = {
+                    plugin: {
+                        paper: 'Paper',
+                        spigot: 'Spigot',
+                        fabric: 'Fabric',
+                        forge: 'Forge',
+                        quilt: 'Quilt'
+                    },
+                    resourcepack: {
+                        bedrock: 'Bedrock',
+                        java: 'Java',
+                        optifine: 'OptiFine'
+                    },
+                    mod: {
+                        fabric: 'Fabric',
+                        forge: 'Forge',
+                        quilt: 'Quilt',
+                        neoforge: 'NeoForge'
+                    },
+                    shader: {
+                        iris: 'Iris',
+                        optifine: 'OptiFine'
+                    }
+                };
+                const map = categoryMap[type] || {};
+                const values = (project.categories || [])
+                    .map(value => map[String(value).toLowerCase()] || String(value))
+                    .filter(Boolean);
+                return [...new Set(values)].slice(0, 3);
+            }
+
+            function renderApiCard(project, type, index, fallbackIcon) {
+                const projectId = project.project_id || project.id || '';
+                const name = project.title || 'Unnamed';
+                const icon = project.icon_url || '';
+                const versions = Array.isArray(project.versions) ? project.versions.filter(Boolean) : [];
+                const selectedVersion = versions[0] || '';
+                const safeId = escapeHtml(projectId);
+                const safeName = escapeHtml(name);
+                const safeIcon = escapeHtml(icon);
+                const categoryLabel = getApiCategoryLabel(type);
+                const tags = getApiDisplayTags(project, type);
+                const iconHtml = icon
+                    ? `<img src="${safeIcon}" alt="${safeName}" loading="lazy" /><div class="semox-icon-placeholder" style="display:none;"><i class="fas ${fallbackIcon}"></i></div>`
+                    : `<div class="semox-icon-placeholder"><i class="fas ${fallbackIcon}"></i></div>`;
+                const metaTags = [
+                    ...tags.map(tag => `<span class="semox-p-tag semox-loader"><i class="fas fa-cube"></i> ${escapeHtml(tag)}</span>`),
+                    `<span class="semox-p-tag semox-version" data-api-version-display="${safeId}"><i class="fas fa-tag"></i> ${escapeHtml(selectedVersion || 'Latest')}</span>`
+                ].join('');
+
+                return `
+                    <div class="semox-card fade-in fade-in-d${Math.min(index % 4 + 1, 4)}"
+                         data-project-id="${safeId}"
+                         data-project-name="${safeName}"
+                         data-project-icon="${safeIcon}"
+                         data-project-type="${escapeHtml(type)}">
+                        ${renderProjectMenuButton(project, type, name)}
+                        <div class="semox-p-top">
+                            <div class="semox-p-icon">${iconHtml}</div>
+                            <div class="semox-p-info">
+                                <div class="semox-p-name">${safeName}<span class="semox-p-badge">${escapeHtml(categoryLabel)}</span></div>
+                                <div class="semox-p-meta">${metaTags}</div>
+                                <div class="semox-p-desc">${escapeHtml(project.description || '')}</div>
+                            </div>
+                        </div>
+                        <div class="semox-p-footer">
+                            <div class="semox-p-dl-count" aria-label="${escapeHtml(formatOfficialDownloads(project.downloads))} downloads">
+                                <i class="fas fa-download"></i>
+                                <span class="semox-count">${escapeHtml(formatOfficialDownloads(project.downloads))}</span>
+                            </div>
+                            <div class="semox-p-actions">
+                                <button class="semox-btn-details" data-project-id="${safeId}" data-type="${escapeHtml(type)}" type="button">Details</button>
+                                <button class="semox-btn-download" data-project-id="${safeId}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="${escapeHtml(type)}" type="button"><i class="fas fa-download"></i> Download</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             function renderPluginResults(page) {
+                clearCatalogGridListener();
                 if (!pluginData || pluginData.length === 0) {
                     showApiEmpty('plugins');
                     return;
@@ -5695,64 +6294,7 @@
 
                 let html = '<div class="semox-grid">';
                 pluginData.forEach((plugin, idx) => {
-                    const projectId = plugin.project_id;
-                    const name = plugin.title || 'Unnamed';
-                    const description = plugin.description || '';
-                    const icon = plugin.icon_url || '';
-                    const safeName = escapeHtml(name);
-                    const safeDescription = escapeHtml(description);
-                    const safeIcon = escapeHtml(icon);
-                    const loaders = plugin.categories ? plugin.categories.filter(c => pluginAvailableLoaders.includes(c
-                        .charAt(0).toUpperCase() + c.slice(1))) : [];
-                    const displayLoaders = loaders.length ? loaders : (plugin.categories ? [plugin.categories[0]] :
-                        []);
-                    const version = plugin.versions && plugin.versions.length > 0 ? plugin.versions[0] : '';
-                    const downloads = formatOfficialDownloads(plugin.downloads);
-
-                    const loaderTags = displayLoaders.map(l =>
-                        `<span class="semox-p-tag semox-loader"><i class="fas fa-cube"></i> ${l.charAt(0).toUpperCase() + l.slice(1)}</span>`
-                    ).join('');
-
-                    const versionTag = version ?
-                        `<span class="semox-p-tag semox-version"><i class="fas fa-tag"></i> ${version}</span>` :
-                        '';
-
-                    const iconHtml = icon ?
-                        `<img src="${safeIcon}" alt="${safeName}" loading="lazy" />` :
-                        `<div class="semox-icon-placeholder"><i class="fas fa-puzzle-piece"></i></div>`;
-
-                    html += `
-                                <div class="semox-card" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}">
-                                    ${renderProjectMenuButton(plugin, 'plugin', name)}
-                                    <div class="semox-p-top">
-                                        <div class="semox-p-icon">
-                                            ${iconHtml}
-                                        </div>
-                                        <div class="semox-p-info">
-                                            <div class="semox-p-name">
-                                                ${safeName}
-                                                <span class="semox-p-badge">Plugin</span>
-                                            </div>
-                                            <div class="semox-p-desc">${safeDescription}</div>
-                                        </div>
-                                    </div>
-                                    <div class="semox-p-meta">
-                                        ${loaderTags}
-                                        ${versionTag}
-                                    </div>
-                                    <div class="semox-p-footer">
-                                        <div class="semox-p-dl-count">
-                                            <i class="fas fa-download"></i>
-                                            <span class="semox-count" data-plugin-count="${projectId}">${downloads}</span>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="plugin">Details</button>
-                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="plugins" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
-                                            <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="plugin"><i class="fas fa-download"></i> Download</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                    html += renderApiCard(plugin, 'plugin', idx, 'fa-puzzle-piece');
                 });
                 html += '</div>';
 
@@ -5921,6 +6463,7 @@
             }
 
             function renderResourcePackResults(page) {
+                clearCatalogGridListener();
                 if (!rpData || rpData.length === 0) {
                     showApiEmpty('resource-packs');
                     return;
@@ -5928,68 +6471,7 @@
 
                 let html = '<div class="semox-grid">';
                 rpData.forEach((pack, idx) => {
-                    const projectId = pack.project_id;
-                    const name = pack.title || 'Unnamed';
-                    const description = pack.description || '';
-                    const icon = pack.icon_url || '';
-                    const safeName = escapeHtml(name);
-                    const safeDescription = escapeHtml(description);
-                    const safeIcon = escapeHtml(icon);
-                    const categories = pack.categories || [];
-                    const loaderDisplay = categories.map(c => {
-                        if (c === 'bedrock') return 'Bedrock';
-                        if (c === 'java') return 'Java';
-                        if (c === 'optifine') return 'OptiFine';
-                        return c.charAt(0).toUpperCase() + c.slice(1);
-                    }).filter(l => rpAvailableLoaders.includes(l));
-                    const displayLoaders = loaderDisplay.length ? loaderDisplay : ['Any'];
-                    const version = pack.versions && pack.versions.length > 0 ? pack.versions[0] : '';
-                    const downloads = formatOfficialDownloads(pack.downloads);
-
-                    const loaderTags = displayLoaders.map(l =>
-                        `<span class="semox-p-tag semox-loader"><i class="fas fa-cube"></i> ${l}</span>`
-                    ).join('');
-
-                    const versionTag = version ?
-                        `<span class="semox-p-tag semox-version"><i class="fas fa-tag"></i> ${version}</span>` :
-                        '';
-
-                    const iconHtml = icon ?
-                        `<img src="${safeIcon}" alt="${safeName}" loading="lazy" />` :
-                        `<div class="semox-icon-placeholder"><i class="fas fa-palette"></i></div>`;
-
-                    html += `
-                                <div class="semox-card" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}">
-                                    ${renderProjectMenuButton(pack, 'resourcepack', name)}
-                                    <div class="semox-p-top">
-                                        <div class="semox-p-icon">
-                                            ${iconHtml}
-                                        </div>
-                                        <div class="semox-p-info">
-                                            <div class="semox-p-name">
-                                                ${safeName}
-                                                <span class="semox-p-badge">Resource Pack</span>
-                                            </div>
-                                            <div class="semox-p-desc">${safeDescription}</div>
-                                        </div>
-                                    </div>
-                                    <div class="semox-p-meta">
-                                        ${loaderTags}
-                                        ${versionTag}
-                                    </div>
-                                    <div class="semox-p-footer">
-                                        <div class="semox-p-dl-count">
-                                            <i class="fas fa-download"></i>
-                                            <span class="semox-count" data-rp-count="${projectId}">${downloads}</span>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="resourcepack">Details</button>
-                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="resource-packs" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
-                                            <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="resourcepack"><i class="fas fa-download"></i> Download</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                    html += renderApiCard(pack, 'resourcepack', idx, 'fa-palette');
                 });
                 html += '</div>';
 
@@ -6152,6 +6634,7 @@
             }
 
             function renderModResults(page) {
+                clearCatalogGridListener();
                 if (!modData || modData.length === 0) {
                     showApiEmpty('mods');
                     return;
@@ -6159,64 +6642,7 @@
 
                 let html = '<div class="semox-grid">';
                 modData.forEach((mod, idx) => {
-                    const projectId = mod.project_id;
-                    const name = mod.title || 'Unnamed';
-                    const description = mod.description || '';
-                    const icon = mod.icon_url || '';
-                    const safeName = escapeHtml(name);
-                    const safeDescription = escapeHtml(description);
-                    const safeIcon = escapeHtml(icon);
-                    const loaders = mod.categories ? mod.categories.filter(c => modAvailableLoaders.includes(c
-                        .charAt(0).toUpperCase() + c.slice(1))) : [];
-                    const displayLoaders = loaders.length ? loaders : (mod.categories ? [mod.categories[0]] :
-                        []);
-                    const version = mod.versions && mod.versions.length > 0 ? mod.versions[0] : '';
-                    const downloads = formatOfficialDownloads(mod.downloads);
-
-                    const loaderTags = displayLoaders.map(l =>
-                        `<span class="semox-p-tag semox-loader"><i class="fas fa-cube"></i> ${l.charAt(0).toUpperCase() + l.slice(1)}</span>`
-                    ).join('');
-
-                    const versionTag = version ?
-                        `<span class="semox-p-tag semox-version"><i class="fas fa-tag"></i> ${version}</span>` :
-                        '';
-
-                    const iconHtml = icon ?
-                        `<img src="${safeIcon}" alt="${safeName}" loading="lazy" />` :
-                        `<div class="semox-icon-placeholder"><i class="fas fa-cogs"></i></div>`;
-
-                    html += `
-                                <div class="semox-card" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}">
-                                    ${renderProjectMenuButton(mod, 'mod', name)}
-                                    <div class="semox-p-top">
-                                        <div class="semox-p-icon">
-                                            ${iconHtml}
-                                        </div>
-                                        <div class="semox-p-info">
-                                            <div class="semox-p-name">
-                                                ${safeName}
-                                                <span class="semox-p-badge">Mod</span>
-                                            </div>
-                                            <div class="semox-p-desc">${safeDescription}</div>
-                                        </div>
-                                    </div>
-                                    <div class="semox-p-meta">
-                                        ${loaderTags}
-                                        ${versionTag}
-                                    </div>
-                                    <div class="semox-p-footer">
-                                        <div class="semox-p-dl-count">
-                                            <i class="fas fa-download"></i>
-                                            <span class="semox-count" data-mod-count="${projectId}">${downloads}</span>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="mod">Details</button>
-                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="mods" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
-                                            <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="mod"><i class="fas fa-download"></i> Download</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                    html += renderApiCard(mod, 'mod', idx, 'fa-cogs');
                 });
                 html += '</div>';
 
@@ -6384,6 +6810,7 @@
             }
 
             function renderShaderResults(page) {
+                clearCatalogGridListener();
                 if (!shaderData || shaderData.length === 0) {
                     showApiEmpty('shaders');
                     return;
@@ -6391,67 +6818,7 @@
 
                 let html = '<div class="semox-grid">';
                 shaderData.forEach((shader, idx) => {
-                    const projectId = shader.project_id;
-                    const name = shader.title || 'Unnamed';
-                    const description = shader.description || '';
-                    const icon = shader.icon_url || '';
-                    const safeName = escapeHtml(name);
-                    const safeDescription = escapeHtml(description);
-                    const safeIcon = escapeHtml(icon);
-                    const categories = shader.categories || [];
-                    const loaderDisplay = categories.map(c => {
-                        if (c === 'iris') return 'Iris';
-                        if (c === 'optifine') return 'OptiFine';
-                        return c.charAt(0).toUpperCase() + c.slice(1);
-                    }).filter(l => shaderAvailableLoaders.includes(l));
-                    const displayLoaders = loaderDisplay.length ? loaderDisplay : ['Any'];
-                    const version = shader.versions && shader.versions.length > 0 ? shader.versions[0] : '';
-                    const downloads = formatOfficialDownloads(shader.downloads);
-
-                    const loaderTags = displayLoaders.map(l =>
-                        `<span class="semox-p-tag semox-loader"><i class="fas fa-cube"></i> ${l}</span>`
-                    ).join('');
-
-                    const versionTag = version ?
-                        `<span class="semox-p-tag semox-version"><i class="fas fa-tag"></i> ${version}</span>` :
-                        '';
-
-                    const iconHtml = icon ?
-                        `<img src="${safeIcon}" alt="${safeName}" loading="lazy" />` :
-                        `<div class="semox-icon-placeholder"><i class="fas fa-sun"></i></div>`;
-
-                    html += `
-                                <div class="semox-card" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}">
-                                    ${renderProjectMenuButton(shader, 'shader', name)}
-                                    <div class="semox-p-top">
-                                        <div class="semox-p-icon">
-                                            ${iconHtml}
-                                        </div>
-                                        <div class="semox-p-info">
-                                            <div class="semox-p-name">
-                                                ${safeName}
-                                                <span class="semox-p-badge">Shader</span>
-                                            </div>
-                                            <div class="semox-p-desc">${safeDescription}</div>
-                                        </div>
-                                    </div>
-                                    <div class="semox-p-meta">
-                                        ${loaderTags}
-                                        ${versionTag}
-                                    </div>
-                                    <div class="semox-p-footer">
-                                        <div class="semox-p-dl-count">
-                                            <i class="fas fa-download"></i>
-                                            <span class="semox-count" data-shader-count="${projectId}">${downloads}</span>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                             <button class="semox-btn-details" data-project-id="${projectId}" data-type="shader">Details</button>
-                                             <button class="mf-api-favorite ${isFavorite(projectId) ? 'is-favorite' : ''}" data-favorite-id="${escapeHtml(projectId)}" data-favorite-title="${safeName}" data-favorite-category="shaders" type="button" aria-label="Save ${safeName}"><i class="fas fa-star"></i></button>
-                                            <button class="semox-btn-download" data-project-id="${escapeHtml(projectId)}" data-project-name="${safeName}" data-project-icon="${safeIcon}" data-type="shader"><i class="fas fa-download"></i> Download</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                    html += renderApiCard(shader, 'shader', idx, 'fa-sun');
                 });
                 html += '</div>';
 
@@ -6502,6 +6869,28 @@
                     });
                 });
 
+                document.querySelectorAll('.semox-version-select').forEach(select => {
+                    select.addEventListener('change', function () {
+                        const card = this.closest('.semox-card');
+                        if (!card) return;
+                        const selectedVersion = this.value || 'Latest';
+                        card.dataset.selectedVersion = selectedVersion;
+                        const versionDisplay = card.querySelector(`[data-api-version-display="${this.dataset.projectId}"]`);
+                        if (versionDisplay) {
+                            versionDisplay.innerHTML = `<i class="fas fa-tag"></i> ${escapeHtml(selectedVersion)}`;
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.card-more-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const card = this.closest('.semox-card');
+                        const projectId = this.dataset.projectId;
+                        const projectType = this.dataset.type || type;
+                        if (projectId) openDetailsModal(projectId, projectType, card?.dataset.selectedVersion || '');
+                    });
+                });
+
                 document.querySelectorAll('.semox-btn-details').forEach(btn => {
                     btn.addEventListener('click', function() {
                         this.classList.remove('is-opening');
@@ -6509,7 +6898,8 @@
                         window.setTimeout(() => this.classList.remove('is-opening'), 560);
                         const id = this.dataset.projectId;
                         const type = this.dataset.type || 'plugin';
-                        openDetailsModal(id, type);
+                        const card = this.closest('.semox-card');
+                        openDetailsModal(id, type, card?.dataset.selectedVersion || '');
                     });
                 });
 
@@ -6523,7 +6913,8 @@
                         const name = this.dataset.projectName || 'Item';
                         const icon = this.dataset.projectIcon || '';
                         const type = this.dataset.type || 'plugin';
-                        openDownloadModal(id, name, icon, type);
+                        const card = this.closest('.semox-card');
+                        openDownloadModal(id, name, icon, type, card?.dataset.selectedVersion || '');
                     });
                 });
 
@@ -6565,7 +6956,7 @@
             // 20. DETAILS & DOWNLOAD MODALS
             // ============================================================
 
-            async function openDetailsModal(projectId, type) {
+            async function openDetailsModal(projectId, type, preferredVersion = '') {
                 const cacheMap = {
                     'plugin': pluginProjectCache,
                     'resourcepack': rpProjectCache,
@@ -6575,7 +6966,7 @@
                 const cache = cacheMap[type] || pluginProjectCache;
 
                 if (cache.has(projectId)) {
-                    renderDetails(cache.get(projectId), type);
+                    renderDetails(cache.get(projectId), type, preferredVersion);
                     return;
                 }
                 try {
@@ -6583,7 +6974,7 @@
                     if (!res.ok) throw new Error('Failed to fetch project details');
                     const data = await res.json();
                     cache.set(projectId, data);
-                    renderDetails(data, type);
+                    renderDetails(data, type, preferredVersion);
                 } catch (e) {
                     console.error('Error fetching details:', e);
                     alert('Could not load details.');
@@ -6634,7 +7025,7 @@
                 }
             }
 
-            function renderDetails(data, type) {
+            function renderDetails(data, type, preferredVersion = '') {
                 const name = data.title || 'Unnamed';
                 const icon = data.icon_url || '';
                 const description = data.description || '';
@@ -6674,7 +7065,8 @@
                             </div>
                             <div class="semox-dm-meta">
                                 ${loaders.map(l => `<span><i class="fas fa-cube"></i> ${l}</span>`).join('')}
-                                ${versions.slice(0, 5).map(v => `<span><i class="fas fa-tag"></i> ${v}</span>`).join('')}
+                                ${preferredVersion ? `<span><i class="fas fa-tag"></i> ${escapeHtml(preferredVersion)} selected</span>` : ''}
+                                ${versions.slice(0, 5).map(v => `<span><i class="fas fa-tag"></i> ${escapeHtml(v)}</span>`).join('')}
                                 ${versions.length > 5 ? `<span>+${versions.length - 5} more</span>` : ''}
                             </div>
                         `;
@@ -6718,7 +7110,7 @@
                 }
             }
 
-            async function openDownloadModal(projectId, name, icon, type) {
+            async function openDownloadModal(projectId, name, icon, type, preferredVersion = '') {
                 dlBody.innerHTML = `
                             <div class="semox-dl-header">
                                 ${icon ? `<img src="${icon}" alt="${name}" />` : `<div style="width:40px;height:40px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text-muted);"><i class="fas ${type === 'plugin' ? 'fa-puzzle-piece' : type === 'resourcepack' ? 'fa-palette' : type === 'mod' ? 'fa-cogs' : 'fa-sun'}"></i></div>`}
@@ -6784,7 +7176,7 @@
                             <div class="semox-dl-field">
                                 <label>Minecraft Version</label>
                                 <select id="semoxDlVersionSelect">
-                                    ${gameVersions.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                    ${gameVersions.map(v => `<option value="${escapeHtml(v)}" ${v === preferredVersion ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="semox-dl-field">
@@ -7125,6 +7517,9 @@
                 setActiveCategory(route.category, { updateUrl: false });
                 if (route.projectSlug) {
                     openDirectProjectRoute(route.category, route.projectSlug);
+                } else if (route.catalogProductId) {
+                    const product = PRODUCTS.find(item => item.id === route.catalogProductId);
+                    if (product) openCatalogDetailsModal(product, product.primaryVersion);
                 }
             }
 
@@ -7164,6 +7559,9 @@
                 setActiveCategory(route.category, { updateUrl: false });
                 if (route.projectSlug) {
                     openDirectProjectRoute(route.category, route.projectSlug);
+                } else if (route.catalogProductId) {
+                    const product = PRODUCTS.find(item => item.id === route.catalogProductId);
+                    if (product) openCatalogDetailsModal(product, product.primaryVersion);
                 }
             }
 
