@@ -3905,6 +3905,51 @@
         .mf-auth-note { color: var(--text-muted); font-size: .72rem; line-height: 1.6; margin-top: 15px; }
         @media (max-width: 620px) { .mf-form-grid { grid-template-columns: 1fr; } .mf-upload-box { padding: 24px 18px !important; } }
     </style>
+
+    <!--
+        Firebase foundation for the future admin panel.
+        This intentionally does not initialize Firebase Auth. The existing
+        Google Identity Services login below remains the only login system.
+        Future admin-panel code can await window.mobForgeFirebaseReady.
+    -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAnalytics, isSupported as analyticsIsSupported } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: 'AIzaSyBMJirMGi83B76zKy7id7XOOyfeHChyhSw',
+            authDomain: 'admin-panel-f9d34.firebaseapp.com',
+            databaseURL: 'https://admin-panel-f9d34-default-rtdb.asia-southeast1.firebasedatabase.app',
+            projectId: 'admin-panel-f9d34',
+            storageBucket: 'admin-panel-f9d34.firebasestorage.app',
+            messagingSenderId: '120727884776',
+            appId: '1:120727884776:web:1bc1d7956f4dd6deb38a5d',
+            measurementId: 'G-S4K0QK9EB2'
+        };
+
+        const firebaseApp = initializeApp(firebaseConfig);
+        const firebaseDatabase = getDatabase(firebaseApp);
+        const firebaseFirestore = getFirestore(firebaseApp);
+        const firebaseServices = {
+            app: firebaseApp,
+            database: firebaseDatabase,
+            firestore: firebaseFirestore,
+            analytics: null,
+            config: firebaseConfig
+        };
+
+        // Synchronous bridge for code that only needs the initialized app,
+        // plus a Promise for future admin-panel reads/writes.
+        window.mobForgeFirebase = firebaseServices;
+        window.mobForgeFirebaseReady = analyticsIsSupported()
+            .then((supported) => {
+                if (supported) firebaseServices.analytics = getAnalytics(firebaseApp);
+                return firebaseServices;
+            })
+            .catch(() => firebaseServices);
+    </script>
 </head>
 
 <body>
