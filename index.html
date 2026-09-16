@@ -17,6 +17,7 @@
     <title>Mob Forge</title>
     <meta name="description" content="Discover curated Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins in one clean download experience." />
     <meta name="theme-color" content="#0A0A0F" />
+    <meta name="application-name" content="Mob Forge" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Mob Forge — Minecraft Mods &amp; Downloads" />
@@ -31,7 +32,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%238B5CF6'/%3E%3Cpath d='M18 18h28v8H26v6h16v8H26v6h20v8H18z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
     <style>
         /* ============================================================
@@ -3408,7 +3409,7 @@
         .mf-account-action:hover, .mf-creator-nav-action:hover { color: var(--text-primary); border-color: var(--border-hover); background: rgba(139,92,246,.1); }
         .mf-account-action.creator, .mf-creator-nav-action { color: #dfd2ff; border-color: rgba(139,92,246,.28); background: rgba(139,92,246,.12); }
         .mf-account-action.danger { color: #fda4af; }
-        .mf-account-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:16px 0 12px; }
+        .mf-account-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:16px 0 12px; }
         .mf-account-stat { padding:10px 6px; border:1px solid var(--border-subtle); border-radius:10px; background:rgba(255,255,255,.035); }
         .mf-account-stat strong { display:block; color:var(--text-primary); font-size:1.05rem; }
         .mf-account-stat span { display:block; color:var(--text-muted); font-size:.65rem; margin-top:2px; }
@@ -3417,7 +3418,15 @@
         .mf-account-panel-list { display:grid; gap:7px; max-height:260px; overflow:auto; }
         .mf-account-panel-item { padding:9px 10px; border:1px solid var(--border-subtle); border-radius:9px; background:rgba(255,255,255,.035); }
         .mf-account-panel-item strong { display:block; color:var(--text-primary); font-size:.78rem; }
-        .mf-account-panel-item span { color:var(--text-muted); font-size:.68rem; }
+        .mf-account-panel-item span { color: var(--text-muted); font-size:.68rem; }
+        .mf-account-panel-item-button { width:100%; display:flex; align-items:center; gap:10px; color:inherit; text-align:left; cursor:pointer; }
+        .mf-account-panel-item-button:hover { border-color:var(--border-hover); background:rgba(139,92,246,.1); }
+        .mf-saved-item-icon { width:34px; height:34px; flex:0 0 auto; display:grid; place-items:center; overflow:hidden; border-radius:8px; color:var(--violet); background:rgba(139,92,246,.12); }
+        .mf-saved-item-icon img { width:100%; height:100%; object-fit:cover; }
+        .mf-saved-item-copy { min-width:0; flex:1; }
+        .mf-saved-item-copy strong, .mf-saved-item-copy span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .mf-saved-item-copy strong { display:block; }
+        .mf-saved-item-copy span { display:block; margin-top:3px; }
         .mf-account-back { margin-top:14px; width:100%; }
         .mf-upload-box { max-width: 650px !important; text-align: left !important; padding: 28px !important; }
         .mf-upload-box h3 { text-align: left; }
@@ -4703,7 +4712,10 @@
                     id: product.id,
                     title: stripColorTags(product.title),
                     category: product.category,
-                    version: product.primaryVersion?.version || ''
+                    version: product.primaryVersion?.version || '',
+                    icon: product.icon || product.image || '',
+                    source: 'catalog',
+                    downloadType: 'catalog'
                 });
             }
 
@@ -6439,11 +6451,18 @@
                     btn.addEventListener('click', function (event) {
                         event.preventDefault();
                         event.stopPropagation();
+                        const card = this.closest('.semox-card');
+                        const apiCategory = this.dataset.favoriteCategory || type;
                         const saved = toggleSavedFavorite({
                             id: this.dataset.favoriteId,
                             title: this.dataset.favoriteTitle || 'Saved project',
-                            category: this.dataset.favoriteCategory || type,
-                            version: ''
+                            category: apiCategory,
+                            version: '',
+                            icon: (card && card.dataset.projectIcon) || '',
+                            source: 'modrinth',
+                            downloadType: 'modrinth',
+                            projectId: this.dataset.favoriteId,
+                            modrinthType: type
                         });
                         this.classList.toggle('is-favorite', saved);
                     });
@@ -7134,6 +7153,8 @@
                 fetchResourcePacks,
                 fetchMods,
                 fetchShaders,
+                openCatalogDownloadModal,
+                openDownloadModal,
                 pluginVersionCache,
                 pluginProjectCache,
                 rpVersionCache,
@@ -7261,6 +7282,33 @@
         }
     }
 
+    function savedCategoryIcon(category) {
+        var icons = {
+            'minecraft-pe': 'fa-cube',
+            'launchers': 'fa-rocket',
+            'resource-packs': 'fa-palette',
+            'plugins': 'fa-puzzle-piece',
+            'mods': 'fa-gears',
+            'shaders': 'fa-sun'
+        };
+        return icons[category] || 'fa-cube';
+    }
+
+    function openSavedDownload(item) {
+        if (!item || !item.id) return;
+        var catalogProducts = window.__build && window.__build.products;
+        var catalogProduct = Array.isArray(catalogProducts) ? catalogProducts.find(function (product) { return product.id === item.id; }) : null;
+        if (catalogProduct) {
+            var selectedVersion = (catalogProduct.versions || []).find(function (version) { return version.version === item.version; }) || catalogProduct.primaryVersion || (catalogProduct.versions || [])[0];
+            closeModal(accountModal);
+            window.__build.openCatalogDownloadModal(catalogProduct, selectedVersion);
+            return;
+        }
+        var type = item.modrinthType || ({ plugins: 'plugin', 'resource-packs': 'resourcepack', mods: 'mod', shaders: 'shader' }[item.category] || 'mod');
+        closeModal(accountModal);
+        window.__build.openDownloadModal(item.projectId || item.id, item.title || 'Saved project', item.icon || item.image || '', type);
+    }
+
     function renderAccountPanel(panel) {
         if (!accountModal) return;
         var box = accountModal.querySelector('.modal-box');
@@ -7269,7 +7317,11 @@
         var title = panel === 'saved' ? 'Saved items' : 'Download history';
         var empty = panel === 'saved' ? 'Your saved releases will appear here.' : 'Your downloads will appear here after you start a download.';
         var list = items.length ? items.map(function (item) {
-            return '<div class="mf-account-panel-item"><strong>' + escapeHtml(item.title || 'Mob Forge release') + '</strong><span>' + escapeHtml(item.category || 'Minecraft') + (item.version ? ' · ' + escapeHtml(item.version) : '') + '</span></div>';
+            var icon = item.icon || item.image || '';
+            var category = item.category || 'Minecraft';
+            var version = item.version || 'Latest';
+            var thumbnail = icon ? '<img src="' + escapeHtml(icon) + '" alt="" />' : '<i class="fas ' + savedCategoryIcon(item.category) + '"></i>';
+            return '<button type="button" class="mf-account-panel-item mf-account-panel-item-button" data-mf-saved-download data-mf-saved-id="' + escapeHtml(item.id || '') + '" data-mf-saved-project-id="' + escapeHtml(item.projectId || '') + '" data-mf-saved-title="' + escapeHtml(item.title || 'Mob Forge release') + '" data-mf-saved-category="' + escapeHtml(item.category || '') + '" data-mf-saved-version="' + escapeHtml(item.version || '') + '" data-mf-saved-icon="' + escapeHtml(icon) + '" data-mf-saved-type="' + escapeHtml(item.modrinthType || '') + '"><span class="mf-saved-item-icon">' + thumbnail + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Mob Forge release') + '</strong><span>' + escapeHtml(category) + ' · ' + escapeHtml(version) + '</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>';
         }).join('') : '<div class="mf-account-panel-item"><span>' + empty + '</span></div>';
         box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas ' + (panel === 'saved' ? 'fa-star' : 'fa-clock-rotate-left') + '"></i></div><h3>' + title + '</h3><div class="mf-account-panel"><div class="mf-account-panel-list">' + list + '</div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home><i class="fas fa-arrow-left"></i> Back to dashboard</button></div>';
     }
@@ -7390,6 +7442,19 @@
         if (!profile && window.google && window.google.accounts && window.google.accounts.id) setTimeout(function () { window.google.accounts.id.prompt(); }, 120);
     });
     if (accountModal) accountModal.addEventListener('click', function (event) {
+        var savedDownload = event.target.closest('[data-mf-saved-download]');
+        if (savedDownload) {
+            openSavedDownload({
+                id: savedDownload.dataset.mfSavedId,
+                projectId: savedDownload.dataset.mfSavedProjectId,
+                title: savedDownload.dataset.mfSavedTitle,
+                category: savedDownload.dataset.mfSavedCategory,
+                version: savedDownload.dataset.mfSavedVersion,
+                icon: savedDownload.dataset.mfSavedIcon,
+                modrinthType: savedDownload.dataset.mfSavedType
+            });
+            return;
+        }
         var target = event.target.closest('[data-mf-account-close]');
         if (target) closeModal(accountModal);
         var panel = event.target.closest('[data-mf-show-panel]');
