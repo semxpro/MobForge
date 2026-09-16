@@ -2846,6 +2846,17 @@
             padding: 5px 13px;
             font-size: 0.72rem;
         }
+        .footer-actions > .btn-download.btn-download-direct {
+            flex: 0 0 auto;
+            width: auto;
+            gap: 6px;
+            min-width: 0;
+            padding: 6px 18px;
+            font-size: 0.8rem;
+        }
+        .footer-actions > .btn-download.btn-download-direct i {
+            font-size: 0.75rem;
+        }
         .footer-actions > .btn-details {
             padding: 5px 11px;
             font-size: 0.67rem;
@@ -4218,7 +4229,47 @@
                 };
                 const normalizedHeaders = headers.map(normalizeSheetHeader);
 
+                function getEmbeddedHeaderValue(header, key) {
+                    const normalizedHeader = normalizeSheetHeader(header);
+                    for (const alias of aliases[key]) {
+                        const normalizedAlias = normalizeSheetHeader(alias);
+                        if (!normalizedAlias ||
+                            !normalizedHeader.startsWith(normalizedAlias) ||
+                            normalizedHeader === normalizedAlias) {
+                            continue;
+                        }
+
+                        // Some Sheet exports contain the setting and its
+                        // value in the header cell itself, for example:
+                        // "Website_Logo https://example.com/logo.png".
+                        // Consume the alias from the original header so the
+                        // URL's punctuation is preserved.
+                        let position = 0;
+                        let aliasPosition = 0;
+                        while (position < String(header).length && aliasPosition < normalizedAlias.length) {
+                            const character = String(header)[position];
+                            if (/[a-z0-9]/i.test(character)) {
+                                if (character.toLowerCase() !== normalizedAlias[aliasPosition]) {
+                                    aliasPosition = -1;
+                                    break;
+                                }
+                                aliasPosition += 1;
+                            }
+                            position += 1;
+                        }
+                        if (aliasPosition !== normalizedAlias.length) continue;
+                        if (position < String(header).length && !/[\s:=-]/.test(String(header)[position])) continue;
+                        const embeddedValue = String(header).slice(position).replace(/^[\s:=-]+/, '').trim();
+                        if (embeddedValue) return embeddedValue;
+                    }
+                    return '';
+                }
+
                 function getValue(row, key, columnIndex) {
+                    for (const header of headers) {
+                        const embeddedValue = getEmbeddedHeaderValue(header, key);
+                        if (embeddedValue) return embeddedValue;
+                    }
                     const headerIndex = aliases[key]
                         .map(normalizeSheetHeader)
                         .map(alias => normalizedHeaders.indexOf(alias))
@@ -5602,7 +5653,7 @@
                     : values;
             }
 
-            function renderCatalogCard(product, index) {
+            function renderCatalogCard(product, index, categoryId) {
                 const catIcon = getCategoryIcon(product.category);
                 const parsedTitle = parseColorTitle(product.title);
                 const validVersions = getValidCatalogVersions(product);
@@ -5659,6 +5710,22 @@
                             </div>
                         `
                     : '';
+                const downloadAvailable = Boolean(primary.downloadUrl && primary.downloadUrl !== '#');
+                const directDownloadOnly = categoryId === 'all' ||
+                    product.category === 'minecraft-pe' ||
+                    product.category === 'launchers';
+                const downloadButtonClass = directDownloadOnly
+                    ? 'btn-download btn-download-direct'
+                    : 'btn-download';
+                const catalogDownloadButton = `
+                                <button class="${downloadButtonClass}" data-product-id="${safeProductId}" data-url="${escapeHtml(primary.downloadUrl || '')}" type="button" ${downloadAvailable ? '' : 'disabled'}>
+                                    <i class="fas ${downloadAvailable ? 'fa-download' : 'fa-ban'}"></i>
+                                    ${downloadAvailable ? 'Download' : 'Unavailable'}
+                                </button>
+                `;
+                const detailsButton = directDownloadOnly
+                    ? catalogDownloadButton
+                    : `<button class="btn-details" data-product-id="${safeProductId}" type="button">Details</button>`;
 
                 return `
                     <div class="download-card fade-in fade-in-d${Math.min(index % 4 + 1, 4)}"
@@ -5689,11 +5756,8 @@
                             ${versionControl}
                             <div class="footer-actions">
                                 ${renderDownloadBadge()}
-                                <button class="btn-details" data-product-id="${safeProductId}" type="button">Details</button>
-                                <button class="btn-download" data-product-id="${safeProductId}" data-url="${escapeHtml(primary.downloadUrl || '')}" type="button" ${primary.downloadUrl && primary.downloadUrl !== '#' ? '' : 'disabled'}>
-                                    <i class="fas ${primary.downloadUrl && primary.downloadUrl !== '#' ? 'fa-download' : 'fa-ban'}"></i>
-                                    ${primary.downloadUrl && primary.downloadUrl !== '#' ? 'Download' : 'Unavailable'}
-                                </button>
+                                ${detailsButton}
+                                ${directDownloadOnly ? '' : catalogDownloadButton}
                             </div>
                         </div>
                     </div>
@@ -5737,7 +5801,7 @@
 
                     let html = '';
                     products.forEach((product, index) => {
-                        html += renderCatalogCard(product, index);
+                        html += renderCatalogCard(product, index, categoryId);
                     });
                     downloadGrid.innerHTML = html;
 
