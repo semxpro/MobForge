@@ -4283,7 +4283,8 @@
             let PRODUCTS = [];
             // The storefront is interactive immediately. Cached/local data is
             // rendered first and the live Firestore snapshot replaces it later.
-            let catalogReady = true;
+            let catalogReady = false;
+            let catalogServerSnapshotSeen = false;
             const CATALOG_CACHE_KEY = 'mob-forge-catalog-cache-v2';
             const SITE_CONFIG_CACHE_KEY = 'mob-forge-site-config-cache-v1';
 
@@ -4668,10 +4669,14 @@
                 const emptyCatalog = [];
                 const cachedCatalog = readCatalogCache();
                 PRODUCTS = cachedCatalog.length ? cachedCatalog : emptyCatalog;
-                catalogReady = true;
+                // Cached data can render immediately, but an empty catalog
+                // must remain in a loading state until the first Firestore
+                // snapshot is received. This prevents the initial blank flash
+                // on a fresh visit.
+                catalogReady = cachedCatalog.length > 0;
                 applyWebsiteConfig(readSiteConfigCache() || DEFAULT_SITE_CONFIG);
                 initApp();
-                scheduleExternalPrefetch();
+                if (catalogReady) scheduleExternalPrefetch();
 
                 const refreshCatalog = (items) => {
                     const grouped = new Map();
@@ -4717,6 +4722,7 @@
                             title: primary.title || '',
                             cleanTitle: stripColorTags(primary.title || '').trim(),
                             category: primary.category,
+                            badgeText: primary.badgeText || '',
                             description: primary.description || '',
                             features: primary.features || [],
                             image: primary.image || '',
@@ -4752,7 +4758,7 @@
                     const title = String(data.title || 'Untitled').trim();
                     const normalizedTitle = stripColorTags(title).toLowerCase()
                         .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                    const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || '');
+                    const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || data.image || data.icon || '');
                     const screenshots = Array.isArray(data.screenshots)
                         ? data.screenshots.map(normalizeImageUrl).filter(Boolean)
                         : [];
@@ -4770,7 +4776,7 @@
                                 : String(version?.features || '').split(/[,🔹|]+/).map(value => value.trim()).filter(Boolean);
                             return {
                                 version: versionName,
-                                badgeText: String(version?.badge || version?.bedge || '').trim(),
+                                badgeText: String(version?.badge || version?.badgeText || version?.bedge || '').trim(),
                                 edition: String(version?.edition || version?.subBadge || '').trim().toLowerCase() || null,
                                 description: String(version?.description || '').trim(),
                                 features: versionFeatures,
@@ -4796,7 +4802,7 @@
                         title,
                         category: matchedCat,
                         version: String(data.version || '').trim(),
-                        badgeText: String(data.badge || data.bedge || '').trim(),
+                        badgeText: String(data.badge || data.badgeText || data.bedge || '').trim(),
                         edition: subBadge === 'bedrock' || subBadge === 'java' ? subBadge : null,
                         description: String(data.description || '').trim(),
                         icon: imageUrl,
@@ -4835,6 +4841,18 @@
 
                     reader.subscribeProducts(snapshot => {
                         const items = snapshot.docs.map(normalizeFirestoreProduct).filter(Boolean);
+                        // Firestore's local persistence may report an empty
+                        // cache before the server snapshot. Keep cached/live
+                        // cards visible instead of replacing them with an
+                        // empty state during that hand-off.
+                        if (
+                            !items.length &&
+                            snapshot.metadata?.fromCache &&
+                            !catalogServerSnapshotSeen
+                        ) {
+                            return;
+                        }
+                        if (!snapshot.metadata?.fromCache) catalogServerSnapshotSeen = true;
                         if (items.length) {
                             refreshCatalog(items);
                         } else {
@@ -5360,6 +5378,10 @@
 
             function getProductsForCategory(categoryId) {
                 if (categoryId === 'all') return PRODUCTS;
+                // Resource Packs are always sourced from Modrinth in this
+                // category. Admin-created packs still remain visible on the
+                // Home/All catalog through the branch above.
+                if (categoryId === 'resource-packs') return [];
                 return PRODUCTS.filter(p => p.category === categoryId);
             }
 
@@ -5378,7 +5400,9 @@
                     scheduleExternalPrefetch.started = false;
                     const requests = [];
                     if (getCategoryCount('plugins') === 0) requests.push(fetchPlugins(1));
-                    if (getCategoryCount('resource-packs') === 0) requests.push(fetchResourcePacks(1));
+                    // Resource Packs are intentionally Modrinth-only in their
+                    // category, even when admin-created packs exist.
+                    requests.push(fetchResourcePacks(1));
                     if (getCategoryCount('mods') === 0) requests.push(fetchMods(1));
                     if (getCategoryCount('shaders') === 0) requests.push(fetchShaders(1));
                     Promise.allSettled(requests);
@@ -5590,6 +5614,7 @@
                 if (currentCategory === categoryId) {
                     updateNavButtons(categoryId);
                     if (options.updateUrl !== false) updateUrlForCategory(categoryId);
+                    return;
                 }
 
                 currentCategory = categoryId;
@@ -5618,7 +5643,8 @@
                 }
 
                 // Show/hide filter bars
-                const hasManagedProducts = getCategoryCount(categoryId) > 0;
+                const hasManagedProducts = categoryId !== 'resource-packs' &&
+                    getCategoryCount(categoryId) > 0;
                 pluginFilterBar.style.display = (categoryId === 'plugins' && !hasManagedProducts) ? 'flex' : 'none';
                 rpFilterBar.style.display = (categoryId === 'resource-packs' && !hasManagedProducts) ? 'flex' : 'none';
                 modFilterBar.style.display = (categoryId === 'mods' && !hasManagedProducts) ? 'flex' : 'none';
@@ -5763,11 +5789,11 @@
                 const safeGroupKey = escapeHtml(product.groupKey || '');
                 const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
                 const safeTitle = escapeHtml(cleanTitle);
-                const badge = primary.badgeText || '';
+                const badge = primary.badgeText || (!hasVersionData ? product.badgeText : '') || '';
                 const badgeClass = getBadgeClass(badge);
                 const hasAnyBadge = (product.versions || []).some(version =>
                     String(version?.badgeText || '').trim()
-                );
+                ) || (!hasVersionData && Boolean(String(product.badgeText || '').trim()));
                 const edition = primary.edition || product.edition || '';
                 const thumbContent = icon
                     ? `<img src="${escapeHtml(icon)}" alt="${safeTitle}" loading="lazy" data-image-candidates="${escapeHtml(JSON.stringify(product.imageCandidates || [icon]))}" /><div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>`
@@ -6076,7 +6102,8 @@
                         product.primaryVersion || product.versions?.[0] || null;
                 }
                 const selectedIndex = parseInt(select.value, 10);
-                return product.versions[selectedIndex] || product.primaryVersion || product.versions[0] || null;
+                return getValidCatalogVersions(product)[selectedIndex] ||
+                    product.primaryVersion || product.versions[0] || null;
             }
 
             function openCatalogDetailsModal(product, selectedVersion) {
@@ -6085,6 +6112,7 @@
                 const primary = selectedVersion || validVersions[0] || product.primaryVersion || product.versions?.[0] || {};
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(primary.title || product.title || 'Untitled');
+                const productBadge = String(primary.badgeText || (!validVersions.length ? product.badgeText : '') || '').trim();
                 const category = getCategoryLabel(product.category);
                 const selectedVersionIndex = Math.max(0, validVersions.findIndex(version =>
                     version === primary ||
@@ -6145,7 +6173,7 @@
                 dmBody.innerHTML = `
                     <div class="semox-dm-header">
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:64px;height:64px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
-                        <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span></div>
+                        <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span>${productBadge ? ` <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(productBadge)}</span>` : ''}</div>
                     </div>
                     ${versionPicker}
                     <div class="semox-dm-desc">${escapeHtml(primary.description || product.description || 'Explore this curated Mob Forge release.')}</div>
@@ -7877,19 +7905,19 @@
                 pluginSearchTerm = pluginSearchInput ? pluginSearchInput.value : '';
                 pluginLoader = pluginLoaderFilter ? pluginLoaderFilter.value : 'all';
                 pluginVersion = pluginVersionFilter ? pluginVersionFilter.value : 'all';
-                fetchPlugins(1).then(() => { scrollToFirstCard(); });
+                showSkeleton();
+                scrollToFirstCard();
+                fetchPlugins(1);
             }
 
             function loadResourcePacksFromModrinth() {
-                if (getCategoryCount('resource-packs') > 0) {
-                    renderGrid('resource-packs');
-                    return;
-                }
                 rpCurrentPage = 1;
                 rpSearchTerm = rpSearchInput ? rpSearchInput.value : '';
                 rpLoader = rpLoaderFilter ? rpLoaderFilter.value : 'all';
                 rpVersion = rpVersionFilter ? rpVersionFilter.value : 'all';
-                fetchResourcePacks(1).then(() => { scrollToFirstCard(); });
+                showSkeleton();
+                scrollToFirstCard();
+                fetchResourcePacks(1);
             }
 
             function loadModsFromModrinth() {
@@ -7901,7 +7929,9 @@
                 modSearchTerm = modSearchInput ? modSearchInput.value : '';
                 modLoader = modLoaderFilter ? modLoaderFilter.value : 'all';
                 modVersion = modVersionFilter ? modVersionFilter.value : 'all';
-                fetchMods(1).then(() => { scrollToFirstCard(); });
+                showSkeleton();
+                scrollToFirstCard();
+                fetchMods(1);
             }
 
             function loadShadersFromModrinth() {
@@ -7913,7 +7943,9 @@
                 shaderSearchTerm = shaderSearchInput ? shaderSearchInput.value : '';
                 shaderLoader = shaderLoaderFilter ? shaderLoaderFilter.value : 'all';
                 shaderVersion = shaderVersionFilter ? shaderVersionFilter.value : 'all';
-                fetchShaders(1).then(() => { scrollToFirstCard(); });
+                showSkeleton();
+                scrollToFirstCard();
+                fetchShaders(1);
             }
 
             // ============================================================
