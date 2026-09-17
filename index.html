@@ -33,6 +33,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
 
     <style>
         /* ============================================================
@@ -3914,9 +3916,15 @@
     -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAnalytics, isSupported as analyticsIsSupported } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js';
-        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+        import {
+            initializeFirestore,
+            getFirestore,
+            persistentLocalCache,
+            persistentMultipleTabManager,
+            collection,
+            doc,
+            onSnapshot
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: 'AIzaSyBMJirMGi83B76zKy7id7XOOyfeHChyhSw',
@@ -3930,11 +3938,22 @@
         };
 
         const firebaseApp = initializeApp(firebaseConfig);
-        const firebaseDatabase = getDatabase(firebaseApp);
-        const firebaseFirestore = getFirestore(firebaseApp);
+        let firebaseFirestore;
+        try {
+            // Reuse Firestore's local snapshot immediately on repeat visits.
+            firebaseFirestore = initializeFirestore(firebaseApp, {
+                localCache: persistentLocalCache({
+                    tabManager: persistentMultipleTabManager()
+                })
+            });
+        } catch (error) {
+            // Older browsers or an already-initialized app can still use the
+            // normal Firestore instance without blocking the storefront.
+            firebaseFirestore = getFirestore(firebaseApp);
+        }
         const firebaseServices = {
             app: firebaseApp,
-            database: firebaseDatabase,
+            database: null,
             firestore: firebaseFirestore,
             analytics: null,
             config: firebaseConfig
@@ -3943,12 +3962,22 @@
         // Synchronous bridge for code that only needs the initialized app,
         // plus a Promise for future admin-panel reads/writes.
         window.mobForgeFirebase = firebaseServices;
-        window.mobForgeFirebaseReady = analyticsIsSupported()
-            .then((supported) => {
-                if (supported) firebaseServices.analytics = getAnalytics(firebaseApp);
-                return firebaseServices;
-            })
-            .catch(() => firebaseServices);
+        /*
+         * Public catalog bridge. The website only reads the two collections
+         * written by the open admin panel. No Firebase Auth is involved here.
+         */
+        window.mobForgeFirestoreRead = {
+            subscribeProducts(onNext, onError) {
+                return onSnapshot(collection(firebaseFirestore, 'catalogProducts'), onNext, onError);
+            },
+            subscribeSettings(onNext, onError) {
+                return onSnapshot(doc(firebaseFirestore, 'siteSettings', 'main'), onNext, onError);
+            }
+        };
+        // The storefront only needs Firestore. Analytics and Realtime
+        // Database are intentionally not initialized here because they add
+        // extra network requests before the catalog can render.
+        window.mobForgeFirebaseReady = Promise.resolve(firebaseServices);
     </script>
 </head>
 
@@ -3961,7 +3990,7 @@
         <div class="header-inner">
             <a href="#" class="logo" id="logoHome">
                 <span class="logo-icon"><i class="fas fa-cube" id="siteLogoFallback"></i><img id="siteLogoImage" src="" alt="" hidden /></span>
-                <span id="siteNameDisplay">Mob Forge</span>
+                <span id="siteNameDisplay"></span>
             </a>
             <nav class="nav-categories" id="navCategories"></nav>
             <div class="header-actions">
@@ -3981,10 +4010,10 @@
 
         <section class="hero fade-in">
             <div class="hero-badge">
-                <i class="fas fa-bolt" aria-hidden="true"></i><span id="siteTagDisplay">SEMXPRO</span>
+                <i class="fas fa-bolt" aria-hidden="true"></i><span id="siteTagDisplay"></span>
             </div>
-            <h1 id="heroTitleDisplay">Minecraft <span class="highlight">Mods &amp; Downloads</span><br />Built for Your Game</h1>
-            <p id="heroDescriptionDisplay">Discover premium Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins — curated for a clean, fast download experience.</p>
+            <h1 id="heroTitleDisplay"></h1>
+            <p id="heroDescriptionDisplay"></p>
             <div class="hero-stats">
                 <span class="stat"><i class="fas fa-database"></i> <strong id="totalItemsStat">0</strong> items</span>
                 <span class="stat"><i class="fas fa-tag"></i> <strong id="totalCategoriesStat">0</strong> categories</span>
@@ -4094,7 +4123,7 @@
             <div class="empty-state" style="grid-column:1/-1;">
                 <div class="icon"><i class="fas fa-spinner fa-pulse"></i></div>
                 <h3>Loading Downloads...</h3>
-                <p>Fetching the latest data from Google Sheets.</p>
+                <p>Fetching the latest catalog from Firebase.</p>
             </div>
         </div>
 
@@ -4249,13 +4278,76 @@
                 { id: 'mods', label: 'Mods', icon: 'fa-cogs', desc: 'Minecraft Mods for Fabric, Forge, and more' },
                 { id: 'shaders', label: 'Shaders', icon: 'fa-sun', desc: 'Minecraft Shaders for Iris, OptiFine, and more' }
             ];
+            const EXTERNAL_CATEGORIES = new Set(['plugins', 'resource-packs', 'mods', 'shaders']);
 
             let PRODUCTS = [];
-            const CSV_URL = 'https://docs.google.com/spreadsheets/d/1MCyljQbTV0durL06lYcW-NuBeH19PvIrSxUqyKEzVAk/gviz/tq?tqx=out:csv';
+            // The storefront is interactive immediately. Cached/local data is
+            // rendered first and the live Firestore snapshot replaces it later.
+            let catalogReady = true;
+            const CATALOG_CACHE_KEY = 'mob-forge-catalog-cache-v2';
+            const SITE_CONFIG_CACHE_KEY = 'mob-forge-site-config-cache-v1';
+
+            function readCatalogCache() {
+                try {
+                    const cached = JSON.parse(localStorage.getItem(CATALOG_CACHE_KEY) || 'null');
+                    return Array.isArray(cached) ? cached : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function writeCatalogCache(products) {
+                try {
+                    localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(Array.isArray(products) ? products : []));
+                } catch (error) {
+                    // Private browsing, blocked storage, or a full quota
+                    // should never prevent the live Firebase catalog.
+                }
+            }
+
+            function readSiteConfigCache() {
+                try {
+                    const cached = JSON.parse(localStorage.getItem(SITE_CONFIG_CACHE_KEY) || 'null');
+                    return cached && typeof cached === 'object' ? cached : null;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function writeSiteConfigCache(config) {
+                try {
+                    localStorage.setItem(SITE_CONFIG_CACHE_KEY, JSON.stringify(config || {}));
+                } catch (error) {
+                    // Site settings cache is only an optimization.
+                }
+            }
+
+            function readExternalCache(type) {
+                try {
+                    const cached = JSON.parse(localStorage.getItem(`mob-forge-api-cache-v1-${type}`) || 'null');
+                    if (!cached || !Array.isArray(cached.data)) return null;
+                    return cached;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function writeExternalCache(type, data, totalHits) {
+                try {
+                    localStorage.setItem(`mob-forge-api-cache-v1-${type}`, JSON.stringify({
+                        savedAt: Date.now(),
+                        data: Array.isArray(data) ? data : [],
+                        totalHits: Number(totalHits) || 0
+                    }));
+                } catch (error) {
+                    // API caching is only an optimization; never block the
+                    // live request when browser storage is unavailable.
+                }
+            }
             const DEFAULT_SITE_CONFIG = {
-                tag: 'SEMXPRO',
+                tag: '',
                 logo: '',
-                name: 'Mob Forge',
+                name: '',
                 title: '',
                 description: ''
             };
@@ -4363,10 +4455,10 @@
                 const titleEl = document.getElementById('heroTitleDisplay');
                 const descriptionEl = document.getElementById('heroDescriptionDisplay');
 
-                if (tagEl && safeConfig.tag) tagEl.textContent = safeConfig.tag;
-                if (nameEl && safeConfig.name) nameEl.textContent = safeConfig.name;
-                if (titleEl && safeConfig.title) titleEl.innerHTML = parseWebsiteTitle(safeConfig.title);
-                if (descriptionEl && safeConfig.description) descriptionEl.textContent = safeConfig.description;
+                if (tagEl) tagEl.textContent = safeConfig.tag || '';
+                if (nameEl) nameEl.textContent = safeConfig.name || '';
+                if (titleEl) titleEl.innerHTML = safeConfig.title ? parseWebsiteTitle(safeConfig.title) : '';
+                if (descriptionEl) descriptionEl.textContent = safeConfig.description || '';
 
                 if (logoEl && logoFallbackEl) {
                     const showFallbackLogo = () => {
@@ -4573,288 +4665,210 @@
             // ============================================================
 
             async function fetchDownloads() {
-                try {
-                    console.log('📡 Fetching data from Google Sheets...');
-                    const response = await fetch(CSV_URL);
-                    if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
-                    const csvText = await response.text();
+                const emptyCatalog = [];
+                const cachedCatalog = readCatalogCache();
+                PRODUCTS = cachedCatalog.length ? cachedCatalog : emptyCatalog;
+                catalogReady = true;
+                applyWebsiteConfig(readSiteConfigCache() || DEFAULT_SITE_CONFIG);
+                initApp();
+                scheduleExternalPrefetch();
 
-                    const rawData = parseCSV(csvText);
-                    console.log('📊 Parsed rows:', rawData.length);
-
-                    if (rawData.length === 0) {
-                        console.warn('⚠️ No data from CSV, using fallback.');
-                        PRODUCTS = getFallbackProducts();
-                        initApp();
-                        return;
-                    }
-
-                    const firstRow = rawData[0];
-                    const columnMap = {};
-                    Object.keys(firstRow).forEach(key => {
-                        const lowerKey = key.toLowerCase().trim();
-                        columnMap[lowerKey] = key;
-                    });
-                    console.log('🗺️ Columns:', Object.keys(columnMap));
-                    applyWebsiteConfig(getWebsiteConfig(rawData, Object.keys(firstRow)));
-
-                    const getVal = (row, name) => {
-                        const actualKey = columnMap[name.toLowerCase().trim()];
-                        return actualKey ? (row[actualKey] || '').trim() : '';
-                    };
-
-                    const flatItems = rawData
-                        .map(row => {
-                            const category = getVal(row, 'category');
-                            const matchedCat = matchCategory(category);
-                            if (!matchedCat) return null;
-
-                            let features = [];
-                            const featuresRaw = getVal(row, 'features');
-                            if (featuresRaw) {
-                                features = featuresRaw
-                                    .split(/[,🔹|]+/)
-                                    .map(f => f.trim())
-                                    .filter(f => f);
-                            }
-
-                            let badgeText = getVal(row, 'bedge');
-                            if (!badgeText) badgeText = getVal(row, 'badge');
-
-                            let edition = null;
-                            const subBadge = getVal(row, 'sub_badge');
-                            if (subBadge) {
-                                const sub = subBadge.toLowerCase();
-                                if (sub === 'bedrock' || sub === 'java') edition = sub;
-                            }
-
-                            let priority = 999;
-                            const priorityRaw = getVal(row, 'priority');
-                            if (priorityRaw) {
-                                const parsed = parseInt(priorityRaw, 10);
-                                if (!isNaN(parsed) && parsed >= 0) priority = parsed;
-                            }
-
-                            let imageUrl = getVal(row, 'image_url');
-                            if (!imageUrl) imageUrl = getVal(row, 'image');
-
-                            const screenshotsRaw = getVal(row, 'screenshots') ||
-                                getVal(row, 'screenshot') ||
-                                getVal(row, 'gallery');
-                            const screenshots = screenshotsRaw
-                                ? screenshotsRaw.split(/[\n,|]+/)
-                                    .map(url => url.trim())
-                                    .filter(url => /^https?:\/\//i.test(url))
-                                : [];
-
-                            const title = getVal(row, 'title') || 'Untitled';
-                            const groupKey = generateGroupKey(row, getVal);
-
-                            return {
-                                id: row.id || `catalog-${groupKey}`,
-                                groupKey: groupKey,
-                                title: title,
-                                category: matchedCat,
-                                version: getVal(row, 'version') || '',
-                                badgeText: badgeText,
-                                edition: edition,
-                                description: getVal(row, 'description') || '',
-                                icon: imageUrl,
-                                image: imageUrl,
-                                downloadUrl: getVal(row, 'download_url') || '',
-                                features: features,
-                                screenshots: screenshots,
-                                priority: priority
-                            };
-                        })
-                        .filter(item => item !== null);
-
-                    console.log('✅ Parsed flat items:', flatItems.length);
-
-                    if (flatItems.length === 0) {
-                        PRODUCTS = getFallbackProducts();
-                        initApp();
-                        return;
-                    }
-
+                const refreshCatalog = (items) => {
                     const grouped = new Map();
-                    flatItems.forEach(item => {
+                    items.forEach(item => {
                         const key = item.groupKey;
-                        if (!grouped.has(key)) {
-                            grouped.set(key, []);
-                        }
+                        if (!grouped.has(key)) grouped.set(key, []);
                         grouped.get(key).push(item);
                     });
 
                     PRODUCTS = [];
-                    grouped.forEach((items, groupKey) => {
-                        items.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-                        const primary = items[0];
-                        const versions = items.map(item => ({
-                            version: item.version || '',
-                            badgeText: item.badgeText || null,
-                            downloadUrl: item.downloadUrl || '',
-                            priority: item.priority || 999,
-                            id: item.id,
-                            edition: item.edition || null,
-                            description: item.description || '',
-                            features: item.features || [],
-                            title: item.title || '',
-                            image: item.image || '',
-                            screenshots: item.screenshots || []
-                        }));
-
-                        const cleanTitle = stripColorTags(primary.title || '').trim();
+                    grouped.forEach((itemsForProduct, groupKey) => {
+                        const hasEmbeddedVersions = itemsForProduct.some(item =>
+                            Array.isArray(item.catalogVersions)
+                        );
+                        const orderedItems = hasEmbeddedVersions
+                            ? itemsForProduct
+                            : [...itemsForProduct].sort((a, b) => {
+                                const ap = a.priority === null || a.priority === undefined ? 999 : a.priority;
+                                const bp = b.priority === null || b.priority === undefined ? 999 : b.priority;
+                                return ap - bp;
+                            });
+                        const primary = orderedItems[0];
+                        const versions = hasEmbeddedVersions
+                            ? orderedItems.flatMap(item => item.catalogVersions || [])
+                            : orderedItems.map(item => ({
+                                version: item.version || '',
+                                badgeText: item.badgeText || '',
+                                downloadUrl: item.downloadUrl || '',
+                                priority: item.priority === null || item.priority === undefined ? 999 : item.priority,
+                                id: item.id,
+                                edition: item.edition || null,
+                                description: item.description || '',
+                                features: item.features || [],
+                                title: item.title || '',
+                                image: item.image || '',
+                                screenshots: item.screenshots || []
+                            }));
+                        const primaryVersion = versions[0] || {};
 
                         PRODUCTS.push({
                             id: primary.id,
-                            groupKey: groupKey,
+                            groupKey,
                             title: primary.title || '',
-                            cleanTitle: cleanTitle,
+                            cleanTitle: stripColorTags(primary.title || '').trim(),
                             category: primary.category,
                             description: primary.description || '',
                             features: primary.features || [],
                             image: primary.image || '',
                             icon: primary.icon || '',
-                            imageCandidates: items
-                                .map(item => item.image || item.icon || '')
-                                .filter((url, index, all) => url && all.indexOf(url) === index),
+                            imageCandidates: itemsForProduct.map(item => item.image || item.icon || '').filter(Boolean),
                             edition: primary.edition || null,
-                            versions: versions,
-                            screenshots: items.flatMap(item => item.screenshots || [])
-                                .filter((url, index, all) => url && all.indexOf(url) === index),
-                            primaryVersion: items.find(item => String(item.version || '').trim()) 
-                                ? versions[items.findIndex(item => String(item.version || '').trim())]
-                                : versions[0]
+                            versions,
+                            screenshots: itemsForProduct.flatMap(item => item.screenshots || []),
+                            primaryVersion
                         });
                     });
-
                     PRODUCTS.sort((a, b) => {
-                        const pa = a.primaryVersion?.priority || 999;
-                        const pb = b.primaryVersion?.priority || 999;
-                        return pa - pb;
+                        const ap = a.primaryVersion?.priority === null || a.primaryVersion?.priority === undefined
+                            ? 999
+                            : a.primaryVersion.priority;
+                        const bp = b.primaryVersion?.priority === null || b.primaryVersion?.priority === undefined
+                            ? 999
+                            : b.primaryVersion.priority;
+                        return ap - bp;
                     });
+                    catalogReady = true;
+                    writeCatalogCache(PRODUCTS);
+                    renderCategories();
+                    setActiveCategory(currentCategory || 'all', { updateUrl: false });
+                    scheduleExternalPrefetch();
+                };
 
-                    console.log('📦 Grouped into', PRODUCTS.length, 'products');
-                    PRODUCTS.forEach(p => {
-                        console.log(`  ${p.title} (${p.versions.length} versions) [key: ${p.groupKey}]`);
+                const normalizeFirestoreProduct = (snapshot) => {
+                    const data = snapshot.data() || {};
+                    const matchedCat = matchCategory(data.category || '');
+                    if (!matchedCat || data.published === false) return null;
+
+                    const title = String(data.title || 'Untitled').trim();
+                    const normalizedTitle = stripColorTags(title).toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || '');
+                    const screenshots = Array.isArray(data.screenshots)
+                        ? data.screenshots.map(normalizeImageUrl).filter(Boolean)
+                        : [];
+                    const features = Array.isArray(data.features)
+                        ? data.features.map(value => String(value || '').trim()).filter(Boolean)
+                        : String(data.features || '').split(/[,🔹|]+/).map(value => value.trim()).filter(Boolean);
+                    const subBadge = String(data.subBadge || data.sub_badge || '').trim().toLowerCase();
+                    const hasEmbeddedVersions = Array.isArray(data.versions);
+                    const catalogVersions = hasEmbeddedVersions
+                        ? data.versions.map(version => {
+                            const versionName = String(version?.version || '').trim();
+                            if (!versionName) return null;
+                            const versionFeatures = Array.isArray(version?.features)
+                                ? version.features.map(value => String(value || '').trim()).filter(Boolean)
+                                : String(version?.features || '').split(/[,🔹|]+/).map(value => value.trim()).filter(Boolean);
+                            return {
+                                version: versionName,
+                                badgeText: String(version?.badge || version?.bedge || '').trim(),
+                                edition: String(version?.edition || version?.subBadge || '').trim().toLowerCase() || null,
+                                description: String(version?.description || '').trim(),
+                                features: versionFeatures,
+                                downloadUrl: String(version?.downloadUrl || version?.download_url || '').trim(),
+                                priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : 999,
+                                id: snapshot.id,
+                                title,
+                                image: imageUrl,
+                                screenshots
+                            };
+                        }).filter(Boolean)
+                        : [];
+
+                    return {
+                        id: snapshot.id,
+                        // Products written by the admin panel already contain
+                        // their complete versions array. Keep those documents
+                        // isolated so two products with the same title cannot
+                        // accidentally merge into one card.
+                        groupKey: hasEmbeddedVersions
+                            ? `catalog_${snapshot.id}`
+                            : `${matchedCat}_${normalizedTitle}`,
+                        title,
+                        category: matchedCat,
+                        version: String(data.version || '').trim(),
+                        badgeText: String(data.badge || data.bedge || '').trim(),
+                        edition: subBadge === 'bedrock' || subBadge === 'java' ? subBadge : null,
+                        description: String(data.description || '').trim(),
+                        icon: imageUrl,
+                        image: imageUrl,
+                        downloadUrl: String(data.downloadUrl || data.download_url || '').trim(),
+                        features,
+                        screenshots,
+                        catalogVersions: hasEmbeddedVersions ? catalogVersions : null,
+                        priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : 999
+                    };
+                };
+
+                const waitForFirebaseBridge = async () => {
+                    for (let attempt = 0; attempt < 80; attempt += 1) {
+                        if (window.mobForgeFirestoreRead) return window.mobForgeFirestoreRead;
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+                    throw new Error('Firebase bridge did not initialize.');
+                };
+
+                waitForFirebaseBridge().then(reader => {
+                    reader.subscribeSettings(snapshot => {
+                        if (snapshot.exists()) {
+                            const settings = snapshot.data() || {};
+                            applyWebsiteConfig({
+                                ...DEFAULT_SITE_CONFIG,
+                                tag: settings.tag || DEFAULT_SITE_CONFIG.tag,
+                                name: settings.name || DEFAULT_SITE_CONFIG.name,
+                                title: settings.title || DEFAULT_SITE_CONFIG.title,
+                                description: settings.description || DEFAULT_SITE_CONFIG.description,
+                                logo: settings.logo || DEFAULT_SITE_CONFIG.logo
+                            });
+                            writeSiteConfigCache(settings);
+                        }
+                    }, error => console.warn('Could not read siteSettings/main:', error));
+
+                    reader.subscribeProducts(snapshot => {
+                        const items = snapshot.docs.map(normalizeFirestoreProduct).filter(Boolean);
+                        if (items.length) {
+                            refreshCatalog(items);
+                        } else {
+                            PRODUCTS = emptyCatalog;
+                            catalogReady = true;
+                            writeCatalogCache(PRODUCTS);
+                            renderCategories();
+                            setActiveCategory(currentCategory || 'all', { updateUrl: false });
+                            scheduleExternalPrefetch();
+                        }
+                    }, error => {
+                        console.warn('Could not read catalogProducts:', error);
+                        // Keep a valid cached catalog visible if the live
+                        // listener is temporarily unavailable.
+                        if (!catalogReady) {
+                            PRODUCTS = emptyCatalog;
+                            catalogReady = true;
+                        }
+                        renderCategories();
+                        setActiveCategory(currentCategory || 'all', { updateUrl: false });
                     });
-
-                    initApp();
-                } catch (error) {
-                    console.error('❌ Error fetching CSV:', error);
-                    PRODUCTS = getFallbackProducts();
-                    initApp();
-                }
+                }).catch(error => {
+                    console.warn('Firebase catalog connection unavailable:', error);
+                    if (!catalogReady) {
+                        PRODUCTS = emptyCatalog;
+                        catalogReady = true;
+                    }
+                    renderCategories();
+                    setActiveCategory(currentCategory || 'all', { updateUrl: false });
+                });
             }
 
             // ============================================================
-            // 7. FALLBACK DATA
-            // ============================================================
-
-            function getFallbackProducts() {
-                const raw = [{
-                    id: 'minecraft-26-45',
-                    groupKey: 'minecraft',
-                    title: 'Minecraft',
-                    category: 'minecraft-pe',
-                    version: '26.45',
-                    badgeText: 'Latest version',
-                    edition: null,
-                    description: 'Latest Minecraft PE version with new biomes. mobs. and performance improvements. Experience the best of Minecraft Pocket Edition with enhanced gameplay and stunning visuals.',
-                    image: 'https://cdn.discordapp.com/attachments/1441292826238390391/1546187537855287416/Homepage_Discover-our-games_MC-Vanilla-KeyArt_864x864.jpg',
-                    icon: 'https://cdn.discordapp.com/attachments/1441292826238390391/1546187537855287416/Homepage_Discover-our-games_MC-Vanilla-KeyArt_864x864.jpg',
-                    downloadUrl: 'https://download.minecrftapkmod.com/minecraft-apk-latest-version-may-2026.apk',
-                    features: ['New Biomes', 'Performance Boost', 'Multiplayer'],
-                    priority: 1
-                }, {
-                    id: 'minecraft-26-60',
-                    groupKey: 'minecraft',
-                    title: 'Minecraft',
-                    category: 'minecraft-pe',
-                    version: '26.60',
-                    badgeText: 'BETA',
-                    edition: null,
-                    description: 'Experience the latest Minecraft PE beta with exciting new biomes and mobs. Enjoy performance boosts and improvements before the official release.',
-                    image: '',
-                    icon: '',
-                    downloadUrl: '',
-                    features: ['Experimental Gameplay', 'Early Access Features', 'Bug Fixes'],
-                    priority: 2
-                }, {
-                    id: 'mojo-launcher',
-                    groupKey: 'mojo-launcher',
-                    title: 'Mojo Launcher',
-                    category: 'launchers',
-                    version: '2.1.0',
-                    badgeText: 'SMOOTH FPS',
-                    edition: null,
-                    description: 'Boost FPS and enjoy smooth gameplay with this optimized launcher. Mojo Launcher delivers exceptional performance and stability for all Minecraft versions.',
-                    image: 'https://i.postimg.cc/FKsJwRGk/Mojo-Launcher.png',
-                    icon: 'https://i.postimg.cc/FKsJwRGk/Mojo-Launcher.png',
-                    downloadUrl: 'https://github.com/semxpro/Flat-Fusion-Website/releases/download/V1.0/Mojo.Launcher.xapk',
-                    features: ['Smooth FPS', 'Low Latency', 'Stable'],
-                    priority: 3
-                }, {
-                    id: 'action-stuff',
-                    groupKey: 'action-stuff',
-                    title: 'Action & Stuff',
-                    category: 'resource-packs',
-                    version: '',
-                    badgeText: 'GLOBAL PACK',
-                    edition: null,
-                    description: 'Vibrant textures and 3D models that bring your Bedrock world to life. This premium resource pack transforms Minecraft Bedrock with stunning visuals and detailed animations.',
-                    image: 'https://i.postimg.cc/YSnm7HyW/Action-amp-Stuff.png',
-                    icon: 'https://i.postimg.cc/YSnm7HyW/Action-amp-Stuff.png',
-                    downloadUrl: 'https://github.com/semxpro/Flat-Fusion-Website/releases/download/V1.0/Actions.Stuff.1.11.Make.By.Semx.mcpack.zip',
-                    features: ['3D Models', 'Vibrant Textures', 'HD'],
-                    priority: 4
-                }];
-                const grouped = new Map();
-                raw.forEach(item => {
-                    const key = item.groupKey;
-                    if (!grouped.has(key)) grouped.set(key, []);
-                    grouped.get(key).push(item);
-                });
-
-                const products = [];
-                grouped.forEach((items, groupKey) => {
-                    items.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-                    const primary = items[0];
-                    const versions = items.map(item => ({
-                        version: item.version || '',
-                        badgeText: item.badgeText || null,
-                        downloadUrl: item.downloadUrl || '',
-                        priority: item.priority || 999,
-                        id: item.id,
-                        edition: item.edition || null,
-                        description: item.description || '',
-                        features: item.features || [],
-                        title: item.title || ''
-                    }));
-                    const cleanTitle = stripColorTags(primary.title || '').trim();
-                    products.push({
-                        id: primary.id,
-                        groupKey: groupKey,
-                        title: primary.title || '',
-                        cleanTitle: cleanTitle,
-                        category: primary.category,
-                        description: primary.description || '',
-                        features: primary.features || [],
-                        image: primary.image || '',
-                        icon: primary.icon || '',
-                        edition: primary.edition || null,
-                        versions: versions,
-                        primaryVersion: versions[0]
-                    });
-                });
-
-                products.sort((a, b) => (a.primaryVersion?.priority || 999) - (b.primaryVersion?.priority || 999));
-                return products;
-            }
-
-            // ============================================================
-            // 8. STATE
+            // 7. STATE
             // ============================================================
 
             let currentCategory = null;
@@ -4862,7 +4876,7 @@
             let currentRouteProject = null;
 
             // ============================================================
-            // 9. DOM REFS
+            // 8. DOM REFS
             // ============================================================
 
             const navCategories = document.getElementById('navCategories');
@@ -5357,6 +5371,20 @@
                 return PRODUCTS.length;
             }
 
+            function scheduleExternalPrefetch() {
+                if (!catalogReady || scheduleExternalPrefetch.started) return;
+                scheduleExternalPrefetch.started = true;
+                window.setTimeout(() => {
+                    scheduleExternalPrefetch.started = false;
+                    const requests = [];
+                    if (getCategoryCount('plugins') === 0) requests.push(fetchPlugins(1));
+                    if (getCategoryCount('resource-packs') === 0) requests.push(fetchResourcePacks(1));
+                    if (getCategoryCount('mods') === 0) requests.push(fetchMods(1));
+                    if (getCategoryCount('shaders') === 0) requests.push(fetchShaders(1));
+                    Promise.allSettled(requests);
+                }, 0);
+            }
+
             function readLocalList(key) {
                 try {
                     const scopedKey = `${key}:${window.__mfAccountId || 'guest'}`;
@@ -5562,7 +5590,6 @@
                 if (currentCategory === categoryId) {
                     updateNavButtons(categoryId);
                     if (options.updateUrl !== false) updateUrlForCategory(categoryId);
-                    return;
                 }
 
                 currentCategory = categoryId;
@@ -5571,18 +5598,38 @@
                 // request so navigation never waits for Modrinth.
                 updateNavButtons(categoryId);
 
+                // Firebase is the source of truth for the admin catalog. Do
+                // not show an empty state or start an external category
+                // request while its first snapshot is still loading.
+                if (!catalogReady) {
+                    pluginFilterBar.style.display = 'none';
+                    rpFilterBar.style.display = 'none';
+                    modFilterBar.style.display = 'none';
+                    shaderFilterBar.style.display = 'none';
+                    currentCategoryLabel.textContent = categoryId === 'all'
+                        ? 'All Downloads'
+                        : getCategoryLabel(categoryId);
+                    currentCategoryDesc.textContent = 'Loading the latest catalog...';
+                    currentCategoryCount.textContent = 'Loading...';
+                    totalItemsStat.textContent = '—';
+                    totalCategoriesStat.textContent = CATEGORIES.length;
+                    renderGrid(categoryId);
+                    return;
+                }
+
                 // Show/hide filter bars
-                pluginFilterBar.style.display = (categoryId === 'plugins') ? 'flex' : 'none';
-                rpFilterBar.style.display = (categoryId === 'resource-packs') ? 'flex' : 'none';
-                modFilterBar.style.display = (categoryId === 'mods') ? 'flex' : 'none';
-                shaderFilterBar.style.display = (categoryId === 'shaders') ? 'flex' : 'none';
+                const hasManagedProducts = getCategoryCount(categoryId) > 0;
+                pluginFilterBar.style.display = (categoryId === 'plugins' && !hasManagedProducts) ? 'flex' : 'none';
+                rpFilterBar.style.display = (categoryId === 'resource-packs' && !hasManagedProducts) ? 'flex' : 'none';
+                modFilterBar.style.display = (categoryId === 'mods' && !hasManagedProducts) ? 'flex' : 'none';
+                shaderFilterBar.style.display = (categoryId === 'shaders' && !hasManagedProducts) ? 'flex' : 'none';
 
                 // Reset filters when switching away
                 if (categoryId !== 'plugins') {
                     if (pluginSearchInput) pluginSearchInput.value = '';
                     if (pluginLoaderFilter) pluginLoaderFilter.value = 'all';
                     if (pluginVersionFilter) pluginVersionFilter.value = 'all';
-                } else {
+                } else if (!hasManagedProducts) {
                     loadPluginsFromModrinth();
                 }
 
@@ -5590,7 +5637,7 @@
                     if (rpSearchInput) rpSearchInput.value = '';
                     if (rpLoaderFilter) rpLoaderFilter.value = 'all';
                     if (rpVersionFilter) rpVersionFilter.value = 'all';
-                } else {
+                } else if (!hasManagedProducts) {
                     loadResourcePacksFromModrinth();
                 }
 
@@ -5598,7 +5645,7 @@
                     if (modSearchInput) modSearchInput.value = '';
                     if (modLoaderFilter) modLoaderFilter.value = 'all';
                     if (modVersionFilter) modVersionFilter.value = 'all';
-                } else {
+                } else if (!hasManagedProducts) {
                     loadModsFromModrinth();
                 }
 
@@ -5606,7 +5653,7 @@
                     if (shaderSearchInput) shaderSearchInput.value = '';
                     if (shaderLoaderFilter) shaderLoaderFilter.value = 'all';
                     if (shaderVersionFilter) shaderVersionFilter.value = 'all';
-                } else {
+                } else if (!hasManagedProducts) {
                     loadShadersFromModrinth();
                 }
 
@@ -5625,7 +5672,12 @@
 
                 totalItemsStat.textContent = getTotalItems();
                 totalCategoriesStat.textContent = CATEGORIES.length;
-                renderGrid(categoryId);
+                // External categories keep the current grid visible while
+                // their background request is running. This prevents the
+                // visible spinner/empty-state flash on every category click.
+                if (!(EXTERNAL_CATEGORIES.has(categoryId) && !hasManagedProducts)) {
+                    renderGrid(categoryId);
+                }
             }
 
             function updateNavButtons(categoryId) {
@@ -5656,8 +5708,8 @@
                     : [];
             }
 
-            function renderCatalogVersionOptions(product) {
-                return (product.versions || []).map((version, index) => {
+            function renderCatalogVersionOptions(product, versions = getValidCatalogVersions(product)) {
+                return versions.map((version, index) => {
                     if (!String(version?.version || '').trim()) return '';
                     return `
                     <option value="${index}">${escapeHtml(displayVersion(version.version))}</option>
@@ -5711,15 +5763,17 @@
                 const safeGroupKey = escapeHtml(product.groupKey || '');
                 const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
                 const safeTitle = escapeHtml(cleanTitle);
-                const badge = primary.badgeText || 'STABLE';
+                const badge = primary.badgeText || '';
                 const badgeClass = getBadgeClass(badge);
-                const isLatestBadge = /latest/i.test(String(badge));
+                const hasAnyBadge = (product.versions || []).some(version =>
+                    String(version?.badgeText || '').trim()
+                );
                 const edition = primary.edition || product.edition || '';
                 const thumbContent = icon
                     ? `<img src="${escapeHtml(icon)}" alt="${safeTitle}" loading="lazy" data-image-candidates="${escapeHtml(JSON.stringify(product.imageCandidates || [icon]))}" /><div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>`
                     : `<div class="image-placeholder"><i class="fas ${catIcon}"></i></div>`;
-                const features = Array.isArray(primary.features) && primary.features.length
-                    ? primary.features
+                const features = hasVersionData
+                    ? (Array.isArray(primary.features) ? primary.features : [])
                     : (product.features || []);
                 const versionMeta = hasVersionData
                     ? `<span class="version" data-version-display="${safeProductId}">${escapeHtml(displayVersion(primary.version))}</span>`
@@ -5727,9 +5781,14 @@
                 // A single Sheet row is already the selected version. Only
                 // show a selector when the same product has two or more
                 // actual versions; blank helper rows must not create a menu.
-                const latestBadgeMarkup = isLatestBadge
-                    ? `<span class="version-badge-display ${badgeClass} catalog-latest-badge" data-badge-display="${safeProductId}">${escapeHtml(badge)}</span>`
+                const badgeMarkup = hasAnyBadge
+                    ? `<span class="version-badge-display catalog-latest-badge ${badgeClass}" data-badge-display="${safeProductId}" ${badge ? '' : 'style="display:none;"'}>${escapeHtml(badge)}</span>`
                     : '';
+                // For multi-version products the badge belongs beside the
+                // version selector, so it always describes the selected
+                // version. A single-version product keeps the compact title
+                // layout.
+                const titleBadgeMarkup = validVersions.length > 1 ? '' : badgeMarkup;
                 const favoriteSaved = isFavorite(product.id);
                 const favoriteMarkup = `
                     <button class="mf-card-favorite ${favoriteSaved ? 'is-favorite' : ''}"
@@ -5740,38 +5799,27 @@
                         <i class="fas fa-star" aria-hidden="true"></i>
                     </button>
                 `;
-                const versionControl = validVersions.length > 1 || latestBadgeMarkup
+                const versionControl = validVersions.length > 1
                     ? `
                             <div class="catalog-version-row">
-                            ${validVersions.length > 1 ? `
                             <div class="version-select-wrapper">
                                 <span class="version-label">Version</span>
                                 <select class="version-select" data-product-id="${safeProductId}" aria-label="Select version for ${safeTitle}">
-                                    ${renderCatalogVersionOptions(product)}
+                                    ${renderCatalogVersionOptions(product, validVersions)}
                                 </select>
                             </div>
-                            ` : ''}
-                            ${latestBadgeMarkup}
+                            ${validVersions.length > 1 ? badgeMarkup : ''}
                             </div>
                         `
                     : '';
                 const downloadAvailable = Boolean(primary.downloadUrl && primary.downloadUrl !== '#');
-                const directDownloadOnly = categoryId === 'all' ||
-                    product.category === 'minecraft-pe' ||
-                    product.category === 'launchers';
-                const downloadButtonClass = directDownloadOnly
-                    ? 'btn-download btn-download-direct'
-                    : 'btn-download';
+                const downloadButtonClass = 'btn-download btn-download-direct';
                 const catalogDownloadButton = `
                                 <button class="${downloadButtonClass}" data-product-id="${safeProductId}" data-url="${escapeHtml(primary.downloadUrl || '')}" type="button" ${downloadAvailable ? '' : 'disabled'}>
                                     <i class="fas ${downloadAvailable ? 'fa-download' : 'fa-ban'}"></i>
                                     ${downloadAvailable ? 'Download' : 'Unavailable'}
                                 </button>
                 `;
-                const detailsButton = directDownloadOnly
-                    ? catalogDownloadButton
-                    : `<button class="btn-details" data-product-id="${safeProductId}" type="button">Details</button>`;
-
                 return `
                     <div class="download-card fade-in fade-in-d${Math.min(index % 4 + 1, 4)}"
                          data-product-id="${safeProductId}"
@@ -5784,14 +5832,14 @@
                                 <div class="title-row">
                                     <span class="title" data-title-display="${safeProductId}">${parsedTitle}</span>
                                     ${versionMeta}
-                                    ${isLatestBadge ? '' : `<span class="version-badge-display ${badgeClass}" data-badge-display="${safeProductId}">${escapeHtml(badge)}</span>`}
+                                    ${titleBadgeMarkup}
                                     ${favoriteMarkup}
                                 </div>
                                 <div class="card-meta-row">
                                     <span class="category-tag">${escapeHtml(getCategoryLabel(product.category))}</span>
                                     <span class="edition-badge" data-edition-display="${safeProductId}" ${edition ? '' : 'style="display:none;"'}>${escapeHtml(edition)}</span>
                                 </div>
-                                <p class="desc" data-description-display="${safeProductId}">${escapeHtml(primary.description || product.description || '')}</p>
+                                <p class="desc" data-description-display="${safeProductId}">${escapeHtml(hasVersionData ? (primary.description || '') : (primary.description || product.description || ''))}</p>
                             </div>
                         </div>
                         <div data-features-container="${safeProductId}">
@@ -5801,8 +5849,7 @@
                             ${versionControl}
                             <div class="footer-actions">
                                 ${renderDownloadBadge()}
-                                ${detailsButton}
-                                ${directDownloadOnly ? '' : catalogDownloadButton}
+                                ${catalogDownloadButton}
                             </div>
                         </div>
                     </div>
@@ -5811,11 +5858,16 @@
 
             function renderGrid(categoryId) {
                 try {
-                    if (categoryId === 'plugins' || categoryId === 'resource-packs' ||
-                        categoryId === 'mods' || categoryId === 'shaders') {
+                    if (!catalogReady) {
+                        downloadGrid.innerHTML = `
+                            <div class="empty-state" style="grid-column:1/-1;">
+                                <div class="icon"><i class="fas fa-spinner fa-pulse"></i></div>
+                                <h3>Loading Downloads...</h3>
+                                <p>Fetching the latest catalog from Firebase.</p>
+                            </div>
+                        `;
                         return;
                     }
-
                     let products = getProductsForCategory(categoryId);
 
                     if (currentSearchQuery.trim()) {
@@ -5893,7 +5945,7 @@
                             const productId = select.dataset.productId;
                             const selectedIndex = parseInt(select.value, 10);
                             const product = PRODUCTS.find(item => item.id === productId);
-                            const selectedVersion = product?.versions?.[selectedIndex] || product?.primaryVersion;
+                            const selectedVersion = getValidCatalogVersions(product)[selectedIndex] || product?.primaryVersion;
                             const card = select.closest('.download-card');
                             if (!card) return;
                             if (!product || !selectedVersion) return;
@@ -5906,13 +5958,19 @@
 
                             const badgeDisplay = card.querySelector(`[data-badge-display="${productId}"]`);
                             if (badgeDisplay) {
-                                const badge = selectedVersion.badgeText || 'STABLE';
+                                const badge = String(selectedVersion.badgeText || '').trim();
                                 badgeDisplay.textContent = badge;
-                                badgeDisplay.className = `version-badge-display ${getBadgeClass(badge)}`;
+                                badgeDisplay.className = `version-badge-display catalog-latest-badge ${getBadgeClass(badge)}`;
+                                badgeDisplay.style.display = badge ? 'inline-block' : 'none';
                             }
 
                             const descElement = card.querySelector(`[data-description-display="${productId}"]`);
-                            if (descElement) descElement.textContent = selectedVersion.description || product.description || '';
+                            if (descElement) {
+                                const hasCatalogVersions = getValidCatalogVersions(product).length > 0;
+                                descElement.textContent = hasCatalogVersions
+                                    ? (selectedVersion.description || '')
+                                    : (selectedVersion.description || product.description || '');
+                            }
 
                             const editionBadgeEl = card.querySelector(`[data-edition-display="${productId}"]`);
                             if (editionBadgeEl) {
@@ -5926,7 +5984,7 @@
 
                             const featuresContainer = card.querySelector(`[data-features-container="${productId}"]`);
                             if (featuresContainer) {
-                                const features = Array.isArray(selectedVersion.features) && selectedVersion.features.length
+                                const features = Array.isArray(selectedVersion.features)
                                     ? selectedVersion.features
                                     : (product.features || []);
                                 if (features.length > 0) {
@@ -6418,6 +6476,15 @@
                 const offset = (page - 1) * pluginLimit;
                 const query = pluginSearchTerm.trim() || '';
                 const index = query ? 'relevance' : 'downloads';
+                const useCachedPage = page === 1 && !query && pluginLoader === 'all' && pluginVersion === 'all';
+                if (useCachedPage && !pluginData.length) {
+                    const cached = readExternalCache('plugins');
+                    if (cached) {
+                        pluginData = cached.data;
+                        pluginTotalHits = cached.totalHits || 0;
+                        if (currentCategory === 'plugins') renderPluginResults(page);
+                    }
+                }
 
                 const params = new URLSearchParams();
                 params.set('query', query);
@@ -6432,14 +6499,13 @@
 
                 const url = `https://api.modrinth.com/v2/search?${params.toString()}`;
 
-                showSkeleton();
-
                 try {
                     const res = await fetch(url, { signal: pluginAbortController.signal });
                     if (!res.ok) throw new Error('API error');
                     const data = await res.json();
                     pluginTotalHits = data.total_hits || 0;
                     pluginData = data.hits || [];
+                    if (useCachedPage) writeExternalCache('plugins', pluginData, pluginTotalHits);
                     renderPluginResults(page);
                 } catch (err) {
                     if (err.name === 'AbortError') {
@@ -6472,6 +6538,13 @@
             }
 
             function showApiError(type) {
+                const categoryId = type === 'plugins' ? 'plugins' :
+                    type === 'resource-packs' ? 'resource-packs' :
+                    type === 'mods' ? 'mods' : 'shaders';
+                if (currentCategory !== categoryId || getCategoryCount(categoryId) > 0) {
+                    if (currentCategory === categoryId) renderGrid(categoryId);
+                    return;
+                }
                 const label = type === 'plugins' ? 'plugins' :
                     type === 'resource-packs' ? 'resource packs' :
                     type === 'mods' ? 'mods' : 'shaders';
@@ -6495,6 +6568,13 @@
             }
 
             function showApiEmpty(type) {
+                const categoryId = type === 'plugins' ? 'plugins' :
+                    type === 'resource-packs' ? 'resource-packs' :
+                    type === 'mods' ? 'mods' : 'shaders';
+                if (currentCategory !== categoryId || getCategoryCount(categoryId) > 0) {
+                    if (currentCategory === categoryId) renderGrid(categoryId);
+                    return;
+                }
                 const label = type === 'plugins' ? 'plugins' :
                     type === 'resource-packs' ? 'resource packs' :
                     type === 'mods' ? 'mods' : 'shaders';
@@ -6659,6 +6739,10 @@
             }
 
             function renderPluginResults(page) {
+                if (currentCategory !== 'plugins' || getCategoryCount('plugins') > 0) {
+                    if (currentCategory === 'plugins') renderGrid('plugins');
+                    return;
+                }
                 clearCatalogGridListener();
                 if (!pluginData || pluginData.length === 0) {
                     showApiEmpty('plugins');
@@ -6799,6 +6883,15 @@
                 const offset = (page - 1) * rpLimit;
                 const query = rpSearchTerm.trim() || '';
                 const index = query ? 'relevance' : 'downloads';
+                const useCachedPage = page === 1 && !query && rpLoader === 'all' && rpVersion === 'all';
+                if (useCachedPage && !rpData.length) {
+                    const cached = readExternalCache('resource-packs');
+                    if (cached) {
+                        rpData = cached.data;
+                        rpTotalHits = cached.totalHits || 0;
+                        if (currentCategory === 'resource-packs') renderResourcePackResults(page);
+                    }
+                }
 
                 const params = new URLSearchParams();
                 params.set('query', query);
@@ -6813,14 +6906,13 @@
 
                 const url = `https://api.modrinth.com/v2/search?${params.toString()}`;
 
-                showSkeleton();
-
                 try {
                     const res = await fetch(url, { signal: rpAbortController.signal });
                     if (!res.ok) throw new Error('API error');
                     const data = await res.json();
                     rpTotalHits = data.total_hits || 0;
                     rpData = data.hits || [];
+                    if (useCachedPage) writeExternalCache('resource-packs', rpData, rpTotalHits);
                     renderResourcePackResults(page);
                 } catch (err) {
                     if (err.name === 'AbortError') {
@@ -6836,6 +6928,10 @@
             }
 
             function renderResourcePackResults(page) {
+                if (currentCategory !== 'resource-packs' || getCategoryCount('resource-packs') > 0) {
+                    if (currentCategory === 'resource-packs') renderGrid('resource-packs');
+                    return;
+                }
                 clearCatalogGridListener();
                 if (!rpData || rpData.length === 0) {
                     showApiEmpty('resource-packs');
@@ -6970,6 +7066,15 @@
                 const offset = (page - 1) * modLimit;
                 const query = modSearchTerm.trim() || '';
                 const index = query ? 'relevance' : 'downloads';
+                const useCachedPage = page === 1 && !query && modLoader === 'all' && modVersion === 'all';
+                if (useCachedPage && !modData.length) {
+                    const cached = readExternalCache('mods');
+                    if (cached) {
+                        modData = cached.data;
+                        modTotalHits = cached.totalHits || 0;
+                        if (currentCategory === 'mods') renderModResults(page);
+                    }
+                }
 
                 const params = new URLSearchParams();
                 params.set('query', query);
@@ -6984,14 +7089,13 @@
 
                 const url = `https://api.modrinth.com/v2/search?${params.toString()}`;
 
-                showSkeleton();
-
                 try {
                     const res = await fetch(url, { signal: modAbortController.signal });
                     if (!res.ok) throw new Error('API error');
                     const data = await res.json();
                     modTotalHits = data.total_hits || 0;
                     modData = data.hits || [];
+                    if (useCachedPage) writeExternalCache('mods', modData, modTotalHits);
                     renderModResults(page);
                 } catch (err) {
                     if (err.name === 'AbortError') {
@@ -7007,6 +7111,10 @@
             }
 
             function renderModResults(page) {
+                if (currentCategory !== 'mods' || getCategoryCount('mods') > 0) {
+                    if (currentCategory === 'mods') renderGrid('mods');
+                    return;
+                }
                 clearCatalogGridListener();
                 if (!modData || modData.length === 0) {
                     showApiEmpty('mods');
@@ -7146,6 +7254,15 @@
                 const offset = (page - 1) * shaderLimit;
                 const query = shaderSearchTerm.trim() || '';
                 const index = query ? 'relevance' : 'downloads';
+                const useCachedPage = page === 1 && !query && shaderLoader === 'all' && shaderVersion === 'all';
+                if (useCachedPage && !shaderData.length) {
+                    const cached = readExternalCache('shaders');
+                    if (cached) {
+                        shaderData = cached.data;
+                        shaderTotalHits = cached.totalHits || 0;
+                        if (currentCategory === 'shaders') renderShaderResults(page);
+                    }
+                }
 
                 const params = new URLSearchParams();
                 params.set('query', query);
@@ -7160,14 +7277,13 @@
 
                 const url = `https://api.modrinth.com/v2/search?${params.toString()}`;
 
-                showSkeleton();
-
                 try {
                     const res = await fetch(url, { signal: shaderAbortController.signal });
                     if (!res.ok) throw new Error('API error');
                     const data = await res.json();
                     shaderTotalHits = data.total_hits || 0;
                     shaderData = data.hits || [];
+                    if (useCachedPage) writeExternalCache('shaders', shaderData, shaderTotalHits);
                     renderShaderResults(page);
                 } catch (err) {
                     if (err.name === 'AbortError') {
@@ -7183,6 +7299,10 @@
             }
 
             function renderShaderResults(page) {
+                if (currentCategory !== 'shaders' || getCategoryCount('shaders') > 0) {
+                    if (currentCategory === 'shaders') renderGrid('shaders');
+                    return;
+                }
                 clearCatalogGridListener();
                 if (!shaderData || shaderData.length === 0) {
                     showApiEmpty('shaders');
@@ -7749,6 +7869,10 @@
             // ============================================================
 
             function loadPluginsFromModrinth() {
+                if (getCategoryCount('plugins') > 0) {
+                    renderGrid('plugins');
+                    return;
+                }
                 pluginCurrentPage = 1;
                 pluginSearchTerm = pluginSearchInput ? pluginSearchInput.value : '';
                 pluginLoader = pluginLoaderFilter ? pluginLoaderFilter.value : 'all';
@@ -7757,6 +7881,10 @@
             }
 
             function loadResourcePacksFromModrinth() {
+                if (getCategoryCount('resource-packs') > 0) {
+                    renderGrid('resource-packs');
+                    return;
+                }
                 rpCurrentPage = 1;
                 rpSearchTerm = rpSearchInput ? rpSearchInput.value : '';
                 rpLoader = rpLoaderFilter ? rpLoaderFilter.value : 'all';
@@ -7765,6 +7893,10 @@
             }
 
             function loadModsFromModrinth() {
+                if (getCategoryCount('mods') > 0) {
+                    renderGrid('mods');
+                    return;
+                }
                 modCurrentPage = 1;
                 modSearchTerm = modSearchInput ? modSearchInput.value : '';
                 modLoader = modLoaderFilter ? modLoaderFilter.value : 'all';
@@ -7773,6 +7905,10 @@
             }
 
             function loadShadersFromModrinth() {
+                if (getCategoryCount('shaders') > 0) {
+                    renderGrid('shaders');
+                    return;
+                }
                 shaderCurrentPage = 1;
                 shaderSearchTerm = shaderSearchInput ? shaderSearchInput.value : '';
                 shaderLoader = shaderLoaderFilter ? shaderLoaderFilter.value : 'all';
