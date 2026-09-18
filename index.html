@@ -129,6 +129,9 @@
             display: block;
             max-width: 100%;
         }
+        [hidden] {
+            display: none !important;
+        }
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -906,6 +909,14 @@
             transform: scale(1.04);
             box-shadow: 0 0 30px var(--violet-glow);
         }
+        .btn-download.btn-coming-soon {
+            background: var(--amber);
+            color: #0A0A0F;
+            box-shadow: 0 0 20px var(--gold-glow);
+        }
+        .btn-download.btn-coming-soon:hover {
+            box-shadow: 0 0 30px var(--gold-glow);
+        }
         .btn-download i {
             font-size: 0.75rem;
         }
@@ -1321,6 +1332,77 @@
             font-size: 0.7rem;
             color: var(--text-muted);
             opacity: 0.6;
+        }
+        .footer .social-links[hidden],
+        .creator-video-showcase[hidden] {
+            display: none !important;
+        }
+        .footer .social-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .footer .social-links a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--duration);
+        }
+        .footer .social-links a:hover {
+            color: var(--text-primary);
+        }
+        .creator-video-showcase {
+            margin: 0 0 28px;
+            padding: 22px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(145deg, rgba(24, 24, 36, .92), rgba(15, 15, 24, .88));
+            box-shadow: var(--shadow-glow);
+        }
+        .creator-video-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .creator-video-heading i {
+            color: var(--violet);
+        }
+        .creator-video-heading h2 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+        .creator-video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .creator-video-frame {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            display: block;
+            border: 0;
+            border-radius: var(--radius);
+            background: #050509;
+        }
+        .coming-soon-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 16px;
+            border-radius: var(--radius-full);
+            color: #fde68a;
+            background: rgba(245, 158, 11, .12);
+            border: 1px solid rgba(245, 158, 11, .3);
+            font-size: .78rem;
+            font-weight: 800;
         }
 
         /* ============================================================
@@ -4021,6 +4103,14 @@
             </div>
         </section>
 
+        <section class="creator-video-showcase" id="creatorVideoShowcase" hidden aria-labelledby="creatorVideoTitle">
+            <div class="creator-video-heading">
+                <i class="fas fa-video" aria-hidden="true"></i>
+                <h2 id="creatorVideoTitle">Content Creators</h2>
+            </div>
+            <div class="creator-video-grid" id="creatorVideoGrid"></div>
+        </section>
+
         <div class="category-indicator" id="categoryIndicator">
             <span class="label">Category</span>
             <span class="name" id="currentCategoryLabel">All Downloads</span>
@@ -4134,13 +4224,9 @@
     ============================================================ -->
     <footer class="footer">
         <div class="footer-inner">
-            <div class="brand">Build <span style="color:var(--text-muted);font-weight:400;">· by Semx</span></div>
-            <div class="links">
-                <a href="https://www.tiktok.com/@semxpro?_r=1&_t=ZS-97XtjmAg1CK" target="_blank" rel="noopener noreferrer"><i class="fab fa-tiktok"></i> TikTok</a>
-                <a href="https://youtube.com/@flatfusion?si=BVG4mQMlb33TvRT2" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i> YouTube</a>
-                <a href="https://discord.gg/ZGHKKUx44w" target="_blank" rel="noopener noreferrer"><i class="fab fa-discord"></i> Discord</a>
-            </div>
-            <div class="copy">&copy; 2026 Build — Premium Minecraft Downloads</div>
+            <div class="brand" id="footerBrand"></div>
+            <div class="social-links" id="socialLinksSection" hidden aria-label="Social links"></div>
+            <div class="copy" id="footerCopyright"></div>
         </div>
     </footer>
 
@@ -4148,15 +4234,7 @@
     GLASSY BOTTOM NAV
     Order: LAUNCH, PE, PACK, HOME (centered), PLUGIN, MOD, SHADER
     ============================================================ -->
-    <nav class="glassy-bottom-nav" id="bottomNav">
-        <button class="glassy-nav-item" data-category="launchers"><i class="fas fa-rocket"></i><span>Launch</span></button>
-        <button class="glassy-nav-item" data-category="minecraft-pe"><i class="fas fa-cube"></i><span>PE</span></button>
-        <button class="glassy-nav-item" data-category="resource-packs"><i class="fas fa-palette"></i><span>Pack</span></button>
-        <button class="glassy-nav-item active" data-category="all"><i class="fas fa-home"></i><span>Home</span></button>
-        <button class="glassy-nav-item" data-category="plugins"><i class="fas fa-puzzle-piece"></i><span>Plugin</span></button>
-        <button class="glassy-nav-item" data-category="mods"><i class="fas fa-cogs"></i><span>Mod</span></button>
-        <button class="glassy-nav-item" data-category="shaders"><i class="fas fa-sun"></i><span>Shader</span></button>
-    </nav>
+    <nav class="glassy-bottom-nav" id="bottomNav" aria-label="Categories"></nav>
 
     <!-- ============================================================
     SEARCH OVERLAY
@@ -4269,7 +4347,7 @@
             // 1. CONFIGURATION
             // ============================================================
 
-            const CATEGORIES = [
+            const FALLBACK_CATEGORIES = [
                 { id: 'minecraft-pe', label: 'Minecraft PE', icon: 'fa-cube', desc: 'Minecraft Premium Free Download' },
                 { id: 'launchers', label: 'Launchers', icon: 'fa-rocket', desc: 'Minecraft All Launcher Download Free Link' },
                 { id: 'resource-packs', label: 'Resource Packs', icon: 'fa-palette',
@@ -4278,6 +4356,7 @@
                 { id: 'mods', label: 'Mods', icon: 'fa-cogs', desc: 'Minecraft Mods for Fabric, Forge, and more' },
                 { id: 'shaders', label: 'Shaders', icon: 'fa-sun', desc: 'Minecraft Shaders for Iris, OptiFine, and more' }
             ];
+            let CATEGORIES = FALLBACK_CATEGORIES.map(category => ({ ...category }));
             const EXTERNAL_CATEGORIES = new Set(['plugins', 'resource-packs', 'mods', 'shaders']);
 
             let PRODUCTS = [];
@@ -4287,6 +4366,8 @@
             let catalogServerSnapshotSeen = false;
             const CATALOG_CACHE_KEY = 'mob-forge-catalog-cache-v2';
             const SITE_CONFIG_CACHE_KEY = 'mob-forge-site-config-cache-v1';
+            const SOCIAL_LINKS_STORAGE_KEY = 'mob-forge-social-links-v1';
+            const CREATOR_VIDEOS_STORAGE_KEY = 'mob-forge-creator-videos-v1';
 
             function readCatalogCache() {
                 try {
@@ -4350,8 +4431,33 @@
                 logo: '',
                 name: '',
                 title: '',
-                description: ''
+                description: '',
+                footerText: 'Build · by Semx',
+                footerCopyright: '© 2026 Build — Premium Minecraft Downloads',
+                socialLinks: {},
+                creatorEnabled: true,
+                creatorTitle: 'Content Creators',
+                creatorVideos: [],
+                categories: FALLBACK_CATEGORIES
             };
+
+            function normalizeCategories(value) {
+                const input = Array.isArray(value) ? value : [];
+                const seen = new Set();
+                const categories = input.map(item => {
+                    const id = String(item?.id || '').trim().toLowerCase()
+                        .replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '');
+                    if (!id || seen.has(id)) return null;
+                    seen.add(id);
+                    return {
+                        id,
+                        label: String(item?.label || id).trim() || id,
+                        icon: String(item?.icon || 'fa-folder').trim() || 'fa-folder',
+                        desc: String(item?.desc || item?.description || '').trim()
+                    };
+                }).filter(Boolean);
+                return categories.length ? categories : FALLBACK_CATEGORIES.map(category => ({ ...category }));
+            }
 
             function normalizeSheetHeader(value) {
                 return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -4447,6 +4553,119 @@
                 }
             }
 
+            function readLocalJson(key, fallback) {
+                try {
+                    const value = JSON.parse(localStorage.getItem(key) || 'null');
+                    return value === null ? fallback : value;
+                } catch (error) {
+                    return fallback;
+                }
+            }
+
+            function writeLocalJson(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (error) {
+                    // Local storage is an offline optimization only.
+                }
+            }
+
+            function normalizeExternalUrl(value) {
+                const raw = String(value || '').trim();
+                if (!raw) return '';
+                try {
+                    const url = new URL(raw, document.baseURI);
+                    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+                } catch (error) {
+                    return '';
+                }
+            }
+
+            function normalizeVideoEmbedUrl(value) {
+                const safeUrl = normalizeExternalUrl(value);
+                if (!safeUrl) return '';
+                try {
+                    const url = new URL(safeUrl);
+                    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+                    let videoId = '';
+                    if (host === 'youtu.be') {
+                        videoId = url.pathname.replace(/^\/+/, '').split('/')[0];
+                    } else if (host === 'youtube.com' || host === 'm.youtube.com') {
+                        if (url.pathname === '/watch') videoId = url.searchParams.get('v') || '';
+                        else if (url.pathname.startsWith('/shorts/')) videoId = url.pathname.split('/')[2] || '';
+                        else if (url.pathname.startsWith('/embed/')) return safeUrl;
+                    } else if (
+                        host === 'tiktok.com' ||
+                        host === 'm.tiktok.com' ||
+                        host === 'vm.tiktok.com' ||
+                        host === 'vt.tiktok.com'
+                    ) {
+                        const playerMatch = url.pathname.match(/\/player\/v1\/(\d+)/i);
+                        const embedMatch = url.pathname.match(/\/embed\/v2\/(\d+)/i);
+                        const videoMatch = url.pathname.match(/\/video\/(\d+)/i);
+                        videoId = playerMatch?.[1] || embedMatch?.[1] || videoMatch?.[1] ||
+                            url.searchParams.get('video_id') || '';
+                        if (videoId) {
+                            return `https://www.tiktok.com/player/v1/${encodeURIComponent(videoId)}?description=1&music_info=1`;
+                        }
+                    }
+                    return videoId
+                        ? `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`
+                        : safeUrl;
+                } catch (error) {
+                    return '';
+                }
+            }
+
+            function renderSocialLinks(configLinks) {
+                const section = document.getElementById('socialLinksSection');
+                if (!section) return;
+                const localLinks = readLocalJson(SOCIAL_LINKS_STORAGE_KEY, {});
+                const source = configLinks && typeof configLinks === 'object'
+                    ? configLinks
+                    : localLinks;
+                const links = [
+                    { key: 'youtube', label: 'YouTube', icon: 'fa-youtube' },
+                    { key: 'tiktok', label: 'TikTok', icon: 'fa-tiktok' },
+                    { key: 'discord', label: 'Discord', icon: 'fa-discord' }
+                ].map(item => ({
+                    ...item,
+                    url: normalizeExternalUrl(source[item.key])
+                })).filter(item => item.url);
+                section.innerHTML = links.map(item =>
+                    `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><i class="fab ${item.icon}" aria-hidden="true"></i> ${item.label}</a>`
+                ).join('');
+                section.hidden = links.length === 0;
+                if (links.length) writeLocalJson(SOCIAL_LINKS_STORAGE_KEY, Object.fromEntries(links.map(item => [item.key, item.url])));
+            }
+
+            const creatorShowcaseState = {
+                resolved: false,
+                enabled: false,
+                videos: []
+            };
+
+            function renderCreatorVideoShowcase(videoValues, options = {}) {
+                const section = document.getElementById('creatorVideoShowcase');
+                const grid = document.getElementById('creatorVideoGrid');
+                if (!section || !grid) return;
+                if (options.live === true) {
+                    creatorShowcaseState.resolved = true;
+                    creatorShowcaseState.enabled = options.enabled !== false;
+                    const values = Array.isArray(videoValues) ? videoValues : [];
+                    creatorShowcaseState.videos = values.map(normalizeVideoEmbedUrl).filter(Boolean).slice(0, 3);
+                }
+                const videos = creatorShowcaseState.videos;
+                grid.innerHTML = videos.map((src, index) =>
+                    `<iframe class="creator-video-frame" src="${escapeHtml(src)}" title="Creator video ${index + 1}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`
+                ).join('');
+                section.hidden = !creatorShowcaseState.resolved ||
+                    !creatorShowcaseState.enabled ||
+                    videos.length === 0 ||
+                    currentCategory !== 'all';
+                if (videos.length) writeLocalJson(CREATOR_VIDEOS_STORAGE_KEY, videos);
+            }
+
             function applyWebsiteConfig(config) {
                 const safeConfig = { ...DEFAULT_SITE_CONFIG, ...(config || {}) };
                 const tagEl = document.getElementById('siteTagDisplay');
@@ -4455,11 +4674,32 @@
                 const nameEl = document.getElementById('siteNameDisplay');
                 const titleEl = document.getElementById('heroTitleDisplay');
                 const descriptionEl = document.getElementById('heroDescriptionDisplay');
+                const footerBrandEl = document.getElementById('footerBrand');
+                const footerCopyrightEl = document.getElementById('footerCopyright');
+                const creatorTitleEl = document.getElementById('creatorVideoTitle');
+
+                const hasSocialConfig = config && Object.prototype.hasOwnProperty.call(config, 'socialLinks');
+                const hasCreatorConfig = config && config.__live === true &&
+                    Object.prototype.hasOwnProperty.call(config, 'creatorVideos');
+                renderSocialLinks(hasSocialConfig ? safeConfig.socialLinks : null);
+                renderCreatorVideoShowcase(
+                    hasCreatorConfig ? safeConfig.creatorVideos : [],
+                    { live: hasCreatorConfig, enabled: safeConfig.creatorEnabled !== false }
+                );
 
                 if (tagEl) tagEl.textContent = safeConfig.tag || '';
                 if (nameEl) nameEl.textContent = safeConfig.name || '';
                 if (titleEl) titleEl.innerHTML = safeConfig.title ? parseWebsiteTitle(safeConfig.title) : '';
                 if (descriptionEl) descriptionEl.textContent = safeConfig.description || '';
+                if (footerBrandEl) footerBrandEl.textContent = safeConfig.footerText || '';
+                if (footerCopyrightEl) footerCopyrightEl.textContent = safeConfig.footerCopyright || '';
+                if (creatorTitleEl) creatorTitleEl.textContent = safeConfig.creatorTitle || 'Content Creators';
+                if (Array.isArray(safeConfig.categories)) {
+                    CATEGORIES = normalizeCategories(safeConfig.categories);
+                    if (typeof renderCategories === 'function' && navCategories && mobileNav && bottomNav) {
+                        renderCategories();
+                    }
+                }
 
                 if (logoEl && logoFallbackEl) {
                     const showFallbackLogo = () => {
@@ -4503,6 +4743,12 @@
                     .replace(/[-_]/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
+                const configured = CATEGORIES.find(category => {
+                    const categoryId = String(category.id || '').replace(/[-_]/g, ' ');
+                    const categoryLabel = String(category.label || '').toLowerCase();
+                    return categoryId === raw || categoryLabel === raw;
+                });
+                if (configured) return configured.id;
 
                 const pePatterns = ['minecraft pe', 'minecraftpe', 'mcpe', 'pe', 'pocket edition', 'bedrock', 'mobile',
                     'mc bedrock', 'minecraft bedrock', 'minecraft pocket'
@@ -4526,6 +4772,9 @@
                 const shaderPatterns = ['shaders', 'shader', 'minecraft shader', 'mc shader'];
                 if (shaderPatterns.some(p => raw.includes(p) || p.includes(raw))) return 'shaders';
 
+                const directId = catFromSheet.trim().toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                if (directId) return directId;
                 return null;
             }
 
@@ -4661,6 +4910,29 @@
                 return `${catClean}_${normalizedBase}`;
             }
 
+            function isPremierValue(value) {
+                return value === true ||
+                    String(value || '').toLowerCase() === 'true' ||
+                    String(value || '') === '1';
+            }
+
+            function catalogPriority(value) {
+                const number = Number(value);
+                return Number.isFinite(number) ? number : Infinity;
+            }
+
+            function compareCatalogProducts(a, b) {
+                const priorityDifference = catalogPriority(a?.priority ?? a?.primaryVersion?.priority) -
+                    catalogPriority(b?.priority ?? b?.primaryVersion?.priority);
+                if (priorityDifference !== 0) return priorityDifference;
+                const titleDifference = stripColorTags(a?.title || '').localeCompare(
+                    stripColorTags(b?.title || ''),
+                    undefined,
+                    { sensitivity: 'base' }
+                );
+                return titleDifference || String(a?.id || '').localeCompare(String(b?.id || ''));
+            }
+
             // ============================================================
             // 6. FETCH, GROUP, SORT
             // ============================================================
@@ -4674,7 +4946,7 @@
                 // snapshot is received. This prevents the initial blank flash
                 // on a fresh visit.
                 catalogReady = cachedCatalog.length > 0;
-                applyWebsiteConfig(readSiteConfigCache() || DEFAULT_SITE_CONFIG);
+                applyWebsiteConfig(readSiteConfigCache() || {});
                 initApp();
                 if (catalogReady) scheduleExternalPrefetch();
 
@@ -4694,9 +4966,8 @@
                         const orderedItems = hasEmbeddedVersions
                             ? itemsForProduct
                             : [...itemsForProduct].sort((a, b) => {
-                                const ap = a.priority === null || a.priority === undefined ? 999 : a.priority;
-                                const bp = b.priority === null || b.priority === undefined ? 999 : b.priority;
-                                return ap - bp;
+                            return catalogPriority(a.priority) - catalogPriority(b.priority) ||
+                                stripColorTags(a.title || '').localeCompare(stripColorTags(b.title || ''));
                             });
                         const primary = orderedItems[0];
                         const versions = hasEmbeddedVersions
@@ -4705,7 +4976,7 @@
                                 version: item.version || '',
                                 badgeText: item.badgeText || '',
                                 downloadUrl: item.downloadUrl || '',
-                                priority: item.priority === null || item.priority === undefined ? 999 : item.priority,
+                                priority: item.priority === null || item.priority === undefined ? null : item.priority,
                                 id: item.id,
                                 edition: item.edition || null,
                                 description: item.description || '',
@@ -4722,6 +4993,7 @@
                             title: primary.title || '',
                             cleanTitle: stripColorTags(primary.title || '').trim(),
                             category: primary.category,
+                            priority: primary.priority ?? primaryVersion.priority ?? null,
                             badgeText: primary.badgeText || '',
                             description: primary.description || '',
                             features: primary.features || [],
@@ -4729,20 +5001,16 @@
                             icon: primary.icon || '',
                             imageCandidates: itemsForProduct.map(item => item.image || item.icon || '').filter(Boolean),
                             edition: primary.edition || null,
+                            premier: Boolean(primary.premier),
+                             comingSoonBadge: primary.comingSoonBadge || primary.badgeText || '',
+                             comingSoonDescription: primary.comingSoonDescription || primary.description || '',
+                             comingSoonButtonText: primary.comingSoonButtonText || '',
                             versions,
                             screenshots: itemsForProduct.flatMap(item => item.screenshots || []),
                             primaryVersion
                         });
                     });
-                    PRODUCTS.sort((a, b) => {
-                        const ap = a.primaryVersion?.priority === null || a.primaryVersion?.priority === undefined
-                            ? 999
-                            : a.primaryVersion.priority;
-                        const bp = b.primaryVersion?.priority === null || b.primaryVersion?.priority === undefined
-                            ? 999
-                            : b.primaryVersion.priority;
-                        return ap - bp;
-                    });
+                    PRODUCTS.sort(compareCatalogProducts);
                     catalogReady = true;
                     writeCatalogCache(PRODUCTS);
                     renderCategories();
@@ -4781,7 +5049,7 @@
                                 description: String(version?.description || '').trim(),
                                 features: versionFeatures,
                                 downloadUrl: String(version?.downloadUrl || version?.download_url || '').trim(),
-                                priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : 999,
+                                 priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
                                 id: snapshot.id,
                                 title,
                                 image: imageUrl,
@@ -4804,6 +5072,10 @@
                         version: String(data.version || '').trim(),
                         badgeText: String(data.badge || data.badgeText || data.bedge || '').trim(),
                         edition: subBadge === 'bedrock' || subBadge === 'java' ? subBadge : null,
+                        premier: isPremierValue(data.premier) || isPremierValue(data.premierMode) || isPremierValue(data.comingSoon),
+                         comingSoonBadge: String(data.comingSoonBadge || data.comingSoonBadgeText || data.coming_badge || data.badge || data.badgeText || '').trim(),
+                         comingSoonDescription: String(data.comingSoonDescription || data.comingSoonDesc || data.coming_description || data.description || '').trim(),
+                         comingSoonButtonText: String(data.comingSoonButtonText || data.comingSoonButton || data.coming_button_text || '').trim(),
                         description: String(data.description || '').trim(),
                         icon: imageUrl,
                         image: imageUrl,
@@ -4811,7 +5083,7 @@
                         features,
                         screenshots,
                         catalogVersions: hasEmbeddedVersions ? catalogVersions : null,
-                        priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : 999
+                         priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null
                     };
                 };
 
@@ -4829,11 +5101,27 @@
                             const settings = snapshot.data() || {};
                             applyWebsiteConfig({
                                 ...DEFAULT_SITE_CONFIG,
+                                __live: true,
                                 tag: settings.tag || DEFAULT_SITE_CONFIG.tag,
                                 name: settings.name || DEFAULT_SITE_CONFIG.name,
                                 title: settings.title || DEFAULT_SITE_CONFIG.title,
                                 description: settings.description || DEFAULT_SITE_CONFIG.description,
-                                logo: settings.logo || DEFAULT_SITE_CONFIG.logo
+                                logo: settings.logo || DEFAULT_SITE_CONFIG.logo,
+                                footerText: Object.prototype.hasOwnProperty.call(settings, 'footerText')
+                                    ? String(settings.footerText || '')
+                                    : DEFAULT_SITE_CONFIG.footerText,
+                                footerCopyright: Object.prototype.hasOwnProperty.call(settings, 'footerCopyright')
+                                    ? String(settings.footerCopyright || '')
+                                    : DEFAULT_SITE_CONFIG.footerCopyright,
+                                categories: normalizeCategories(settings.categories),
+                                creatorEnabled: settings.creatorEnabled !== false,
+                                creatorTitle: String(settings.creatorTitle || DEFAULT_SITE_CONFIG.creatorTitle),
+                                socialLinks: Object.prototype.hasOwnProperty.call(settings, 'socialLinks')
+                                    ? (settings.socialLinks || {})
+                                    : readLocalJson(SOCIAL_LINKS_STORAGE_KEY, {}),
+                                creatorVideos: Object.prototype.hasOwnProperty.call(settings, 'creatorVideos')
+                                    ? (Array.isArray(settings.creatorVideos) ? settings.creatorVideos : [])
+                                    : []
                             });
                             writeSiteConfigCache(settings);
                         }
@@ -5377,12 +5665,12 @@
             }
 
             function getProductsForCategory(categoryId) {
-                if (categoryId === 'all') return PRODUCTS;
-                // Resource Packs are always sourced from Modrinth in this
-                // category. Admin-created packs still remain visible on the
-                // Home/All catalog through the branch above.
+                if (categoryId === 'all') return [...PRODUCTS].sort(compareCatalogProducts);
+                // Resource Packs are an API-only category. Admin-created
+                // resource packs remain available on All Downloads but must
+                // never replace the dedicated Modrinth results.
                 if (categoryId === 'resource-packs') return [];
-                return PRODUCTS.filter(p => p.category === categoryId);
+                return PRODUCTS.filter(p => p.category === categoryId).sort(compareCatalogProducts);
             }
 
             function getCategoryCount(categoryId) {
@@ -5400,9 +5688,7 @@
                     scheduleExternalPrefetch.started = false;
                     const requests = [];
                     if (getCategoryCount('plugins') === 0) requests.push(fetchPlugins(1));
-                    // Resource Packs are intentionally Modrinth-only in their
-                    // category, even when admin-created packs exist.
-                    requests.push(fetchResourcePacks(1));
+                    if (getCategoryCount('resource-packs') === 0) requests.push(fetchResourcePacks(1));
                     if (getCategoryCount('mods') === 0) requests.push(fetchMods(1));
                     if (getCategoryCount('shaders') === 0) requests.push(fetchShaders(1));
                     Promise.allSettled(requests);
@@ -5497,7 +5783,7 @@
 
             function startCatalogDownload(product, selectedVersion) {
                 const url = String(selectedVersion?.downloadUrl || '').trim();
-                if (!product || !url || url === '#') return false;
+                if (!product || product.premier || !url || url === '#') return false;
 
                 recordDownload({
                     id: product.id,
@@ -5603,6 +5889,31 @@
                         `<button class="cat-btn" data-category="${cat.id}"><i class="fas ${cat.icon}"></i> ${cat.label}<span class="cat-count">${count}</span></button>`;
                 });
                 mobileNav.innerHTML = mobileHtml;
+                // Keep the existing navigation styling and interactions; only
+                // the DOM order is intentional here so Home stays in the
+                // fourth (middle) position.
+                const bottomNavOrder = [
+                    'launchers',
+                    'minecraft-pe',
+                    'resource-packs',
+                    'all',
+                    'plugins',
+                    'mods',
+                    'shaders'
+                ];
+                const categoryById = new Map(CATEGORIES.map(category => [category.id, category]));
+                const orderedBottomNav = bottomNavOrder
+                    .map(id => id === 'all'
+                        ? { id: 'all', label: 'Home', icon: 'fa-home' }
+                        : categoryById.get(id))
+                    .filter(Boolean);
+                const remainingBottomNav = CATEGORIES.filter(category => !bottomNavOrder.includes(category.id));
+                bottomNav.innerHTML = [...orderedBottomNav, ...remainingBottomNav].map(item => `
+                    <button class="glassy-nav-item ${item.id === 'all' ? 'active' : ''}" data-category="${escapeHtml(item.id)}">
+                        <i class="fas ${escapeHtml(item.icon)}"></i>
+                        <span style="color:#e2e8f0;opacity:1;font-weight:700;text-shadow:0 1px 10px rgba(0,0,0,.65);">${escapeHtml(item.label)}</span>
+                    </button>
+                `).join('');
                 if (currentCategory) updateNavButtons(currentCategory);
             }
 
@@ -5613,11 +5924,13 @@
             function setActiveCategory(categoryId, options = {}) {
                 if (currentCategory === categoryId) {
                     updateNavButtons(categoryId);
+                    renderCreatorVideoShowcase();
                     if (options.updateUrl !== false) updateUrlForCategory(categoryId);
                     return;
                 }
 
                 currentCategory = categoryId;
+                renderCreatorVideoShowcase();
                 if (options.updateUrl !== false) updateUrlForCategory(categoryId);
                 // Paint the selected tab before starting any remote category
                 // request so navigation never waits for Modrinth.
@@ -5643,8 +5956,7 @@
                 }
 
                 // Show/hide filter bars
-                const hasManagedProducts = categoryId !== 'resource-packs' &&
-                    getCategoryCount(categoryId) > 0;
+                const hasManagedProducts = getCategoryCount(categoryId) > 0;
                 pluginFilterBar.style.display = (categoryId === 'plugins' && !hasManagedProducts) ? 'flex' : 'none';
                 rpFilterBar.style.display = (categoryId === 'resource-packs' && !hasManagedProducts) ? 'flex' : 'none';
                 modFilterBar.style.display = (categoryId === 'mods' && !hasManagedProducts) ? 'flex' : 'none';
@@ -5780,8 +6092,12 @@
                 const catIcon = getCategoryIcon(product.category);
                 const parsedTitle = parseColorTitle(product.title);
                 const validVersions = getValidCatalogVersions(product);
-                const hasVersionData = validVersions.length > 0;
-                const primary = (product.primaryVersion && String(product.primaryVersion.version || '').trim())
+                const isPremier = Boolean(product.premier);
+                const displayVersions = isPremier ? [] : validVersions;
+                const hasVersionData = displayVersions.length > 0;
+                const primary = isPremier
+                    ? {}
+                    : (product.primaryVersion && String(product.primaryVersion.version || '').trim())
                     ? product.primaryVersion
                     : (validVersions[0] || product.primaryVersion || product.versions?.[0] || {});
                 const icon = product.icon || product.image || '';
@@ -5789,12 +6105,16 @@
                 const safeGroupKey = escapeHtml(product.groupKey || '');
                 const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
                 const safeTitle = escapeHtml(cleanTitle);
-                const badge = primary.badgeText || (!hasVersionData ? product.badgeText : '') || '';
-                const badgeClass = getBadgeClass(badge);
-                const hasAnyBadge = (product.versions || []).some(version =>
+                const badge = isPremier
+                    ? (product.comingSoonBadge || product.badgeText || '')
+                    : (primary.badgeText || (!hasVersionData ? product.badgeText : '') || '');
+                // Premier badges intentionally use the base yellow badge theme,
+                // regardless of the custom text entered by the admin.
+                const badgeClass = isPremier ? '' : getBadgeClass(badge);
+                const hasAnyBadge = isPremier || (product.versions || []).some(version =>
                     String(version?.badgeText || '').trim()
                 ) || (!hasVersionData && Boolean(String(product.badgeText || '').trim()));
-                const edition = primary.edition || product.edition || '';
+                const edition = isPremier ? '' : (primary.edition || product.edition || '');
                 const thumbContent = icon
                     ? `<img src="${escapeHtml(icon)}" alt="${safeTitle}" loading="lazy" data-image-candidates="${escapeHtml(JSON.stringify(product.imageCandidates || [icon]))}" /><div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>`
                     : `<div class="image-placeholder"><i class="fas ${catIcon}"></i></div>`;
@@ -5814,7 +6134,7 @@
                 // version selector, so it always describes the selected
                 // version. A single-version product keeps the compact title
                 // layout.
-                const titleBadgeMarkup = validVersions.length > 1 ? '' : badgeMarkup;
+                const titleBadgeMarkup = displayVersions.length > 1 ? '' : badgeMarkup;
                 const favoriteSaved = isFavorite(product.id);
                 const favoriteMarkup = `
                     <button class="mf-card-favorite ${favoriteSaved ? 'is-favorite' : ''}"
@@ -5825,22 +6145,25 @@
                         <i class="fas fa-star" aria-hidden="true"></i>
                     </button>
                 `;
-                const versionControl = validVersions.length > 1
+                const versionControl = displayVersions.length > 1
                     ? `
                             <div class="catalog-version-row">
                             <div class="version-select-wrapper">
                                 <span class="version-label">Version</span>
                                 <select class="version-select" data-product-id="${safeProductId}" aria-label="Select version for ${safeTitle}">
-                                    ${renderCatalogVersionOptions(product, validVersions)}
+                                    ${renderCatalogVersionOptions(product, displayVersions)}
                                 </select>
                             </div>
-                            ${validVersions.length > 1 ? badgeMarkup : ''}
+                            ${displayVersions.length > 1 ? badgeMarkup : ''}
                             </div>
                         `
                     : '';
                 const downloadAvailable = Boolean(primary.downloadUrl && primary.downloadUrl !== '#');
                 const downloadButtonClass = 'btn-download btn-download-direct';
-                const catalogDownloadButton = `
+                const comingSoonButtonText = product.comingSoonButtonText || 'Coming Soon';
+                const catalogDownloadButton = isPremier
+                    ? `<span class="btn-download btn-coming-soon" role="status"><i class="fas fa-clock" aria-hidden="true"></i> ${escapeHtml(comingSoonButtonText)}</span>`
+                    : `
                                 <button class="${downloadButtonClass}" data-product-id="${safeProductId}" data-url="${escapeHtml(primary.downloadUrl || '')}" type="button" ${downloadAvailable ? '' : 'disabled'}>
                                     <i class="fas ${downloadAvailable ? 'fa-download' : 'fa-ban'}"></i>
                                     ${downloadAvailable ? 'Download' : 'Unavailable'}
@@ -5865,7 +6188,7 @@
                                     <span class="category-tag">${escapeHtml(getCategoryLabel(product.category))}</span>
                                     <span class="edition-badge" data-edition-display="${safeProductId}" ${edition ? '' : 'style="display:none;"'}>${escapeHtml(edition)}</span>
                                 </div>
-                                <p class="desc" data-description-display="${safeProductId}">${escapeHtml(hasVersionData ? (primary.description || '') : (primary.description || product.description || ''))}</p>
+                                 <p class="desc" data-description-display="${safeProductId}">${escapeHtml(isPremier ? (product.comingSoonDescription || product.description || '') : (hasVersionData ? (primary.description || '') : (primary.description || product.description || '')))}</p>
                             </div>
                         </div>
                         <div data-features-container="${safeProductId}">
@@ -6108,11 +6431,18 @@
 
             function openCatalogDetailsModal(product, selectedVersion) {
                 if (!product || !detailsModal || !dmBody) return;
-                const validVersions = getValidCatalogVersions(product);
-                const primary = selectedVersion || validVersions[0] || product.primaryVersion || product.versions?.[0] || {};
+                const isPremier = Boolean(product.premier);
+                const validVersions = isPremier ? [] : getValidCatalogVersions(product);
+                const primary = isPremier
+                    ? {}
+                    : (selectedVersion || validVersions[0] || product.primaryVersion || product.versions?.[0] || {});
                 const icon = product.icon || product.image || '';
                 const title = stripColorTags(primary.title || product.title || 'Untitled');
-                const productBadge = String(primary.badgeText || (!validVersions.length ? product.badgeText : '') || '').trim();
+                const productBadge = String(
+                    isPremier
+                        ? (product.comingSoonBadge || product.badgeText || '')
+                        : (primary.badgeText || (!validVersions.length ? product.badgeText : '') || '')
+                ).trim();
                 const category = getCategoryLabel(product.category);
                 const selectedVersionIndex = Math.max(0, validVersions.findIndex(version =>
                     version === primary ||
@@ -6133,7 +6463,10 @@
                         </div>
                     `
                     : '';
-                const availabilityMarkup = selectedDownloadUrl && selectedDownloadUrl !== '#'
+                const comingSoonButtonText = product.comingSoonButtonText || 'Coming Soon';
+                const availabilityMarkup = isPremier
+                    ? `<div class="semox-dm-availability"><i class="fas fa-clock"></i><span>${escapeHtml(product.comingSoonDescription || product.description || 'This release is coming soon.')}</span></div>`
+                    : selectedDownloadUrl && selectedDownloadUrl !== '#'
                     ? `<div class="semox-dm-availability"><i class="fas fa-circle-check"></i><span>Selected version is ready to download.</span></div>`
                     : `<div class="semox-dm-availability is-unavailable"><i class="fas fa-circle-exclamation"></i><span>Download unavailable for this version.</span></div>`;
                 const features = Array.isArray(primary.features) && primary.features.length
@@ -6148,10 +6481,13 @@
                         return all.findIndex(item => `${item.version || ''}|${item.downloadUrl}` === key) === index;
                     });
                 const productUrl = getCatalogProductUrl(product);
+                const productBadgeMarkup = productBadge
+                    ? `<span class="version-badge-display ${isPremier ? '' : getBadgeClass(productBadge)}">${isPremier ? '<i class="fas fa-clock" aria-hidden="true"></i> ' : ''}${escapeHtml(productBadge)}</span>`
+                    : '';
                 const versionMeta = primary.version
                     ? `<span><i class="fas fa-tag"></i> ${escapeHtml(displayVersion(primary.version))}</span>`
                     : '';
-                const directLinks = directDownloads.length
+                const directLinks = !isPremier && directDownloads.length
                     ? `
                         <div class="semox-dm-direct-links">
                             <h4>Direct downloads</h4>
@@ -6173,7 +6509,7 @@
                 dmBody.innerHTML = `
                     <div class="semox-dm-header">
                         ${icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" />` : `<div style="width:64px;height:64px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--text-muted);"><i class="fas ${getCategoryIcon(product.category)}"></i></div>`}
-                        <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span>${productBadge ? ` <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(productBadge)}</span>` : ''}</div>
+                        <div class="semox-dm-title">${escapeHtml(title)} <span class="semox-p-badge" style="font-size:0.6rem;">${escapeHtml(category)}</span>${productBadgeMarkup ? ` ${productBadgeMarkup}` : ''}</div>
                     </div>
                     ${versionPicker}
                     <div class="semox-dm-desc">${escapeHtml(primary.description || product.description || 'Explore this curated Mob Forge release.')}</div>
@@ -6197,7 +6533,9 @@
                         <button type="button" class="semox-detail-share" data-project-url="${escapeHtml(productUrl)}" data-project-name="${escapeHtml(title)}"><i class="fas fa-arrow-up-right-from-square"></i> Share</button>
                         <button type="button" class="semox-detail-copy" data-project-url="${escapeHtml(productUrl)}"><i class="fas fa-link"></i> Copy Link</button>
                     </div>
-                    <button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button" ${selectedDownloadUrl && selectedDownloadUrl !== '#' ? '' : 'disabled'}><i class="fas fa-download"></i> ${selectedDownloadUrl && selectedDownloadUrl !== '#' ? (validVersions.length > 1 ? 'Download selected version' : 'Download release') : 'Unavailable'}</button>
+                    ${isPremier
+                        ? `<span class="semox-dm-download-btn" role="status"><i class="fas fa-clock" aria-hidden="true"></i> ${escapeHtml(comingSoonButtonText)}</span>`
+                        : `<button class="semox-dm-download-btn" id="mfCatalogDetailDownload" type="button" ${selectedDownloadUrl && selectedDownloadUrl !== '#' ? '' : 'disabled'}><i class="fas fa-download"></i> ${selectedDownloadUrl && selectedDownloadUrl !== '#' ? (validVersions.length > 1 ? 'Download selected version' : 'Download release') : 'Unavailable'}</button>`}
                 `;
                 detailsModal.classList.add('open');
                 document.getElementById('mfCatalogDetailsVersionSelect')?.addEventListener('change', event => {
@@ -6222,7 +6560,7 @@
             }
 
             function openCatalogDownloadModal(product, selectedVersion) {
-                if (!product || !downloadModal || !dlBody) return;
+                if (!product || product.premier || !downloadModal || !dlBody) return;
                 const versions = getValidCatalogVersions(product);
                 const hasVersionData = versions.length > 0;
                 const releases = hasVersionData
