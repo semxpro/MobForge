@@ -3971,9 +3971,9 @@
         }
     </style>
     <script>
-        // Hold the storefront until Firestore confirms the current
-        // maintenance state. A cached active state is painted immediately
-        // when available, so maintenance does not flash the normal website.
+        // Start with the cached maintenance state when available. The body
+        // gate is released immediately; Firestore synchronizes the final
+        // authoritative state as soon as its listener is ready.
         document.documentElement.classList.add('mf-maintenance-pending');
     </script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
@@ -4105,7 +4105,12 @@
                 return onSnapshot(collection(firebaseFirestore, 'catalogProducts'), onNext, onError);
             },
             subscribeSettings(onNext, onError) {
-                return onSnapshot(doc(firebaseFirestore, 'siteSettings', 'main'), onNext, onError);
+                return onSnapshot(
+                    doc(firebaseFirestore, 'siteSettings', 'main'),
+                    { includeMetadataChanges: true },
+                    onNext,
+                    onError
+                );
             }
         };
         window.mobForgeStorageUpload = async (file, path) => {
@@ -4177,6 +4182,10 @@
                 }
             } catch (_) {
                 // Firestore remains authoritative when no usable cache exists.
+            } finally {
+                // Do not block the normal storefront while Firestore reconnects.
+                // An active cached state is already covering it when available.
+                document.documentElement.classList.remove('mf-maintenance-pending');
             }
         })();
     </script>
@@ -5256,15 +5265,14 @@
                     }, 6000);
 
                     reader.subscribeSettings(snapshot => {
-                        // Firestore persistence can deliver an old local
-                        // snapshot before the server responds. Holding the
-                        // gate here prevents a cached OFF value from flashing
-                        // the normal site while maintenance is actually ON.
-                        if (snapshot.metadata?.fromCache) return;
-                        maintenanceSnapshotResolved = true;
-                        window.clearTimeout(maintenanceFallbackTimer);
                         const settings = snapshot.exists() ? (snapshot.data() || {}) : {};
-                        window.mobForgeMaintenanceGate?.apply(settings);
+                        // Use Firestore's local snapshot to synchronize quickly,
+                        // then let the server snapshot remain authoritative.
+                        // An empty cached snapshot is not a real OFF decision:
+                        // keep the startup cache until the server responds.
+                        if (snapshot.exists() || !snapshot.metadata?.fromCache) {
+                            window.mobForgeMaintenanceGate?.apply(settings);
+                        }
                         if (snapshot.exists()) {
                             applyWebsiteConfig({
                                 ...DEFAULT_SITE_CONFIG,
@@ -5291,7 +5299,14 @@
                                      : [],
                                  categoryAvailability: normalizeCategoryAvailability(settings.categoryAvailability)
                             });
-                            writeSiteConfigCache(settings);
+                            if (!snapshot.metadata?.fromCache) {
+                                maintenanceSnapshotResolved = true;
+                                window.clearTimeout(maintenanceFallbackTimer);
+                                writeSiteConfigCache(settings);
+                            }
+                        } else if (!snapshot.metadata?.fromCache) {
+                            maintenanceSnapshotResolved = true;
+                            window.clearTimeout(maintenanceFallbackTimer);
                         }
                     }, error => {
                         console.warn('Could not read siteSettings/main:', error);
