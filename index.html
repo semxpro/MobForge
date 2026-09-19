@@ -3952,6 +3952,9 @@
         }
     </style>
     <style id="mf-maintenance-gate-style">
+        html.mf-maintenance-pending body > *:not(#mfMaintenanceRoot) {
+            display: none !important;
+        }
         #mfMaintenanceRoot {
             position: fixed;
             inset: 0;
@@ -3967,6 +3970,12 @@
             background: #08080d;
         }
     </style>
+    <script>
+        // Hold the storefront until Firestore confirms the current
+        // maintenance state. A cached active state is painted immediately
+        // when available, so maintenance does not flash the normal website.
+        document.documentElement.classList.add('mf-maintenance-pending');
+    </script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <style>
         .mf-auth-copy { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 18px; }
@@ -4149,6 +4158,28 @@
     <div id="mfMaintenanceRoot" hidden aria-label="Website maintenance page">
         <iframe id="mfMaintenanceFrame" title="Website maintenance page"></iframe>
     </div>
+    <script>
+        (function () {
+            var root = document.getElementById('mfMaintenanceRoot');
+            var frame = document.getElementById('mfMaintenanceFrame');
+            if (!root || !frame) return;
+            try {
+                var cached = JSON.parse(localStorage.getItem('mob-forge-site-config-cache-v1') || 'null');
+                var enabled = cached && (
+                    cached.maintenanceEnabled === true ||
+                    String(cached.maintenanceEnabled || '').trim().toLowerCase() === 'true' ||
+                    String(cached.maintenanceEnabled || '').trim() === '1'
+                );
+                var filename = String(cached && cached.maintenanceFilename || '').trim();
+                if (enabled && filename) {
+                    frame.srcdoc = typeof cached.maintenanceHtml === 'string' ? cached.maintenanceHtml : '';
+                    root.hidden = false;
+                }
+            } catch (_) {
+                // Firestore remains authoritative when no usable cache exists.
+            }
+        })();
+    </script>
 
     <!-- ============================================================
     HEADER — PREMIUM NAV
@@ -5212,12 +5243,16 @@
                     let maintenanceSnapshotResolved = false;
                     const maintenanceFallbackTimer = window.setTimeout(() => {
                         if (maintenanceSnapshotResolved) return;
-                        // If the browser is offline and Firestore cannot
-                        // confirm the state, use the last known state only as
-                        // an explicit fallback. It is never used before the
-                        // live snapshot has had a chance to arrive.
-                        maintenanceSnapshotResolved = true;
-                        window.mobForgeMaintenanceGate?.apply(window.mobForgeReadCachedMaintenanceSettings?.() || {});
+                        // Never let a cached OFF/default value release the
+                        // storefront while an active Firestore state may be
+                        // unavailable. An active cached state is safe to keep.
+                        const cached = window.mobForgeReadCachedMaintenanceSettings?.() || {};
+                        const cachedEnabled = isMaintenanceEnabled(cached.maintenanceEnabled) &&
+                            Boolean(String(cached.maintenanceFilename || '').trim());
+                        if (cachedEnabled) {
+                            maintenanceSnapshotResolved = true;
+                            window.mobForgeMaintenanceGate?.apply(cached);
+                        }
                     }, 6000);
 
                     reader.subscribeSettings(snapshot => {
@@ -5225,7 +5260,7 @@
                         // snapshot before the server responds. Holding the
                         // gate here prevents a cached OFF value from flashing
                         // the normal site while maintenance is actually ON.
-                        if (snapshot.metadata?.fromCache && !maintenanceSnapshotResolved) return;
+                        if (snapshot.metadata?.fromCache) return;
                         maintenanceSnapshotResolved = true;
                         window.clearTimeout(maintenanceFallbackTimer);
                         const settings = snapshot.exists() ? (snapshot.data() || {}) : {};
@@ -5260,10 +5295,13 @@
                         }
                     }, error => {
                         console.warn('Could not read siteSettings/main:', error);
-                        if (!maintenanceSnapshotResolved) {
+                        const cached = window.mobForgeReadCachedMaintenanceSettings?.() || {};
+                        const cachedEnabled = isMaintenanceEnabled(cached.maintenanceEnabled) &&
+                            Boolean(String(cached.maintenanceFilename || '').trim());
+                        if (!maintenanceSnapshotResolved && cachedEnabled) {
                             maintenanceSnapshotResolved = true;
                             window.clearTimeout(maintenanceFallbackTimer);
-                            window.mobForgeMaintenanceGate?.apply(window.mobForgeReadCachedMaintenanceSettings?.() || {});
+                            window.mobForgeMaintenanceGate?.apply(cached);
                         }
                     });
 
@@ -5304,7 +5342,13 @@
                     });
                 }).catch(error => {
                     console.warn('Firebase catalog connection unavailable:', error);
-                    window.mobForgeMaintenanceGate?.apply(window.mobForgeReadCachedMaintenanceSettings?.() || {});
+                    const cached = window.mobForgeReadCachedMaintenanceSettings?.() || {};
+                    if (
+                        isMaintenanceEnabled(cached.maintenanceEnabled) &&
+                        String(cached.maintenanceFilename || '').trim()
+                    ) {
+                        window.mobForgeMaintenanceGate?.apply(cached);
+                    }
                     if (!catalogReady) {
                         PRODUCTS = emptyCatalog;
                         catalogReady = true;
