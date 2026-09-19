@@ -3931,6 +3931,32 @@
             }
         }
     </style>
+    <style id="mf-maintenance-gate-style">
+        html.mf-maintenance-pending body > *:not(#mfMaintenanceRoot) {
+            display: none !important;
+        }
+        #mfMaintenanceRoot {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483000;
+            background: #08080d;
+        }
+        #mfMaintenanceRoot[hidden] { display: none !important; }
+        #mfMaintenanceFrame {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #08080d;
+        }
+    </style>
+    <script>
+        document.documentElement.classList.add('mf-maintenance-pending');
+        window.setTimeout(function () {
+            // Never leave the normal site hidden if Firebase is unavailable.
+            document.documentElement.classList.remove('mf-maintenance-pending');
+        }, 8000);
+    </script>
 
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <style>
@@ -4056,6 +4082,23 @@
                 return onSnapshot(doc(firebaseFirestore, 'siteSettings', 'main'), onNext, onError);
             }
         };
+        window.mobForgeMaintenanceGate = {
+            apply(settings) {
+                const root = document.getElementById('mfMaintenanceRoot');
+                const frame = document.getElementById('mfMaintenanceFrame');
+                const filename = String(settings?.maintenanceFilename || '').trim();
+                const html = typeof settings?.maintenanceHtml === 'string' ? settings.maintenanceHtml : '';
+                const active = settings?.maintenanceEnabled === true && Boolean(filename);
+                if (root && frame && active) {
+                    frame.srcdoc = html;
+                    root.hidden = false;
+                } else if (root && frame) {
+                    frame.removeAttribute('srcdoc');
+                    root.hidden = true;
+                }
+                document.documentElement.classList.remove('mf-maintenance-pending');
+            }
+        };
         // The storefront only needs Firestore. Analytics and Realtime
         // Database are intentionally not initialized here because they add
         // extra network requests before the catalog can render.
@@ -4064,6 +4107,9 @@
 </head>
 
 <body>
+    <div id="mfMaintenanceRoot" hidden aria-label="Website maintenance page">
+        <iframe id="mfMaintenanceFrame" title="Website maintenance page"></iframe>
+    </div>
 
     <!-- ============================================================
     HEADER — PREMIUM NAV
@@ -5097,8 +5143,9 @@
 
                 waitForFirebaseBridge().then(reader => {
                     reader.subscribeSettings(snapshot => {
+                        const settings = snapshot.exists() ? (snapshot.data() || {}) : {};
+                        window.mobForgeMaintenanceGate?.apply(settings);
                         if (snapshot.exists()) {
-                            const settings = snapshot.data() || {};
                             applyWebsiteConfig({
                                 ...DEFAULT_SITE_CONFIG,
                                 __live: true,
@@ -5125,7 +5172,10 @@
                             });
                             writeSiteConfigCache(settings);
                         }
-                    }, error => console.warn('Could not read siteSettings/main:', error));
+                    }, error => {
+                        console.warn('Could not read siteSettings/main:', error);
+                        window.mobForgeMaintenanceGate?.apply({});
+                    });
 
                     reader.subscribeProducts(snapshot => {
                         const items = snapshot.docs.map(normalizeFirestoreProduct).filter(Boolean);
@@ -5164,6 +5214,7 @@
                     });
                 }).catch(error => {
                     console.warn('Firebase catalog connection unavailable:', error);
+                    window.mobForgeMaintenanceGate?.apply({});
                     if (!catalogReady) {
                         PRODUCTS = emptyCatalog;
                         catalogReady = true;
