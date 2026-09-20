@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Supabase schema expected: public.catalog_products, public.site_settings,
+         public.user_assets, public.user_profiles. Storage buckets:
+         catalog-files, maintenance-pages, user-assets, profile-avatars. -->
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MNWJEQ7C29">
     </script>
@@ -34,7 +37,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://tpefnptjkfiwsmhpxuea.supabase.co" crossorigin />
 
     <style>
         /* ============================================================
@@ -3972,7 +3975,7 @@
     </style>
     <script>
         // Start with the cached maintenance state when available. The body
-        // gate is released immediately; Firestore synchronizes the final
+        // gate is released immediately; Supabase synchronizes the final
         // authoritative state as soon as its listener is ready.
         document.documentElement.classList.add('mf-maintenance-pending');
     </script>
@@ -3981,8 +3984,11 @@
         .mf-auth-copy { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 18px; }
         .mf-google-button { display: flex; justify-content: center; min-height: 44px; }
         .mf-profile { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 4px 0 20px; }
+        .mf-profile-avatar-wrap { position:relative; width:48px; height:48px; }
         .mf-profile-avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--violet), var(--pink)); font-weight: 800; }
         .mf-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .mf-avatar-edit { position:absolute; right:-5px; bottom:-4px; width:20px; height:20px; border-radius:50%; border:1px solid var(--bg-surface); color:#fff; background:var(--violet); font-size:.58rem; cursor:pointer; }
+        .mf-avatar-input { display:none; }
         .mf-profile-name { font-size: 1.05rem; font-weight: 700; text-align: left; }
         .mf-profile-label { color: var(--text-muted); font-size: .72rem; text-align: left; }
         .mf-account-actions { display: grid; gap: 9px; margin-top: 18px; }
@@ -3990,6 +3996,8 @@
         .mf-account-action:hover, .mf-creator-nav-action:hover { color: var(--text-primary); border-color: var(--border-hover); background: rgba(139,92,246,.1); }
         .mf-account-action.creator, .mf-creator-nav-action { color: #dfd2ff; border-color: rgba(139,92,246,.28); background: rgba(139,92,246,.12); }
         .mf-account-action.danger { color: #fda4af; }
+        .mf-card-owner { display:flex; align-items:center; gap:5px; color:var(--text-muted); font-size:.66rem; margin:4px 0 7px; }
+        .mf-card-owner img { width:18px; height:18px; border-radius:50%; object-fit:cover; }
         .mf-account-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:16px 0 12px; }
         .mf-account-stat { padding:10px 6px; border:1px solid var(--border-subtle); border-radius:10px; background:rgba(255,255,255,.035); }
         .mf-account-stat strong { display:block; color:var(--text-primary); font-size:1.05rem; }
@@ -4034,92 +4042,77 @@
         @media (max-width: 620px) { .mf-form-grid { grid-template-columns: 1fr; } .mf-upload-box { padding: 24px 18px !important; } }
     </style>
 
-    <!--
-        Firebase foundation for the future admin panel.
-        This intentionally does not initialize Firebase Auth. The existing
-        Google Identity Services login below remains the only login system.
-        Future admin-panel code can await window.mobForgeFirebaseReady.
-    -->
+    <!-- Supabase schema expected: public.catalog_products, public.site_settings,
+         public.user_assets, public.user_profiles. Storage buckets:
+         catalog-files, maintenance-pages, user-assets, profile-avatars. -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import {
-            initializeFirestore,
-            getFirestore,
-            persistentLocalCache,
-            persistentMultipleTabManager,
-            collection,
-            doc,
-            onSnapshot
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import {
-            getStorage,
-            ref,
-            uploadBytes,
-            getDownloadURL
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-        const firebaseConfig = {
-            apiKey: 'AIzaSyBMJirMGi83B76zKy7id7XOOyfeHChyhSw',
-            authDomain: 'admin-panel-f9d34.firebaseapp.com',
-            databaseURL: 'https://admin-panel-f9d34-default-rtdb.asia-southeast1.firebasedatabase.app',
-            projectId: 'admin-panel-f9d34',
-            storageBucket: 'admin-panel-f9d34.firebasestorage.app',
-            messagingSenderId: '120727884776',
-            appId: '1:120727884776:web:1bc1d7956f4dd6deb38a5d',
-            measurementId: 'G-S4K0QK9EB2'
+        const SUPABASE_URL = 'https://tpefnptjkfiwsmhpxuea.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_VuujVl_3i10DmKHzTTO3TA_q9XS0fcE';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const makeSnapshot = rows => ({
+            docs: (rows || []).map(row => ({ id: row.id, data: () => row })),
+            exists: () => Boolean(rows && rows.length),
+            data: () => (rows && rows[0]) || {},
+            metadata: { fromCache: false }
+        });
+        const readSettings = async () => {
+            const { data, error } = await supabase.from('site_settings').select('*').eq('id', 'main').maybeSingle();
+            if (error) throw error;
+            const row = data || {};
+            row.maintenanceEnabled = row.maintenance_enabled ?? row.maintenanceEnabled;
+            row.maintenanceFilename = row.maintenance_filename ?? row.maintenanceFilename;
+            row.maintenanceUrl = row.maintenance_url ?? row.maintenanceUrl;
+            if (row.maintenanceUrl) {
+                try {
+                    const response = await fetch(row.maintenanceUrl);
+                    if (response.ok) row.maintenanceHtml = await response.text();
+                } catch (_) {}
+            }
+            return row;
         };
-
-        const firebaseApp = initializeApp(firebaseConfig);
-        const firebaseStorage = getStorage(firebaseApp);
-        let firebaseFirestore;
-        try {
-            // Reuse Firestore's local snapshot immediately on repeat visits.
-            firebaseFirestore = initializeFirestore(firebaseApp, {
-                localCache: persistentLocalCache({
-                    tabManager: persistentMultipleTabManager()
-                })
-            });
-        } catch (error) {
-            // Older browsers or an already-initialized app can still use the
-            // normal Firestore instance without blocking the storefront.
-            firebaseFirestore = getFirestore(firebaseApp);
-        }
-        const firebaseServices = {
-            app: firebaseApp,
-            database: null,
-            firestore: firebaseFirestore,
-            storage: firebaseStorage,
-            analytics: null,
-            config: firebaseConfig
-        };
-
-        // Synchronous bridge for code that only needs the initialized app,
-        // plus a Promise for future admin-panel reads/writes.
-        window.mobForgeFirebase = firebaseServices;
-        /*
-         * Public catalog bridge. The website only reads the two collections
-         * written by the open admin panel. No Firebase Auth is involved here.
-         */
-        window.mobForgeFirestoreRead = {
+        window.mobForgeSupabase = supabase;
+        window.mobForgeSupabaseRead = {
             subscribeProducts(onNext, onError) {
-                return onSnapshot(collection(firebaseFirestore, 'catalogProducts'), onNext, onError);
+                const load = async () => {
+                    const { data, error } = await supabase.from('catalog_products').select('*');
+                    if (error) throw error;
+                    onNext(makeSnapshot(data || []));
+                };
+                load().catch(onError);
+                const channel = supabase.channel('storefront-catalog-sync')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'catalog_products' }, () => load().catch(onError))
+                    .subscribe();
+                return { unsubscribe: () => supabase.removeChannel(channel) };
             },
             subscribeSettings(onNext, onError) {
-                return onSnapshot(
-                    doc(firebaseFirestore, 'siteSettings', 'main'),
-                    { includeMetadataChanges: true },
-                    onNext,
-                    onError
-                );
+                const load = async () => onNext(makeSnapshot([await readSettings()]));
+                load().catch(onError);
+                const channel = supabase.channel('storefront-settings-sync')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => load().catch(onError))
+                    .subscribe();
+                return { unsubscribe: () => supabase.removeChannel(channel) };
             }
         };
-        window.mobForgeStorageUpload = async (file, path) => {
-            const storageRef = ref(firebaseStorage, path);
-            const snapshot = await uploadBytes(storageRef, file, {
+        window.mobForgeStorageUpload = async (file, path, bucket = 'user-assets') => {
+            const { error } = await supabase.storage.from(bucket).upload(path, file, {
                 contentType: file.type || 'application/octet-stream',
-                contentDisposition: `attachment; filename="${String(file.name || 'download').replace(/["\r\n]/g, '')}"`
+                contentDisposition: `attachment; filename="${String(file.name || 'download').replace(/["\r\n]/g, '')}"`,
+                upsert: true
             });
-            return getDownloadURL(snapshot.ref);
+            if (error) throw error;
+            return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+        };
+        window.mobForgeSubmitAsset = async asset => {
+            const { data, error } = await supabase.from('user_assets').insert(asset).select().single();
+            if (error) throw error;
+            return data;
+        };
+        window.mobForgeUpdateProfile = async profile => {
+            const { error } = await supabase.from('user_profiles').upsert(profile, { onConflict: 'id' });
+            if (error) throw error;
+            return profile;
         };
         const isMaintenanceEnabled = value =>
             value === true ||
@@ -4152,10 +4145,7 @@
                 document.documentElement.classList.remove('mf-maintenance-pending');
             }
         };
-        // The storefront only needs Firestore. Analytics and Realtime
-        // Database are intentionally not initialized here because they add
-        // extra network requests before the catalog can render.
-        window.mobForgeFirebaseReady = Promise.resolve(firebaseServices);
+        window.mobForgeSupabaseReady = Promise.resolve(supabase);
     </script>
 </head>
 
@@ -4181,9 +4171,9 @@
                     root.hidden = false;
                 }
             } catch (_) {
-                // Firestore remains authoritative when no usable cache exists.
+                // Supabase remains authoritative when no usable cache exists.
             } finally {
-                // Do not block the normal storefront while Firestore reconnects.
+                // Do not block the normal storefront while Supabase reconnects.
                 // An active cached state is already covering it when available.
                 document.documentElement.classList.remove('mf-maintenance-pending');
             }
@@ -4338,7 +4328,7 @@
             <div class="empty-state" style="grid-column:1/-1;">
                 <div class="icon"><i class="fas fa-spinner fa-pulse"></i></div>
                 <h3>Loading Downloads...</h3>
-                <p>Fetching the latest catalog from Firebase.</p>
+                <p>Fetching the latest catalog from Supabase.</p>
             </div>
         </div>
 
@@ -4487,7 +4477,7 @@
 
             let PRODUCTS = [];
             // The storefront is interactive immediately. Cached/local data is
-            // rendered first and the live Firestore snapshot replaces it later.
+            // rendered first and the live Supabase snapshot replaces it later.
             let catalogReady = false;
             let catalogServerSnapshotSeen = false;
             const CATALOG_CACHE_KEY = 'mob-forge-catalog-cache-v2';
@@ -4509,7 +4499,7 @@
                     localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(Array.isArray(products) ? products : []));
                 } catch (error) {
                     // Private browsing, blocked storage, or a full quota
-                    // should never prevent the live Firebase catalog.
+                    // should never prevent the live Supabase catalog.
                 }
             }
 
@@ -5095,7 +5085,7 @@
                 const cachedCatalog = readCatalogCache();
                 PRODUCTS = cachedCatalog.length ? cachedCatalog : emptyCatalog;
                 // Cached data can render immediately, but an empty catalog
-                // must remain in a loading state until the first Firestore
+                // must remain in a loading state until the first Supabase
                 // snapshot is received. This prevents the initial blank flash
                 // on a fresh visit.
                 catalogReady = cachedCatalog.length > 0;
@@ -5160,7 +5150,9 @@
                              comingSoonButtonText: primary.comingSoonButtonText || '',
                             versions,
                             screenshots: itemsForProduct.flatMap(item => item.screenshots || []),
-                            primaryVersion
+                            primaryVersion,
+                            author: primary.author || '',
+                            ownerAvatar: primary.ownerAvatar || ''
                         });
                     });
                     PRODUCTS.sort(compareCatalogProducts);
@@ -5171,15 +5163,15 @@
                     scheduleExternalPrefetch();
                 };
 
-                const normalizeFirestoreProduct = (snapshot) => {
+                    const normalizeSupabaseProduct = (snapshot) => {
                     const data = snapshot.data() || {};
-                    const matchedCat = matchCategory(data.category || '');
+                        const matchedCat = matchCategory(data.category || '');
                     if (!matchedCat || data.published === false) return null;
 
                     const title = String(data.title || 'Untitled').trim();
                     const normalizedTitle = stripColorTags(title).toLowerCase()
                         .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                    const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || data.image || data.icon || '');
+                        const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || data.image || data.icon || '');
                     const screenshots = Array.isArray(data.screenshots)
                         ? data.screenshots.map(normalizeImageUrl).filter(Boolean)
                         : [];
@@ -5202,7 +5194,7 @@
                                 description: String(version?.description || '').trim(),
                                 features: versionFeatures,
                                 downloadUrl: String(version?.downloadUrl || version?.download_url || '').trim(),
-                                 priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
+                                priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
                                 id: snapshot.id,
                                 title,
                                 image: imageUrl,
@@ -5236,24 +5228,26 @@
                         features,
                         screenshots,
                         catalogVersions: hasEmbeddedVersions ? catalogVersions : null,
-                         priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null
+                         priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
+                         author: String(data.owner_name || data.ownerName || data.author || '').trim(),
+                         ownerAvatar: normalizeImageUrl(data.owner_avatar || data.ownerAvatar || '')
                     };
                 };
 
-                const waitForFirebaseBridge = async () => {
+                const waitForSupabaseBridge = async () => {
                     for (let attempt = 0; attempt < 80; attempt += 1) {
-                        if (window.mobForgeFirestoreRead) return window.mobForgeFirestoreRead;
+                        if (window.mobForgeSupabaseRead) return window.mobForgeSupabaseRead;
                         await new Promise(resolve => setTimeout(resolve, 50));
                     }
-                    throw new Error('Firebase bridge did not initialize.');
+                    throw new Error('Supabase bridge did not initialize.');
                 };
 
-                waitForFirebaseBridge().then(reader => {
+                waitForSupabaseBridge().then(reader => {
                     let maintenanceSnapshotResolved = false;
                     const maintenanceFallbackTimer = window.setTimeout(() => {
                         if (maintenanceSnapshotResolved) return;
                         // Never let a cached OFF/default value release the
-                        // storefront while an active Firestore state may be
+                        // storefront while an active Supabase state may be
                         // unavailable. An active cached state is safe to keep.
                         const cached = window.mobForgeReadCachedMaintenanceSettings?.() || {};
                         const cachedEnabled = isMaintenanceEnabled(cached.maintenanceEnabled) &&
@@ -5266,7 +5260,7 @@
 
                     reader.subscribeSettings(snapshot => {
                         const settings = snapshot.exists() ? (snapshot.data() || {}) : {};
-                        // Use Firestore's local snapshot to synchronize quickly,
+                        // Use Supabase Realtime to synchronize quickly,
                         // then let the server snapshot remain authoritative.
                         // An empty cached snapshot is not a real OFF decision:
                         // keep the startup cache until the server responds.
@@ -5282,22 +5276,22 @@
                                 title: settings.title || DEFAULT_SITE_CONFIG.title,
                                 description: settings.description || DEFAULT_SITE_CONFIG.description,
                                 logo: settings.logo || DEFAULT_SITE_CONFIG.logo,
-                                footerText: Object.prototype.hasOwnProperty.call(settings, 'footerText')
-                                    ? String(settings.footerText || '')
+                                 footerText: Object.prototype.hasOwnProperty.call(settings, 'footer_text') || Object.prototype.hasOwnProperty.call(settings, 'footerText')
+                                     ? String(settings.footer_text ?? settings.footerText ?? '')
                                     : DEFAULT_SITE_CONFIG.footerText,
-                                footerCopyright: Object.prototype.hasOwnProperty.call(settings, 'footerCopyright')
-                                    ? String(settings.footerCopyright || '')
+                                 footerCopyright: Object.prototype.hasOwnProperty.call(settings, 'footer_copyright') || Object.prototype.hasOwnProperty.call(settings, 'footerCopyright')
+                                     ? String(settings.footer_copyright ?? settings.footerCopyright ?? '')
                                     : DEFAULT_SITE_CONFIG.footerCopyright,
                                 categories: normalizeCategories(settings.categories),
-                                creatorEnabled: settings.creatorEnabled !== false,
-                                creatorTitle: String(settings.creatorTitle || DEFAULT_SITE_CONFIG.creatorTitle),
-                                socialLinks: Object.prototype.hasOwnProperty.call(settings, 'socialLinks')
-                                    ? (settings.socialLinks || {})
+                                 creatorEnabled: (settings.creator_enabled ?? settings.creatorEnabled) !== false,
+                                 creatorTitle: String(settings.creator_title ?? settings.creatorTitle ?? DEFAULT_SITE_CONFIG.creatorTitle),
+                                 socialLinks: Object.prototype.hasOwnProperty.call(settings, 'social_links') || Object.prototype.hasOwnProperty.call(settings, 'socialLinks')
+                                     ? (settings.social_links ?? settings.socialLinks ?? {})
                                     : readLocalJson(SOCIAL_LINKS_STORAGE_KEY, {}),
-                                creatorVideos: Object.prototype.hasOwnProperty.call(settings, 'creatorVideos')
-                                    ? (Array.isArray(settings.creatorVideos) ? settings.creatorVideos : [])
+                                 creatorVideos: Object.prototype.hasOwnProperty.call(settings, 'creator_videos') || Object.prototype.hasOwnProperty.call(settings, 'creatorVideos')
+                                     ? (Array.isArray(settings.creator_videos ?? settings.creatorVideos) ? (settings.creator_videos ?? settings.creatorVideos) : [])
                                      : [],
-                                 categoryAvailability: normalizeCategoryAvailability(settings.categoryAvailability)
+                                  categoryAvailability: normalizeCategoryAvailability(settings.category_availability ?? settings.categoryAvailability)
                             });
                             if (!snapshot.metadata?.fromCache) {
                                 maintenanceSnapshotResolved = true;
@@ -5321,8 +5315,8 @@
                     });
 
                     reader.subscribeProducts(snapshot => {
-                        const items = snapshot.docs.map(normalizeFirestoreProduct).filter(Boolean);
-                        // Firestore's local persistence may report an empty
+                        const items = snapshot.docs.map(normalizeSupabaseProduct).filter(Boolean);
+                        // Supabase may briefly report an empty
                         // cache before the server snapshot. Keep cached/live
                         // cards visible instead of replacing them with an
                         // empty state during that hand-off.
@@ -5356,7 +5350,7 @@
                         setActiveCategory(currentCategory || 'all', { updateUrl: false });
                     });
                 }).catch(error => {
-                    console.warn('Firebase catalog connection unavailable:', error);
+                    console.warn('Supabase catalog connection unavailable:', error);
                     const cached = window.mobForgeReadCachedMaintenanceSettings?.() || {};
                     if (
                         isMaintenanceEnabled(cached.maintenanceEnabled) &&
@@ -6195,7 +6189,7 @@
                     return;
                 }
 
-                // Firebase is the source of truth for the admin catalog. Do
+                // Supabase is the source of truth for the admin catalog. Do
                 // not show an empty state or start an external category
                 // request while its first snapshot is still loading.
                 if (!catalogReady) {
@@ -6368,6 +6362,9 @@
                 const safeGroupKey = escapeHtml(product.groupKey || '');
                 const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
                 const safeTitle = escapeHtml(cleanTitle);
+                const ownerMarkup = product.author
+                    ? `<span class="mf-card-owner">${product.ownerAvatar ? `<img src="${escapeHtml(product.ownerAvatar)}" alt="" />` : '<i class="fas fa-user"></i>'} ${escapeHtml(product.author)}</span>`
+                    : '';
                 const badge = isPremier
                     ? (product.comingSoonBadge || product.badgeText || '')
                     : (primary.badgeText || (!hasVersionData ? product.badgeText : '') || '');
@@ -6450,6 +6447,7 @@
                                     ${titleBadgeMarkup}
                                     ${favoriteMarkup}
                                 </div>
+                                 ${ownerMarkup}
                                 <div class="card-meta-row">
                                     <span class="category-tag">${escapeHtml(getCategoryLabel(product.category))}</span>
                                     <span class="edition-badge" data-edition-display="${safeProductId}" ${edition ? '' : 'style="display:none;"'}>${escapeHtml(edition)}</span>
@@ -6478,7 +6476,7 @@
                             <div class="empty-state" style="grid-column:1/-1;">
                                 <div class="icon"><i class="fas fa-spinner fa-pulse"></i></div>
                                 <h3>Loading Downloads...</h3>
-                                <p>Fetching the latest catalog from Firebase.</p>
+                                <p>Fetching the latest catalog from Supabase.</p>
                             </div>
                         `;
                         return;
@@ -8859,20 +8857,21 @@
                 <div class="mf-form-grid">
                     <label class="mf-form-label">Category
                         <select id="mfAssetCategory" class="mf-form-control">
-                            <option>Minecraft PE</option>
-                            <option>Plugin</option>
-                            <option>Mod</option>
-                            <option>Resource Pack</option>
-                            <option>Shader</option>
+                             <option value="minecraft-pe">Minecraft PE</option>
+                             <option value="launchers">Launchers</option>
+                             <option value="resource-packs">Resource Packs</option>
+                             <option value="plugins">Plugins</option>
+                             <option value="mods">Mods</option>
+                             <option value="shaders">Shaders</option>
                         </select>
                     </label>
                     <label class="mf-form-label">Version
                         <input id="mfAssetVersion" class="mf-form-control" type="text" maxlength="40" placeholder="1.21.4" />
                     </label>
                 </div>
-                <div class="mf-form-grid">
+                 <div class="mf-form-grid" id="mfLoaderFields">
                     <label class="mf-form-label">Loader
-                        <select id="mfAssetLoader" class="mf-form-control">
+                         <select id="mfAssetLoader" class="mf-form-control">
                             <option>Vanilla</option>
                             <option>Fabric</option>
                             <option>Forge</option>
@@ -8892,13 +8891,17 @@
                 <label class="mf-form-label">Description
                     <textarea id="mfAssetDescription" class="mf-form-control" rows="3" maxlength="800"></textarea>
                 </label>
-                <label class="mf-form-label">Creator
-                    <input id="mfAssetAuthor" class="mf-form-control" type="text" readonly />
+                 <label class="mf-form-label">Owner name
+                     <input id="mfAssetAuthor" class="mf-form-control" type="text" maxlength="80" />
                 </label>
+                 <label class="mf-form-label">Badge <span style="font-weight:500;color:var(--text-muted);">optional</span>
+                     <input id="mfAssetBadge" class="mf-form-control" type="text" maxlength="40" placeholder="NEW, BETA, STABLE…" />
+                 </label>
                 <div class="mf-file-wrap">
                     <strong>Release file</strong>
-                    <input id="mfAssetFile" type="file" accept=".jar,.zip,.mrpack" required />
-                    <small class="mf-file-help">JAR, ZIP, or MRPACK · maximum 50 MB</small>
+                     <input id="mfAssetFile" type="file" accept=".apk,.jar,.zip,.mrpack,.mcpack,.mcaddon,.exe,.msi,.dmg,.7z,.rar,.tar,.gz,.bin,application/octet-stream" />
+                     <input id="mfAssetDownloadUrl" class="mf-form-control" type="url" placeholder="or paste a direct download URL" style="margin-top:10px;" />
+                     <small class="mf-file-help">Paste a URL or upload a JAR, ZIP, APK, MRPACK, MCPACK, or other binary · maximum 50 MB</small>
                 </div>
                 <p class="mf-form-error" id="mfUploadError" hidden></p>
                 <div class="mf-form-actions">
@@ -8941,6 +8944,10 @@
     var uploadForm = document.getElementById('mfUploadForm');
     var uploadError = document.getElementById('mfUploadError');
     var uploadFile = document.getElementById('mfAssetFile');
+    var uploadUrl = document.getElementById('mfAssetDownloadUrl');
+    var uploadCategory = document.getElementById('mfAssetCategory');
+    var loaderFields = document.getElementById('mfLoaderFields');
+    var avatarInput = null;
     var uploadAuthor = document.getElementById('mfAssetAuthor');
     var maxFileSize = 50 * 1024 * 1024;
 
@@ -9095,7 +9102,7 @@
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">Google account</div></div></div><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Publish an Asset</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Publish an Asset</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
@@ -9127,8 +9134,21 @@
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
         if (!username) { showUsernamePrompt(); return; }
         uploadAuthor.value = username;
+        updateUploadFields();
         uploadError.hidden = true;
         openModal(uploadModal);
+    }
+
+    function updateUploadFields() {
+        var category = uploadCategory ? uploadCategory.value : 'mods';
+        var technical = ['plugins', 'mods', 'shaders'].includes(category);
+        if (loaderFields) loaderFields.hidden = !technical;
+        var loader = document.getElementById('mfAssetLoader');
+        var platform = document.getElementById('mfAssetPlatform');
+        if (!technical) {
+            if (loader) loader.value = 'Vanilla';
+            if (platform) platform.value = category === 'minecraft-pe' ? 'Bedrock' : 'Java';
+        }
     }
 
     function readStoredAssets() {
@@ -9173,7 +9193,7 @@
     }
 
     function mapUploadCategory(category) {
-        return category === 'Plugin' ? 'plugins' : category === 'Mod' ? 'mods' : category === 'Resource Pack' ? 'resource-packs' : category === 'Shader' ? 'shaders' : 'minecraft-pe';
+        return ['minecraft-pe', 'launchers', 'resource-packs', 'plugins', 'mods', 'shaders'].includes(category) ? category : 'mods';
     }
 
     async function publishAsset(event) {
@@ -9182,43 +9202,60 @@
         var title = document.getElementById('mfAssetTitle').value.trim();
         var file = uploadFile.files && uploadFile.files[0];
         if (title.length < 3) { uploadError.textContent = 'Add a title with at least 3 characters.'; uploadError.hidden = false; return; }
-        if (!file) { uploadError.textContent = 'Choose an asset file to continue.'; uploadError.hidden = false; return; }
-        if (!/\.(jar|zip|mrpack)$/i.test(file.name)) { uploadError.textContent = 'Use a .jar, .zip, or .mrpack file.'; uploadError.hidden = false; return; }
-        if (file.size > maxFileSize) { uploadError.textContent = 'Files must be 50MB or smaller.'; uploadError.hidden = false; return; }
+        var directUrl = uploadUrl && uploadUrl.value.trim();
+        if (!file && !directUrl) { uploadError.textContent = 'Paste a download URL or choose an asset file.'; uploadError.hidden = false; return; }
+        if (directUrl) {
+            try { if (!['http:', 'https:'].includes(new URL(directUrl).protocol)) throw new Error(); }
+            catch (_) { uploadError.textContent = 'Paste a full http(s) download URL.'; uploadError.hidden = false; return; }
+        }
+        if (file && (/^image\//i.test(file.type) || /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(file.name))) { uploadError.textContent = 'Image files cannot be used as release files.'; uploadError.hidden = false; return; }
+        if (file && file.size > maxFileSize) { uploadError.textContent = 'Files must be 50MB or smaller.'; uploadError.hidden = false; return; }
         var submit = uploadForm.querySelector('[type="submit"]');
         if (submit) submit.disabled = true;
         uploadError.hidden = true;
         if (submit) submit.textContent = 'Uploading…';
         try {
-                    // A Blob URL only exists in this browser session. Upload
-                    // the original file to the same Firebase Storage project
-                    // used by the admin panel before saving the catalog entry.
-                    if (!window.mobForgeFirebaseReady) throw new Error('Storage is still loading. Please try again.');
-                    await window.mobForgeFirebaseReady;
+                    if (!window.mobForgeSupabaseReady) throw new Error('Storage is still loading. Please try again.');
+                    await window.mobForgeSupabaseReady;
                     if (typeof window.mobForgeStorageUpload !== 'function') throw new Error('Persistent upload storage is unavailable.');
 
-                    var id = 'creator-' + Date.now();
+                    var id = 'asset-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
                     var category = mapUploadCategory(document.getElementById('mfAssetCategory').value);
-                    var edition = document.getElementById('mfAssetPlatform').value.toLowerCase();
+                    var technical = ['plugins', 'mods', 'shaders'].includes(category);
+                    var loaderValue = technical ? document.getElementById('mfAssetLoader').value : '';
+                    var platformValue = technical ? document.getElementById('mfAssetPlatform').value : '';
                     var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
-                    var safeFileName = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
-                    var persistentDownloadUrl = await window.mobForgeStorageUpload(
-                        file,
-                        `creator-uploads/${safeAccountId}/${id}-${safeFileName}`
-                    );
-                    var version = { id: id, version: document.getElementById('mfAssetVersion').value, badgeText: 'NEW', edition: edition, downloadUrl: persistentDownloadUrl };
-                    var asset = { id: id, groupKey: id, title: title, cleanTitle: title, category: category, description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.', features: [document.getElementById('mfAssetLoader').value, document.getElementById('mfAssetPlatform').value, file.name.split('.').pop().toUpperCase()], image: '', icon: '', imageCandidates: [], edition: edition, versions: [version], primaryVersion: version, author: username, userCreated: true, fileName: file.name, fileSize: file.size, downloadUrl: persistentDownloadUrl };
-                    var stored = readStoredAssets().map(normalizeStoredAsset).filter(Boolean);
-                    localStorage.setItem(CREATOR_ASSETS_KEY, JSON.stringify([asset].concat(stored)));
-                    if (window.__build && Array.isArray(window.__build.products)) {
-                        window.__build.products.unshift(asset);
-                        window.__build.setActiveCategory(category);
+                    var persistentDownloadUrl = directUrl || '';
+                    var storagePath = '';
+                    if (file) {
+                        var safeFileName = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
+                        storagePath = `uploads/${safeAccountId}/${id}-${safeFileName}`;
+                        persistentDownloadUrl = await window.mobForgeStorageUpload(file, storagePath, 'user-assets');
                     }
+                    await window.mobForgeSubmitAsset({
+                        id: id,
+                        title: title,
+                        description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.',
+                        category: category,
+                        version: document.getElementById('mfAssetVersion').value.trim(),
+                        badge: document.getElementById('mfAssetBadge').value.trim(),
+                        loader: loaderValue,
+                        platform: platformValue,
+                        download_url: persistentDownloadUrl,
+                        storage_path: storagePath,
+                        owner_id: window.__mfAccountId || '',
+                        owner_name: (document.getElementById('mfAssetAuthor').value || username).trim(),
+                        owner_avatar: profile.picture || '',
+                        status: 'pending',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
                     closeModal(uploadModal);
                     uploadForm.reset();
                     uploadAuthor.value = username;
+                    updateUploadFields();
                     var toast = document.getElementById('semoxToast');
-                    if (toast) { toast.textContent = '✓ Asset published to the Mob Forge catalog.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2400); }
+                    if (toast) { toast.textContent = '✓ Asset submitted for admin approval.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2400); }
                 } catch (error) {
                     console.error('Creator upload failed:', error);
                     uploadError.textContent = error && error.message
@@ -9230,6 +9267,33 @@
                         submit.disabled = false;
                         submit.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Publish Asset';
                     }
+        }
+    }
+
+    async function changeProfilePicture(file) {
+        if (!file || !profile || !window.mobForgeStorageUpload) return;
+        if (!/^image\//i.test(file.type) || file.size > 10 * 1024 * 1024) {
+            var pictureToast = document.getElementById('semoxToast');
+            if (pictureToast) { pictureToast.textContent = 'Use an image up to 10 MB.'; pictureToast.classList.add('show'); setTimeout(function () { pictureToast.classList.remove('show'); }, 2200); }
+            return;
+        }
+        try {
+            var safeAccountId = String(window.__mfAccountId || 'account').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
+            var path = safeAccountId + '/avatar-' + Date.now() + '.' + (file.name.split('.').pop() || 'jpg');
+            var pictureUrl = await window.mobForgeStorageUpload(file, path, 'profile-avatars');
+            profile.picture = pictureUrl;
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+            if (window.mobForgeUpdateProfile) {
+                await window.mobForgeUpdateProfile({ id: window.__mfAccountId, username: username, avatar_url: pictureUrl, updated_at: new Date().toISOString() });
+            }
+            setAccountButton();
+            renderAccount();
+            var successToast = document.getElementById('semoxToast');
+            if (successToast) { successToast.textContent = '✓ Profile picture updated.'; successToast.classList.add('show'); setTimeout(function () { successToast.classList.remove('show'); }, 2200); }
+        } catch (error) {
+            console.error('Profile picture update failed:', error);
+            var errorToast = document.getElementById('semoxToast');
+            if (errorToast) { errorToast.textContent = 'Profile picture upload failed.'; errorToast.classList.add('show'); setTimeout(function () { errorToast.classList.remove('show'); }, 2200); }
         }
     }
 
@@ -9260,6 +9324,12 @@
         }
     });
     if (accountModal) accountModal.addEventListener('click', function (event) {
+        var changeAvatar = event.target.closest('[data-mf-change-avatar]');
+        if (changeAvatar) {
+            avatarInput = document.getElementById('mfProfileAvatarInput');
+            if (avatarInput) avatarInput.click();
+            return;
+        }
         var savedDownload = event.target.closest('[data-mf-saved-download]');
         if (savedDownload) {
             openSavedDownload({
@@ -9314,11 +9384,16 @@
     if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
     if (uploadForm) uploadForm.addEventListener('submit', publishAsset);
     if (uploadFile) uploadFile.addEventListener('change', function () { uploadError.hidden = true; });
+    if (uploadCategory) uploadCategory.addEventListener('change', updateUploadFields);
+    document.addEventListener('change', function (event) {
+        if (event.target && event.target.id === 'mfProfileAvatarInput') changeProfilePicture(event.target.files && event.target.files[0]);
+    });
     document.addEventListener('click', function (event) { var close = event.target.closest('[data-mf-close]'); if (close) closeModal(close.dataset.mfClose === 'username' ? usernameModal : uploadModal); });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeModal(usernameModal); closeModal(uploadModal); } });
     var readyTimer = setInterval(function () { initializeGIS(); if (gisInitialized) clearInterval(readyTimer); }, 250);
     setAccountButton();
     renderCreatorNav();
+    updateUploadFields();
 })();
 </script>
 </body>
