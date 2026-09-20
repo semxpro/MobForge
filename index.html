@@ -4021,6 +4021,19 @@
         .mf-saved-item-copy strong { display:block; }
         .mf-saved-item-copy span { display:block; margin-top:3px; }
         .mf-account-back { margin-top:14px; width:100%; }
+        .mf-dashboard-open .modal-box { max-width: 920px !important; width: min(94vw, 920px); padding: 34px !important; }
+        .mf-dashboard-open .mf-account-panel-list { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); max-height: 56vh; gap: 14px; }
+        .mf-dashboard-open .mf-account-panel-item { min-height: 150px; padding: 16px; border-radius: 14px; background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(139,92,246,.045)); }
+        .mf-dashboard-open .mf-account-panel-item strong { font-size: .98rem; }
+        .mf-dashboard-open .mf-account-panel-item span { font-size: .76rem; }
+        .mf-dashboard-open .mf-account-summary { gap: 12px; }
+        .mf-dashboard-open .mf-account-stat { padding: 16px; border-radius: 14px; }
+        .mf-dashboard-open .mf-account-stat strong { font-size: 1.5rem; }
+        .mf-logo-upload { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .mf-logo-upload input { display:none; }
+        .mf-logo-upload-button { display:inline-flex; align-items:center; gap:8px; padding:10px 13px; border:1px solid rgba(139,92,246,.4); border-radius:9px; background:rgba(139,92,246,.1); color:#dfd2ff; cursor:pointer; font:inherit; font-size:.78rem; font-weight:700; }
+        .mf-logo-upload-button:hover { background:rgba(139,92,246,.18); border-color:var(--violet); }
+        .mf-logo-upload-status { color:var(--text-muted); font-size:.7rem; }
         .mf-upload-box { max-width: 650px !important; text-align: left !important; padding: 28px !important; }
         .mf-upload-box h3 { text-align: left; }
         .mf-upload-box .mf-upload-intro { color: var(--text-secondary); font-size: .85rem; margin: 5px 0 20px; }
@@ -4562,6 +4575,8 @@
                 creatorEnabled: true,
                 creatorTitle: 'Content Creators',
                 creatorVideos: [],
+                cloudinaryCloudName: 'r4tentfl',
+                cloudinaryUploadPreset: 'ml_default',
                 categories: FALLBACK_CATEGORIES
             };
 
@@ -4818,6 +4833,10 @@
 
             function applyWebsiteConfig(config) {
                 const safeConfig = { ...DEFAULT_SITE_CONFIG, ...(config || {}) };
+                window.__mfCloudinaryConfig = {
+                    cloudName: String(safeConfig.cloudinaryCloudName || DEFAULT_SITE_CONFIG.cloudinaryCloudName).trim(),
+                    uploadPreset: String(safeConfig.cloudinaryUploadPreset || DEFAULT_SITE_CONFIG.cloudinaryUploadPreset).trim()
+                };
                 CATEGORY_AVAILABILITY = normalizeCategoryAvailability(safeConfig.categoryAvailability);
                 const tagEl = document.getElementById('siteTagDisplay');
                 const logoEl = document.getElementById('siteLogoImage');
@@ -5300,6 +5319,8 @@
                                 title: settings.title || DEFAULT_SITE_CONFIG.title,
                                 description: settings.description || DEFAULT_SITE_CONFIG.description,
                                 logo: settings.logo || DEFAULT_SITE_CONFIG.logo,
+                                cloudinaryCloudName: settings.cloudinary_cloud_name || settings.cloudinaryCloudName || DEFAULT_SITE_CONFIG.cloudinaryCloudName,
+                                cloudinaryUploadPreset: settings.cloudinary_upload_preset || settings.cloudinaryUploadPreset || DEFAULT_SITE_CONFIG.cloudinaryUploadPreset,
                                  footerText: Object.prototype.hasOwnProperty.call(settings, 'footer_text') || Object.prototype.hasOwnProperty.call(settings, 'footerText')
                                      ? String(settings.footer_text ?? settings.footerText ?? '')
                                     : DEFAULT_SITE_CONFIG.footerText,
@@ -5894,16 +5915,9 @@
 
             function getProductsForCategory(categoryId) {
                 if (categoryId === 'all') return [...PRODUCTS].sort(compareCatalogProducts);
-                // Resource Packs are an API-only category. Admin-created
-                // resource packs remain available on All Downloads but must
-                // never replace the dedicated Modrinth results.
-                if (categoryId === 'resource-packs') return [];
-                // Approved community uploads (ids starting with "user-") are
-                // shown through the "User ..." toggle on API categories so
-                // they never replace the Modrinth results.
-                if (EXTERNAL_CATEGORIES.has(categoryId)) {
-                    return PRODUCTS.filter(p => p.category === categoryId && !String(p.id || '').startsWith('user-')).sort(compareCatalogProducts);
-                }
+                // Published admin and community products share the same
+                // category filter so an approved upload appears on the
+                // exact category selected by its creator.
                 return PRODUCTS.filter(p => p.category === categoryId).sort(compareCatalogProducts);
             }
 
@@ -9047,12 +9061,17 @@
                  <label class="mf-form-label">Badge <span style="font-weight:500;color:var(--text-muted);">optional</span>
                      <input id="mfAssetBadge" class="mf-form-control" type="text" maxlength="40" placeholder="NEW, BETA, STABLE…" />
                  </label>
-                 <label class="mf-form-label">Cover image <span style="font-weight:500;color:var(--text-muted);">optional · shown with your release</span>
-                     <input id="mfAssetImage" class="mf-form-control" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style="padding:8px;" />
-                 </label>
+                <div class="mf-form-label">
+                    <span>Product logo/icon <span style="font-weight:500;color:var(--text-muted);">optional</span></span>
+                    <div class="mf-logo-upload">
+                        <label class="mf-logo-upload-button" for="mfAssetImage"><i class="fas fa-image"></i> Upload Logo/Icon</label>
+                        <input id="mfAssetImage" type="file" accept="image/png,image/jpeg" />
+                        <span class="mf-logo-upload-status" id="mfAssetImageStatus">PNG or JPG · up to 10 MB</span>
+                    </div>
+                </div>
                 <div class="mf-file-wrap">
                     <strong>Release file</strong>
-                     <input id="mfAssetFile" type="file" accept=".apk,.jar,.zip,.mrpack,.mcpack,.mcaddon,.exe,.msi,.dmg,.7z,.rar,.tar,.gz,.bin,application/octet-stream" />
+                     <input id="mfAssetFile" type="file" accept="*/*" />
                      <small class="mf-file-help">Upload a JAR, ZIP, APK, MRPACK, MCPACK, or other binary · maximum 50 MB</small>
                 </div>
                 <p class="mf-form-error" id="mfUploadError" hidden></p>
@@ -9101,6 +9120,25 @@
     var avatarInput = null;
     var uploadAuthor = document.getElementById('mfAssetAuthor');
     var maxFileSize = 50 * 1024 * 1024;
+
+    async function uploadCommunityLogo(file) {
+        var config = window.__mfCloudinaryConfig || { cloudName: 'r4tentfl', uploadPreset: 'ml_default' };
+        var cloudName = String(config.cloudName || '').trim();
+        var uploadPreset = String(config.uploadPreset || '').trim();
+        if (!cloudName || !uploadPreset) throw new Error('Logo upload is not configured.');
+        var body = new FormData();
+        body.append('file', file);
+        body.append('upload_preset', uploadPreset);
+        var response = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cloudName) + '/image/upload', {
+            method: 'POST',
+            body: body
+        });
+        var payload = await response.json().catch(function () { return {}; });
+        if (!response.ok || !payload.secure_url) {
+            throw new Error(payload.error && payload.error.message ? payload.error.message : 'Logo upload failed.');
+        }
+        return payload.secure_url;
+    }
 
     function escapeHtml(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -9266,7 +9304,7 @@
             if (storagePath) {
                 try { await sb.storage.from('user-assets').remove([storagePath]); } catch (_) {}
             }
-            // Also remove the cover image from storage.
+            // Remove a legacy storage-hosted logo when one exists.
             if (imageUrl) {
                 await removeMyFileFromUrl(imageUrl);
             }
@@ -9278,6 +9316,7 @@
 
     function renderAccountPanel(panel) {
         if (!accountModal) return;
+        accountModal.classList.remove('mf-dashboard-open');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
         if (panel === 'dashboard') {
@@ -9301,6 +9340,7 @@
 
     async function renderDashboardPanel() {
         if (!accountModal) return;
+        accountModal.classList.add('mf-dashboard-open');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
         box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-table-columns"></i></div><h3>My Dashboard</h3><p class="mf-auth-copy" style="margin-bottom:14px;">All releases you have submitted, with their approval status.</p><div class="mf-account-summary" style="margin:0 0 14px;"><div class="mf-account-stat"><strong id="mfDashboardPendingCount">—</strong><span>Pending</span></div><div class="mf-account-stat"><strong id="mfDashboardPublishedCount">—</strong><span>Published</span></div></div><div class="mf-account-panel"><div class="mf-account-panel-list" id="mfDashboardList"><div class="mf-account-panel-item"><span>Loading your submissions…</span></div></div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home style="margin-top:14px;"><i class="fas fa-arrow-left"></i> Back to account</button></div>';
@@ -9325,12 +9365,13 @@
             var icon = item.image_url || item.owner_avatar || '';
             var thumb = icon ? '<img src="' + escapeHtml(icon) + '" alt="" />' : '<i class="fas fa-cube"></i>';
             var dlUrl = String(item.download_url || '').trim();
-            return '<div class="mf-account-panel-item"><span class="mf-saved-item-icon">' + thumb + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Untitled') + '</strong><span style="color:' + statusColor + ';">' + status + '</span></span><div style="display:flex;gap:8px;margin-top:6px;align-items:center;">' + (dlUrl ? '<a href="' + escapeHtml(dlUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size:.68rem;color:var(--text-secondary);">Download</a>' : '') + '<button type="button" data-mf-edit-submission="' + escapeHtml(item.id) + '" style="font-size:.68rem;color:var(--text-secondary);background:none;border:none;cursor:pointer;">Edit</button><button type="button" data-mf-delete-submission="' + escapeHtml(item.id) + '" data-mf-storage="' + escapeHtml(item.storage_path || '') + '" data-mf-approved-id="' + escapeHtml(item.approved_product_id || '') + '" data-mf-image="' + escapeHtml(item.image_url || '') + '" style="font-size:.68rem;color:#fda4af;background:none;border:none;cursor:pointer;">Delete</button></div></div>';
+            return '<div class="mf-account-panel-item"><span class="mf-saved-item-icon">' + thumb + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Untitled') + '</strong><span style="color:' + statusColor + ';font-weight:700;">' + status + '</span><span>' + escapeHtml(item.category || 'Community release') + (item.version ? ' · ' + escapeHtml(item.version) : '') + '</span></span><div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">' + (dlUrl ? '<a href="' + escapeHtml(dlUrl) + '" target="_blank" rel="noopener noreferrer" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-download"></i> Download</a>' : '') + '<button type="button" data-mf-edit-submission="' + escapeHtml(item.id) + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-pen"></i> Edit</button><button type="button" data-mf-delete-submission="' + escapeHtml(item.id) + '" data-mf-storage="' + escapeHtml(item.storage_path || '') + '" data-mf-approved-id="' + escapeHtml(item.approved_product_id || '') + '" data-mf-image="' + escapeHtml(item.image_url || '') + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;color:#fda4af;"><i class="fas fa-trash"></i> Delete</button></div></div>';
         }).join('');
     }
 
     function renderAccount() {
         if (!accountModal) return;
+        accountModal.classList.remove('mf-dashboard-open');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
         if (!profile) {
@@ -9412,6 +9453,8 @@
         document.getElementById('mfAssetVersion').value = item.version || '';
         document.getElementById('mfAssetBadge').value = item.badge || '';
         document.getElementById('mfAssetDescription').value = item.description || '';
+        var imageStatus = document.getElementById('mfAssetImageStatus');
+        if (imageStatus) imageStatus.textContent = item.image_url ? 'Current logo will remain unless replaced.' : 'PNG or JPG · up to 10 MB';
         uploadAuthor.value = item.owner_name || username || '';
         updateUploadFields();
         uploadError.hidden = true;
@@ -9486,8 +9529,8 @@
         var file = uploadFile.files && uploadFile.files[0];
         var imageInput = document.getElementById('mfAssetImage');
         var imageFile = imageInput && imageInput.files && imageInput.files[0];
-        if (imageFile && imageFile.size > 10 * 1024 * 1024) { uploadError.textContent = 'Cover image must be 10MB or smaller.'; uploadError.hidden = false; return; }
-        if (imageFile && !/^image\//i.test(imageFile.type)) { uploadError.textContent = 'Choose a valid image file for the cover.'; uploadError.hidden = false; return; }
+        if (imageFile && imageFile.size > 10 * 1024 * 1024) { uploadError.textContent = 'Logo/icon must be 10MB or smaller.'; uploadError.hidden = false; return; }
+        if (imageFile && !/^image\/(png|jpeg)$/i.test(imageFile.type)) { uploadError.textContent = 'Choose a PNG or JPG logo/icon.'; uploadError.hidden = false; return; }
         if (title.length < 3) { uploadError.textContent = 'Add a title with at least 3 characters.'; uploadError.hidden = false; return; }
         if (!editing && !file) { uploadError.textContent = 'Choose a release file to upload (maximum 50 MB).'; uploadError.hidden = false; return; }
         if (file && (/^image\//i.test(file.type) || /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(file.name))) { uploadError.textContent = 'Image files cannot be used as release files.'; uploadError.hidden = false; return; }
@@ -9510,12 +9553,10 @@
                     var ownerName = (document.getElementById('mfAssetAuthor').value || username).trim();
                     var persistentDownloadUrl = editing ? String(editing.download_url || '') : '';
                     var storagePath = editing ? String(editing.storage_path || '') : '';
-                    var coverImageUrl = editing ? String(editing.image_url || '') : '';
-                    var coverImagePath = '';
-                    // Cover images are stored in the optional image_url column
-                    // of user_assets. Detect the column once; when it is not
-                    // present yet, the submission still works and the image
-                    // is simply skipped.
+                    var logoImageUrl = editing ? String(editing.image_url || '') : '';
+                    // Product logos are uploaded directly to Cloudinary and
+                    // persisted as the product's image_url. Detect the
+                    // optional user_assets column before storing the URL.
                     if (imageFile && window.__mfUserAssetsImageColumn === undefined) {
                         try {
                             var imageProbe = await window.mobForgeSupabase.from('user_assets').select('image_url').limit(1);
@@ -9525,11 +9566,8 @@
                         }
                     }
                     if (!window.__mfUserAssetsImageColumn) imageFile = null;
-                    if (imageFile) {
-                        var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
-                        var safeImageName = String(imageFile.name || 'cover').replace(/[^a-zA-Z0-9._-]/g, '_');
-                        coverImagePath = `images/${safeAccountId}/${Date.now()}/${safeImageName}`;
-                        coverImageUrl = await window.mobForgeStorageUpload(imageFile, coverImagePath, 'user-assets');
+                    if (imageFile && window.__mfUserAssetsImageColumn) {
+                        logoImageUrl = await uploadCommunityLogo(imageFile);
                     }
                     if (file) {
                         var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
@@ -9552,11 +9590,11 @@
                             storage_path: storagePath,
                             owner_name: ownerName,
                             owner_avatar: profile.picture || '',
-                            ...(window.__mfUserAssetsImageColumn ? { image_url: coverImageUrl } : {}),
+                            ...(window.__mfUserAssetsImageColumn ? { image_url: logoImageUrl } : {}),
                             updated_at: new Date().toISOString()
                         }).eq('id', editing.id);
                         if (updateResult && updateResult.error) throw updateResult.error;
-                        if (imageFile && editing.image_url && editing.image_url !== coverImageUrl) {
+                        if (imageFile && editing.image_url && editing.image_url !== logoImageUrl) {
                             await removeMyFileFromUrl(editing.image_url);
                         }
                         if (editing.status === 'approved' && editing.approved_product_id) {
@@ -9565,7 +9603,7 @@
                                     title: title,
                                     description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.',
                                     category: category,
-                                    image_url: coverImageUrl,
+                                    image_url: logoImageUrl,
                                     badge: document.getElementById('mfAssetBadge').value.trim(),
                                     versions: [{
                                         version: document.getElementById('mfAssetVersion').value.trim(),
@@ -9590,7 +9628,7 @@
                             platform: platformValue,
                             download_url: persistentDownloadUrl,
                             storage_path: storagePath,
-                            ...(window.__mfUserAssetsImageColumn ? { image_url: coverImageUrl } : {}),
+                            ...(window.__mfUserAssetsImageColumn ? { image_url: logoImageUrl } : {}),
                             owner_id: window.__mfAccountId || '',
                             owner_name: ownerName,
                             owner_avatar: profile.picture || '',
@@ -9600,11 +9638,13 @@
                         });
                     }
                     window.__mfEditingSubmission = null;
-                    closeModal(uploadModal);
                     uploadForm.reset();
                     uploadAuthor.value = username;
+                    var imageStatus = document.getElementById('mfAssetImageStatus');
+                    if (imageStatus) imageStatus.textContent = 'PNG or JPG · up to 10 MB';
                     updateUploadFields();
                     document.getElementById('mfUploadTitle').textContent = 'Submit Release';
+                    if (editing) closeModal(uploadModal);
                     var toast = document.getElementById('semoxToast');
                     if (toast) { toast.textContent = editing ? 'Submission updated. It is still pending approval — check your Dashboard.' : 'Your submission is pending approval. Check your Dashboard.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 3200); }
                 } catch (error) {
@@ -9754,6 +9794,13 @@
     if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
     if (uploadForm) uploadForm.addEventListener('submit', publishAsset);
     if (uploadFile) uploadFile.addEventListener('change', function () { uploadError.hidden = true; });
+    var logoInput = document.getElementById('mfAssetImage');
+    if (logoInput) logoInput.addEventListener('change', function () {
+        var selected = logoInput.files && logoInput.files[0];
+        var status = document.getElementById('mfAssetImageStatus');
+        if (status) status.textContent = selected ? selected.name + ' — uploads to Cloudinary on submit' : 'PNG or JPG · up to 10 MB';
+        uploadError.hidden = true;
+    });
     if (uploadCategory) uploadCategory.addEventListener('change', updateUploadFields);
     document.addEventListener('change', function (event) {
         if (event.target && event.target.id === 'mfProfileAvatarInput') changeProfilePicture(event.target.files && event.target.files[0]);
