@@ -4256,6 +4256,7 @@
                 </select>
             </div>
             <button class="semox-btn-reset" id="semoxResetFilters"><i class="fas fa-undo"></i> Reset</button>
+            <button class="semox-btn-reset" id="semoxUserPluginsToggle" data-user-toggle="plugins" style="margin-left:auto;"><i class="fas fa-users"></i> User Plugins</button>
         </div>
 
         <!-- Resource Pack Filter Bar -->
@@ -4277,6 +4278,7 @@
                 </select>
             </div>
             <button class="semox-btn-reset" id="semoxRpResetFilters"><i class="fas fa-undo"></i> Reset</button>
+            <button class="semox-btn-reset" id="semoxUserRpToggle" data-user-toggle="resource-packs" style="margin-left:auto;"><i class="fas fa-users"></i> User Resource Packs</button>
         </div>
 
         <!-- Mod Filter Bar -->
@@ -4298,6 +4300,7 @@
                 </select>
             </div>
             <button class="semox-btn-reset" id="semoxModResetFilters"><i class="fas fa-undo"></i> Reset</button>
+            <button class="semox-btn-reset" id="semoxUserModsToggle" data-user-toggle="mods" style="margin-left:auto;"><i class="fas fa-users"></i> User Mods</button>
         </div>
 
         <!-- Shader Filter Bar -->
@@ -4319,6 +4322,7 @@
                 </select>
             </div>
             <button class="semox-btn-reset" id="semoxShaderResetFilters"><i class="fas fa-undo"></i> Reset</button>
+            <button class="semox-btn-reset" id="semoxUserShadersToggle" data-user-toggle="shaders" style="margin-left:auto;"><i class="fas fa-users"></i> User Shaders</button>
         </div>
 
         <!-- ============================================================
@@ -4583,8 +4587,11 @@
                         return result;
                     }, {})
                     : (value && typeof value === 'object' ? value : {});
-                return Object.fromEntries(FALLBACK_CATEGORIES.map(category => {
-                    const saved = source[category.id];
+                // "all" controls the Home view; the other ids control
+                // their individual category pages.
+                const availabilityIds = ['all', ...FALLBACK_CATEGORIES.map(category => category.id)];
+                return Object.fromEntries(availabilityIds.map(id => {
+                    const saved = source[id];
                     const rawEnabled = saved && typeof saved === 'object' ? saved.enabled : saved;
                     const enabled = rawEnabled === undefined || rawEnabled === null
                         ? true
@@ -4594,7 +4601,7 @@
                     const message = saved && typeof saved === 'object'
                         ? String(saved.message || saved.description || '').trim()
                         : '';
-                    return [category.id, { enabled, message }];
+                    return [id, { enabled, message }];
                 }));
             }
 
@@ -5089,7 +5096,12 @@
                 // snapshot is received. This prevents the initial blank flash
                 // on a fresh visit.
                 catalogReady = cachedCatalog.length > 0;
-                applyWebsiteConfig(readSiteConfigCache() || {});
+                // Apply the cached site config — including category
+                // availability — before the first render so a disabled
+                // category never flashes its old content after a refresh.
+                const cachedSiteConfig = readSiteConfigCache() || {};
+                CATEGORY_AVAILABILITY = normalizeCategoryAvailability(cachedSiteConfig.categoryAvailability);
+                applyWebsiteConfig(cachedSiteConfig);
                 initApp();
                 if (catalogReady) scheduleExternalPrefetch();
 
@@ -5155,11 +5167,19 @@
                             ownerAvatar: primary.ownerAvatar || ''
                         });
                     });
+                    const nextCatalogSignature = PRODUCTS.map(p => `${p.id}|${p.primaryVersion?.version || ''}|${(p.versions || []).length}`).sort().join('§');
+                    const previousCatalogSignature = window.__mfCatalogSignature || '';
                     PRODUCTS.sort(compareCatalogProducts);
                     catalogReady = true;
                     writeCatalogCache(PRODUCTS);
+                    window.__mfCatalogSignature = nextCatalogSignature;
                     renderCategories();
-                    setActiveCategory(currentCategory || 'all', { updateUrl: false });
+                    // Re-render the active category only when the catalog
+                    // actually changed — prevents saved content from
+                    // flickering on refresh.
+                    if (nextCatalogSignature !== previousCatalogSignature) {
+                        setActiveCategory(currentCategory || 'all', { updateUrl: false });
+                    }
                     scheduleExternalPrefetch();
                 };
 
@@ -5494,7 +5514,9 @@
             }
 
             function isCategoryAvailable(id) {
-                return id === 'all' || getCategoryAvailability(id).enabled !== false;
+                // Home ('all') is also controllable from the admin
+                // category availability toggles.
+                return getCategoryAvailability(id).enabled !== false;
             }
 
             function escapeHtml(value) {
@@ -5872,6 +5894,12 @@
                 // resource packs remain available on All Downloads but must
                 // never replace the dedicated Modrinth results.
                 if (categoryId === 'resource-packs') return [];
+                // Approved community uploads (ids starting with "user-") are
+                // shown through the "User ..." toggle on API categories so
+                // they never replace the Modrinth results.
+                if (EXTERNAL_CATEGORIES.has(categoryId)) {
+                    return PRODUCTS.filter(p => p.category === categoryId && !String(p.id || '').startsWith('user-')).sort(compareCatalogProducts);
+                }
                 return PRODUCTS.filter(p => p.category === categoryId).sort(compareCatalogProducts);
             }
 
@@ -6154,7 +6182,7 @@
                 if (currentCategory === categoryId && !options.refresh) {
                     updateNavButtons(categoryId);
                     renderCreatorVideoShowcase();
-                    if (categoryId !== 'all' && !isCategoryAvailable(categoryId)) {
+                    if (!isCategoryAvailable(categoryId)) {
                         pluginFilterBar.style.display = 'none';
                         rpFilterBar.style.display = 'none';
                         modFilterBar.style.display = 'none';
@@ -6175,7 +6203,7 @@
                 // request so navigation never waits for Modrinth.
                 updateNavButtons(categoryId);
 
-                if (categoryId !== 'all' && !isCategoryAvailable(categoryId)) {
+                if (!isCategoryAvailable(categoryId)) {
                     pluginFilterBar.style.display = 'none';
                     rpFilterBar.style.display = 'none';
                     modFilterBar.style.display = 'none';
@@ -7293,6 +7321,90 @@
                 downloadGrid.removeEventListener('change', downloadGrid._listener);
                 downloadGrid.removeEventListener('click', downloadGrid._listener);
                 downloadGrid._listener = null;
+            }
+
+            let userAssetsViewActive = false;
+
+            async function loadApprovedUserAssets(categoryId) {
+                try {
+                    if (!window.mobForgeSupabaseReady) return [];
+                    await window.mobForgeSupabaseReady;
+                    var sb = window.mobForgeSupabase;
+                    if (!sb) return [];
+                    var res = await sb.from('user_assets').select('*')
+                        .eq('status', 'approved')
+                        .eq('category', categoryId)
+                        .order('created_at', { ascending: false });
+                    if (res.error) throw res.error;
+                    return res.data || [];
+                } catch (error) {
+                    console.warn('Could not load user assets:', error);
+                    return [];
+                }
+            }
+
+            async function showUserAssetsForCategory(categoryId) {
+                userAssetsViewActive = true;
+                clearCatalogGridListener();
+                downloadGrid.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <div class="icon"><i class="fas fa-spinner fa-pulse"></i></div>
+                        <h3>Loading user ${escapeHtml(getCategoryLabel(categoryId).toLowerCase())}…</h3>
+                    </div>
+                `;
+                const assets = await loadApprovedUserAssets(categoryId);
+                if (!userAssetsViewActive) return;
+                if (!assets.length) {
+                    downloadGrid.innerHTML = `
+                        <div class="empty-state" style="grid-column:1/-1;">
+                            <div class="icon"><i class="fas fa-ban"></i></div>
+                            <h3>Not Available</h3>
+                            <p>No approved community ${escapeHtml(getCategoryLabel(categoryId).toLowerCase())} yet.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                let html = '<div class="semox-grid">';
+                assets.forEach((asset, idx) => {
+                    const icon = asset.owner_avatar || '';
+                    const dlUrl = String(asset.download_url || '').trim();
+                    const meta = [asset.version, asset.badge, asset.loader, asset.platform].filter(Boolean).join(' · ');
+                    const thumb = icon
+                        ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" /><div class="semox-icon-placeholder" style="display:none;"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`
+                        : `<div class="semox-icon-placeholder"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`;
+                    html += `
+                        <div class="semox-card fade-in fade-in-d${Math.min(idx % 4 + 1, 4)}" data-project-id="${escapeHtml(asset.id)}">
+                            <div class="semox-p-top">
+                                <div class="semox-p-icon">${thumb}</div>
+                                <div class="semox-p-info">
+                                    <div class="semox-p-name">${escapeHtml(asset.title || 'Untitled')}<span class="semox-p-badge">${escapeHtml(getCategoryLabel(categoryId))}</span></div>
+                                    <div class="semox-p-meta">${meta ? `<span class="semox-p-tag"><i class="fas fa-tag"></i> ${escapeHtml(meta)}</span>` : ''}</div>
+                                    <div class="semox-p-desc">${escapeHtml(asset.description || '')}</div>
+                                </div>
+                            </div>
+                            <div class="semox-p-footer">
+                                <div class="semox-p-dl-count"><i class="fas fa-user"></i><span class="semox-count">${escapeHtml(asset.owner_name || 'Community')}</span></div>
+                                <div class="semox-p-actions">
+                                    ${dlUrl
+                                        ? `<a class="semox-btn-download" href="${escapeHtml(dlUrl)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-download"></i> Download</a>`
+                                        : '<button class="semox-btn-download" disabled>Unavailable</button>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                downloadGrid.innerHTML = html;
+            }
+
+            function hideUserAssetsView() {
+                if (!userAssetsViewActive) return;
+                userAssetsViewActive = false;
+                document.querySelectorAll('[data-user-toggle]').forEach(function (button) {
+                    button.style.background = '';
+                    button.style.borderColor = '';
+                });
+                setActiveCategory(currentCategory, { updateUrl: false, refresh: true });
             }
 
             function getApiDisplayTags(project, type) {
@@ -8660,6 +8772,26 @@
                 if (shaderResetFiltersBtn) shaderResetFiltersBtn.addEventListener('click', resetShaderFilters);
             }
 
+            function initUserAssetToggles() {
+                document.querySelectorAll('[data-user-toggle]').forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        const categoryId = button.dataset.userToggle;
+                        if (userAssetsViewActive && window.__mfUserToggleCategory === categoryId) {
+                            hideUserAssetsView();
+                            return;
+                        }
+                        document.querySelectorAll('[data-user-toggle]').forEach(function (other) {
+                            other.style.background = '';
+                            other.style.borderColor = '';
+                        });
+                        button.style.background = 'rgba(139,92,246,.14)';
+                        button.style.borderColor = 'rgba(139,92,246,.45)';
+                        window.__mfUserToggleCategory = categoryId;
+                        showUserAssetsForCategory(categoryId);
+                    });
+                });
+            }
+
             // ============================================================
             // 24. EVENTS
             // ============================================================
@@ -8675,6 +8807,11 @@
                     }
                     currentSearchQuery = '';
                     searchInput.value = '';
+                    userAssetsViewActive = false;
+                    document.querySelectorAll('[data-user-toggle]').forEach(function (button) {
+                        button.style.background = '';
+                        button.style.borderColor = '';
+                    });
                     setActiveCategory(cat);
                     closeDetailsModal();
                     mobileNavEl.classList.remove('open');
@@ -8787,6 +8924,7 @@
                 initRpFilters();
                 initModFilters();
                 initShaderFilters();
+                initUserAssetToggles();
                 setActiveCategory(route.category, { updateUrl: false });
                 if (route.projectSlug) {
                     openDirectProjectRoute(route.category, route.projectSlug);
@@ -8848,8 +8986,8 @@
         <div class="modal-box mf-upload-box">
             <button class="modal-close" type="button" data-mf-close="upload" aria-label="Close upload dialog"><i class="fas fa-times"></i></button>
             <div class="modal-icon"><i class="fas fa-cloud-arrow-up"></i></div>
-            <h3 id="mfUploadTitle">Publish an Asset</h3>
-            <p class="mf-upload-intro">Share a Minecraft release with the Mob Forge community.</p>
+            <h3 id="mfUploadTitle">Submit Release</h3>
+            <p class="mf-upload-intro">Upload a Minecraft plugin, mod, or pack for admin approval.</p>
             <form id="mfUploadForm" class="mf-upload-form">
                 <label class="mf-form-label">Title
                     <input id="mfAssetTitle" class="mf-form-control" type="text" maxlength="120" required />
@@ -8888,6 +9026,14 @@
                         </select>
                     </label>
                 </div>
+                <div class="mf-form-grid" id="mfEditionFields" hidden>
+                    <label class="mf-form-label">Edition
+                        <select id="mfAssetEdition" class="mf-form-control">
+                            <option value="bedrock">Bedrock</option>
+                            <option value="java">Java</option>
+                        </select>
+                    </label>
+                </div>
                 <label class="mf-form-label">Description
                     <textarea id="mfAssetDescription" class="mf-form-control" rows="3" maxlength="800"></textarea>
                 </label>
@@ -8900,13 +9046,12 @@
                 <div class="mf-file-wrap">
                     <strong>Release file</strong>
                      <input id="mfAssetFile" type="file" accept=".apk,.jar,.zip,.mrpack,.mcpack,.mcaddon,.exe,.msi,.dmg,.7z,.rar,.tar,.gz,.bin,application/octet-stream" />
-                     <input id="mfAssetDownloadUrl" class="mf-form-control" type="url" placeholder="or paste a direct download URL" style="margin-top:10px;" />
-                     <small class="mf-file-help">Paste a URL or upload a JAR, ZIP, APK, MRPACK, MCPACK, or other binary · maximum 50 MB</small>
+                     <small class="mf-file-help">Upload a JAR, ZIP, APK, MRPACK, MCPACK, or other binary · maximum 50 MB</small>
                 </div>
                 <p class="mf-form-error" id="mfUploadError" hidden></p>
                 <div class="mf-form-actions">
                     <button class="mf-secondary-button" type="button" data-mf-close="upload">Cancel</button>
-                    <button class="mf-primary-button" type="submit"><i class="fas fa-cloud-arrow-up"></i> Publish Asset</button>
+                    <button class="mf-primary-button" type="submit"><i class="fas fa-cloud-arrow-up"></i> Submit Release</button>
                 </div>
             </form>
         </div>
@@ -8944,7 +9089,6 @@
     var uploadForm = document.getElementById('mfUploadForm');
     var uploadError = document.getElementById('mfUploadError');
     var uploadFile = document.getElementById('mfAssetFile');
-    var uploadUrl = document.getElementById('mfAssetDownloadUrl');
     var uploadCategory = document.getElementById('mfAssetCategory');
     var loaderFields = document.getElementById('mfLoaderFields');
     var avatarInput = null;
@@ -9073,10 +9217,47 @@
         window.__build.openDownloadModal(item.projectId || item.id, item.title || 'Saved project', item.icon || item.image || '', type, normalizeVersion(item.version));
     }
 
+    async function fetchMySubmissions() {
+        try {
+            if (!window.mobForgeSupabaseReady) return [];
+            await window.mobForgeSupabaseReady;
+            var sb = window.mobForgeSupabase;
+            if (!sb || !window.__mfAccountId) return [];
+            var res = await sb.from('user_assets').select('*').eq('owner_id', window.__mfAccountId).order('created_at', { ascending: false });
+            if (res.error) return [];
+            return res.data || [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async function deleteMySubmission(assetId, storagePath, approvedProductId) {
+        if (!assetId) return;
+        if (!window.confirm('Delete this submission? This cannot be undone.')) return;
+        try {
+            await window.mobForgeSupabaseReady;
+            var sb = window.mobForgeSupabase;
+            await sb.from('user_assets').delete().eq('id', assetId);
+            if (approvedProductId) {
+                try { await sb.from('catalog_products').delete().eq('id', approvedProductId); } catch (_) {}
+            }
+            if (storagePath) {
+                try { await sb.storage.from('user-assets').remove([storagePath]); } catch (_) {}
+            }
+        } catch (error) {
+            console.warn('Could not delete submission:', error);
+        }
+        renderAccountPanel('dashboard');
+    }
+
     function renderAccountPanel(panel) {
         if (!accountModal) return;
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
+        if (panel === 'dashboard') {
+            renderDashboardPanel();
+            return;
+        }
         var items = panel === 'saved' ? storedList('mob-forge-favorites') : storedList('mob-forge-download-history');
         var title = panel === 'saved' ? 'Saved items' : 'Download history';
         var empty = panel === 'saved' ? 'Your saved releases will appear here.' : 'Your downloads will appear here after you start a download.';
@@ -9092,6 +9273,29 @@
         box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas ' + (panel === 'saved' ? 'fa-star' : 'fa-clock-rotate-left') + '"></i></div><h3>' + title + '</h3><div class="mf-account-panel"><div class="mf-account-panel-toolbar"><span>' + items.length + ' item' + (items.length === 1 ? '' : 's') + '</span><button type="button" class="mf-account-clear" data-mf-clear-panel="' + panel + '"><i class="fas fa-trash-can"></i> Clear</button></div><div class="mf-account-panel-list">' + list + '</div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home><i class="fas fa-arrow-left"></i> Back to dashboard</button></div>';
     }
 
+    async function renderDashboardPanel() {
+        if (!accountModal) return;
+        var box = accountModal.querySelector('.modal-box');
+        if (!box) return;
+        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-table-columns"></i></div><h3>My Dashboard</h3><p class="mf-auth-copy" style="margin-bottom:14px;">Your submissions and their approval status.</p><div class="mf-account-panel"><div class="mf-account-panel-list" id="mfDashboardList"><div class="mf-account-panel-item"><span>Loading your submissions…</span></div></div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home style="margin-top:14px;"><i class="fas fa-arrow-left"></i> Back to account</button></div>';
+        var submissions = await fetchMySubmissions();
+        window.__mfDashboardItems = submissions;
+        var listEl = document.getElementById('mfDashboardList');
+        if (!listEl) return;
+        if (!submissions.length) {
+            listEl.innerHTML = '<div class="mf-account-panel-item"><span>You have not submitted any releases yet.</span></div>';
+            return;
+        }
+        listEl.innerHTML = submissions.map(function (item) {
+            var approved = item.status === 'approved';
+            var status = approved ? 'Published' : 'Pending';
+            var statusColor = approved ? 'var(--emerald)' : 'var(--amber)';
+            var thumb = item.owner_avatar ? '<img src="' + escapeHtml(item.owner_avatar) + '" alt="" />' : '<i class="fas fa-cube"></i>';
+            var dlUrl = String(item.download_url || '').trim();
+            return '<div class="mf-account-panel-item"><span class="mf-saved-item-icon">' + thumb + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Untitled') + '</strong><span style="color:' + statusColor + ';">' + status + (approved ? '' : ' — waiting for admin') + '</span></span><div style="display:flex;gap:8px;margin-top:6px;align-items:center;">' + (dlUrl ? '<a href="' + escapeHtml(dlUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size:.68rem;color:var(--text-secondary);">Download</a>' : '') + '<button type="button" data-mf-edit-submission="' + escapeHtml(item.id) + '" style="font-size:.68rem;color:var(--text-secondary);background:none;border:none;cursor:pointer;">Edit</button><button type="button" data-mf-delete-submission="' + escapeHtml(item.id) + '" data-mf-storage="' + escapeHtml(item.storage_path || '') + '" data-mf-approved-id="' + escapeHtml(item.approved_product_id || '') + '" style="font-size:.68rem;color:#fda4af;background:none;border:none;cursor:pointer;">Delete</button></div></div>';
+        }).join('');
+    }
+
     function renderAccount() {
         if (!accountModal) return;
         var box = accountModal.querySelector('.modal-box');
@@ -9102,7 +9306,7 @@
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Publish an Asset</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
@@ -9114,7 +9318,7 @@
         action.type = 'button';
         action.className = 'cat-btn mf-creator-nav-action';
         action.dataset.mfCreatorNav = 'true';
-        action.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Publish Asset';
+        action.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack';
         action.addEventListener('click', function () {
             mobileNav.classList.remove('open');
             openUpload();
@@ -9133,7 +9337,29 @@
     function openUpload() {
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
         if (!username) { showUsernamePrompt(); return; }
+        window.__mfEditingSubmission = null;
+        document.getElementById('mfUploadTitle').textContent = 'Submit Release';
+        var submitLabel = uploadForm.querySelector('[type="submit"]');
+        if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Release';
         uploadAuthor.value = username;
+        updateUploadFields();
+        uploadError.hidden = true;
+        openModal(uploadModal);
+    }
+
+    function openEditSubmission(item) {
+        if (!profile) { openAccountButton && openAccountButton.click(); return; }
+        if (!username) { showUsernamePrompt(); return; }
+        window.__mfEditingSubmission = item;
+        document.getElementById('mfUploadTitle').textContent = 'Edit Submission';
+        var submitLabel = uploadForm.querySelector('[type="submit"]');
+        if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        document.getElementById('mfAssetTitle').value = item.title || '';
+        if (uploadCategory) uploadCategory.value = mapUploadCategory(item.category || 'mods');
+        document.getElementById('mfAssetVersion').value = item.version || '';
+        document.getElementById('mfAssetBadge').value = item.badge || '';
+        document.getElementById('mfAssetDescription').value = item.description || '';
+        uploadAuthor.value = item.owner_name || username || '';
         updateUploadFields();
         uploadError.hidden = true;
         openModal(uploadModal);
@@ -9142,10 +9368,13 @@
     function updateUploadFields() {
         var category = uploadCategory ? uploadCategory.value : 'mods';
         var technical = ['plugins', 'mods', 'shaders'].includes(category);
+        var isResourcePack = category === 'resource-packs';
         if (loaderFields) loaderFields.hidden = !technical;
+        var editionFields = document.getElementById('mfEditionFields');
+        if (editionFields) editionFields.hidden = !isResourcePack;
         var loader = document.getElementById('mfAssetLoader');
         var platform = document.getElementById('mfAssetPlatform');
-        if (!technical) {
+        if (!technical && !isResourcePack) {
             if (loader) loader.value = 'Vanilla';
             if (platform) platform.value = category === 'minecraft-pe' ? 'Bedrock' : 'Java';
         }
@@ -9199,63 +9428,100 @@
     async function publishAsset(event) {
         event.preventDefault();
         if (!profile || !username) { uploadError.textContent = 'Sign in and set a username before uploading.'; uploadError.hidden = false; return; }
+        var editing = window.__mfEditingSubmission || null;
         var title = document.getElementById('mfAssetTitle').value.trim();
         var file = uploadFile.files && uploadFile.files[0];
         if (title.length < 3) { uploadError.textContent = 'Add a title with at least 3 characters.'; uploadError.hidden = false; return; }
-        var directUrl = uploadUrl && uploadUrl.value.trim();
-        if (!file && !directUrl) { uploadError.textContent = 'Paste a download URL or choose an asset file.'; uploadError.hidden = false; return; }
-        if (directUrl) {
-            try { if (!['http:', 'https:'].includes(new URL(directUrl).protocol)) throw new Error(); }
-            catch (_) { uploadError.textContent = 'Paste a full http(s) download URL.'; uploadError.hidden = false; return; }
-        }
+        if (!editing && !file) { uploadError.textContent = 'Choose a release file to upload (maximum 50 MB).'; uploadError.hidden = false; return; }
         if (file && (/^image\//i.test(file.type) || /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(file.name))) { uploadError.textContent = 'Image files cannot be used as release files.'; uploadError.hidden = false; return; }
         if (file && file.size > maxFileSize) { uploadError.textContent = 'Files must be 50MB or smaller.'; uploadError.hidden = false; return; }
         var submit = uploadForm.querySelector('[type="submit"]');
         if (submit) submit.disabled = true;
         uploadError.hidden = true;
-        if (submit) submit.textContent = 'Uploading…';
+        if (submit) submit.textContent = editing ? 'Saving…' : 'Uploading…';
         try {
                     if (!window.mobForgeSupabaseReady) throw new Error('Storage is still loading. Please try again.');
                     await window.mobForgeSupabaseReady;
                     if (typeof window.mobForgeStorageUpload !== 'function') throw new Error('Persistent upload storage is unavailable.');
 
-                    var id = 'asset-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
                     var category = mapUploadCategory(document.getElementById('mfAssetCategory').value);
                     var technical = ['plugins', 'mods', 'shaders'].includes(category);
+                    var isResourcePack = category === 'resource-packs';
                     var loaderValue = technical ? document.getElementById('mfAssetLoader').value : '';
-                    var platformValue = technical ? document.getElementById('mfAssetPlatform').value : '';
-                    var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
-                    var persistentDownloadUrl = directUrl || '';
-                    var storagePath = '';
+                    var editionValue = isResourcePack ? document.getElementById('mfAssetEdition').value : '';
+                    var platformValue = technical ? document.getElementById('mfAssetPlatform').value : editionValue;
+                    var ownerName = (document.getElementById('mfAssetAuthor').value || username).trim();
+                    var persistentDownloadUrl = editing ? String(editing.download_url || '') : '';
+                    var storagePath = editing ? String(editing.storage_path || '') : '';
                     if (file) {
+                        var fileId = editing ? editing.id : 'asset-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+                        var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
                         var safeFileName = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
-                        storagePath = `uploads/${safeAccountId}/${id}-${safeFileName}`;
+                        storagePath = `uploads/${safeAccountId}/${fileId}-${safeFileName}`;
                         persistentDownloadUrl = await window.mobForgeStorageUpload(file, storagePath, 'user-assets');
                     }
-                    await window.mobForgeSubmitAsset({
-                        id: id,
-                        title: title,
-                        description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.',
-                        category: category,
-                        version: document.getElementById('mfAssetVersion').value.trim(),
-                        badge: document.getElementById('mfAssetBadge').value.trim(),
-                        loader: loaderValue,
-                        platform: platformValue,
-                        download_url: persistentDownloadUrl,
-                        storage_path: storagePath,
-                        owner_id: window.__mfAccountId || '',
-                        owner_name: (document.getElementById('mfAssetAuthor').value || username).trim(),
-                        owner_avatar: profile.picture || '',
-                        status: 'pending',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    });
+                    if (editing) {
+                        var updateResult = await window.mobForgeSupabase.from('user_assets').update({
+                            title: title,
+                            description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.',
+                            category: category,
+                            version: document.getElementById('mfAssetVersion').value.trim(),
+                            badge: document.getElementById('mfAssetBadge').value.trim(),
+                            loader: loaderValue,
+                            platform: platformValue,
+                            download_url: persistentDownloadUrl,
+                            storage_path: storagePath,
+                            owner_name: ownerName,
+                            owner_avatar: profile.picture || '',
+                            updated_at: new Date().toISOString()
+                        }).eq('id', editing.id);
+                        if (updateResult && updateResult.error) throw updateResult.error;
+                        if (editing.status === 'approved' && editing.approved_product_id) {
+                            try {
+                                await window.mobForgeSupabase.from('catalog_products').update({
+                                    title: title,
+                                    description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.',
+                                    category: category,
+                                    badge: document.getElementById('mfAssetBadge').value.trim(),
+                                    versions: [{
+                                        version: document.getElementById('mfAssetVersion').value.trim(),
+                                        badge: document.getElementById('mfAssetBadge').value.trim(),
+                                        description: document.getElementById('mfAssetDescription').value.trim(),
+                                        features: [loaderValue, platformValue].filter(Boolean),
+                                        downloadUrl: persistentDownloadUrl
+                                    }],
+                                    updated_at: new Date().toISOString()
+                                }).eq('id', editing.approved_product_id);
+                            } catch (_) {}
+                        }
+                    } else {
+                        await window.mobForgeSubmitAsset({
+                            id: 'asset-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+                            title: title,
+                            description: document.getElementById('mfAssetDescription').value.trim() || 'Creator release uploaded to Mob Forge.',
+                            category: category,
+                            version: document.getElementById('mfAssetVersion').value.trim(),
+                            badge: document.getElementById('mfAssetBadge').value.trim(),
+                            loader: loaderValue,
+                            platform: platformValue,
+                            download_url: persistentDownloadUrl,
+                            storage_path: storagePath,
+                            owner_id: window.__mfAccountId || '',
+                            owner_name: ownerName,
+                            owner_avatar: profile.picture || '',
+                            status: 'pending',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                    }
+                    window.__mfEditingSubmission = null;
                     closeModal(uploadModal);
                     uploadForm.reset();
                     uploadAuthor.value = username;
                     updateUploadFields();
+                    document.getElementById('mfUploadTitle').textContent = 'Submit Release';
                     var toast = document.getElementById('semoxToast');
-                    if (toast) { toast.textContent = '✓ Asset submitted for admin approval.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2400); }
+                    if (toast) { toast.textContent = editing ? 'Submission updated. It is still pending approval — check your Dashboard.' : 'Your submission is pending approval. Check your Dashboard.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 3200); }
                 } catch (error) {
                     console.error('Creator upload failed:', error);
                     uploadError.textContent = error && error.message
@@ -9265,7 +9531,7 @@
         } finally {
                     if (submit) {
                         submit.disabled = false;
-                        submit.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Publish Asset';
+                        submit.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Release';
                     }
         }
     }
@@ -9309,7 +9575,14 @@
             if (!username && profile.name) username = profile.name;
             setAccountButton();
             renderCreatorNav();
-            if (!username) showUsernamePrompt();
+            // Show the username prompt only once, for a brand-new user.
+            // After that it never opens automatically again — "Edit username"
+            // remains available inside the Account modal.
+            var promptFlagKey = 'mob-forge-username-prompt-shown:' + (profile.id || 'guest');
+            if (!localStorage.getItem(USERNAME_KEY) && !localStorage.getItem(promptFlagKey)) {
+                localStorage.setItem(promptFlagKey, '1');
+                showUsernamePrompt();
+            }
         }});
         gisInitialized = true;
         if (accountModal && accountModal.classList.contains('open')) renderGoogleButton();
@@ -9347,6 +9620,18 @@
         if (target) closeModal(accountModal);
         var panel = event.target.closest('[data-mf-show-panel]');
         if (panel) { renderAccountPanel(panel.dataset.mfShowPanel); return; }
+        var editSubmission = event.target.closest('[data-mf-edit-submission]');
+        if (editSubmission) {
+            var editId = editSubmission.dataset.mfEditSubmission;
+            var editItem = (window.__mfDashboardItems || []).find(function (asset) { return asset.id === editId; });
+            if (editItem) { closeModal(accountModal); openEditSubmission(editItem); }
+            return;
+        }
+        var deleteSubmission = event.target.closest('[data-mf-delete-submission]');
+        if (deleteSubmission) {
+            deleteMySubmission(deleteSubmission.dataset.mfDeleteSubmission, deleteSubmission.dataset.mfStorage, deleteSubmission.dataset.mfApprovedId);
+            return;
+        }
         var clearPanel = event.target.closest('[data-mf-clear-panel]');
         if (clearPanel) {
             var clearType = clearPanel.dataset.mfClearPanel;
