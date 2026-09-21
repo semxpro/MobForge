@@ -5222,7 +5222,13 @@
                     const title = String(data.title || 'Untitled').trim();
                     const normalizedTitle = stripColorTags(title).toLowerCase()
                         .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                        const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || data.image || data.icon || '');
+                        const imageUrl = normalizeImageUrl(
+                            data.imageUrl ||
+                            data.image_url ||
+                            data.image ||
+                            data.icon ||
+                            (/\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(String(data.owner_avatar || '')) ? data.owner_avatar : '')
+                        );
                     const screenshots = Array.isArray(data.screenshots)
                         ? data.screenshots.map(normalizeImageUrl).filter(Boolean)
                         : [];
@@ -9390,10 +9396,10 @@
             var approved = item.status === 'approved';
             var status = approved ? 'Published' : 'Pending — waiting for admin';
             var statusColor = approved ? 'var(--emerald)' : 'var(--amber)';
-            var icon = item.image_url || item.owner_avatar || '';
+            var icon = storedCommunityLogoUrl(item) || item.owner_avatar || '';
             var thumb = icon ? '<img src="' + escapeHtml(icon) + '" alt="" />' : '<i class="fas fa-cube"></i>';
             var dlUrl = String(item.download_url || '').trim();
-            return '<div class="mf-account-panel-item"><span class="mf-saved-item-icon">' + thumb + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Untitled') + '</strong><span style="color:' + statusColor + ';font-weight:700;">' + status + '</span><span>' + escapeHtml(item.category || 'Community release') + (item.version ? ' · ' + escapeHtml(item.version) : '') + '</span></span><div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">' + (dlUrl ? '<a href="' + escapeHtml(dlUrl) + '" target="_blank" rel="noopener noreferrer" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-download"></i> Download</a>' : '') + '<button type="button" data-mf-edit-submission="' + escapeHtml(item.id) + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-pen"></i> Edit</button><button type="button" data-mf-delete-submission="' + escapeHtml(item.id) + '" data-mf-storage="' + escapeHtml(item.storage_path || '') + '" data-mf-approved-id="' + escapeHtml(item.approved_product_id || '') + '" data-mf-image="' + escapeHtml(item.image_url || '') + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;color:#fda4af;"><i class="fas fa-trash"></i> Delete</button></div></div>';
+            return '<div class="mf-account-panel-item"><span class="mf-saved-item-icon">' + thumb + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Untitled') + '</strong><span style="color:' + statusColor + ';font-weight:700;">' + status + '</span><span>' + escapeHtml(item.category || 'Community release') + (item.version ? ' · ' + escapeHtml(item.version) : '') + '</span></span><div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">' + (dlUrl ? '<a href="' + escapeHtml(dlUrl) + '" target="_blank" rel="noopener noreferrer" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-download"></i> Download</a>' : '') + '<button type="button" data-mf-edit-submission="' + escapeHtml(item.id) + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-pen"></i> Edit</button><button type="button" data-mf-delete-submission="' + escapeHtml(item.id) + '" data-mf-storage="' + escapeHtml(item.storage_path || '') + '" data-mf-approved-id="' + escapeHtml(item.approved_product_id || '') + '" data-mf-image="' + escapeHtml(storedCommunityLogoUrl(item)) + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;color:#fda4af;"><i class="fas fa-trash"></i> Delete</button></div></div>';
         }).join('');
     }
 
@@ -9489,7 +9495,7 @@
         if (!username) { showUsernamePrompt(); return; }
         window.__mfEditingSubmission = item;
         pendingLogoUpload = null;
-        pendingLogoUrl = String(item.image_url || '');
+        pendingLogoUrl = storedCommunityLogoUrl(item);
         if (uploadFile) uploadFile.value = '';
         var editLogoInput = document.getElementById('mfAssetImage');
         if (editLogoInput) editLogoInput.value = '';
@@ -9502,8 +9508,8 @@
         document.getElementById('mfAssetBadge').value = item.badge || '';
         document.getElementById('mfAssetDescription').value = item.description || '';
         var imageStatus = document.getElementById('mfAssetImageStatus');
-        if (imageStatus) imageStatus.textContent = item.image_url ? 'Current logo will remain unless replaced.' : 'PNG or JPG · up to 10 MB';
-        renderLogoPreview(item.image_url || '');
+        if (imageStatus) imageStatus.textContent = pendingLogoUrl ? 'Current logo will remain unless replaced.' : 'PNG or JPG · up to 10 MB';
+        renderLogoPreview(pendingLogoUrl);
         uploadAuthor.value = item.owner_name || username || '';
         updateUploadFields();
         uploadError.hidden = true;
@@ -9528,6 +9534,15 @@
         preview.innerHTML = safe
             ? '<img src="' + escapeHtml(safe) + '" alt="Selected product logo" />'
             : '<i class="fas fa-image"></i>';
+    }
+
+    function storedCommunityLogoUrl(item) {
+        var imageUrl = String(item && item.image_url || '').trim();
+        if (imageUrl) return imageUrl;
+        var ownerAvatar = String(item && item.owner_avatar || '').trim();
+        return /\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(ownerAvatar)
+            ? ownerAvatar
+            : '';
     }
 
     function updateUploadFields() {
@@ -9623,10 +9638,23 @@
                     var ownerName = (document.getElementById('mfAssetAuthor').value || username).trim();
                     var persistentDownloadUrl = editing ? String(editing.download_url || '') : '';
                     var storagePath = editing ? String(editing.storage_path || '') : '';
-                    var logoImageUrl = pendingLogoUrl || (editing ? String(editing.image_url || '') : '');
+                    var previousLogoUrl = editing ? storedCommunityLogoUrl(editing) : '';
+                    var logoImageUrl = pendingLogoUrl || previousLogoUrl;
+                    if (window.__mfUserAssetsImageColumn === undefined && (imageFile || logoImageUrl)) {
+                        try {
+                            var imageProbe = await window.mobForgeSupabase.from('user_assets').select('image_url').limit(1);
+                            window.__mfUserAssetsImageColumn = !imageProbe.error;
+                        } catch (_) {
+                            window.__mfUserAssetsImageColumn = false;
+                        }
+                    }
                     if (imageFile && !logoImageUrl) {
                         logoImageUrl = await uploadCommunityLogo(imageFile);
                     }
+                    var hasImageColumn = window.__mfUserAssetsImageColumn === true;
+                    var ownerAvatarValue = hasImageColumn
+                        ? (profile.picture || '')
+                        : (logoImageUrl || (editing ? String(editing.owner_avatar || '') : profile.picture || ''));
                     if (file) {
                         var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
                         var safeFileName = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -9647,13 +9675,13 @@
                             download_url: persistentDownloadUrl,
                             storage_path: storagePath,
                             owner_name: ownerName,
-                            owner_avatar: profile.picture || '',
-                            image_url: logoImageUrl,
+                            owner_avatar: ownerAvatarValue,
+                            ...(hasImageColumn ? { image_url: logoImageUrl } : {}),
                             updated_at: new Date().toISOString()
                         }).eq('id', editing.id);
                         if (updateResult && updateResult.error) throw updateResult.error;
-                        if (imageFile && editing.image_url && editing.image_url !== logoImageUrl) {
-                            await removeMyFileFromUrl(editing.image_url);
+                        if (imageFile && previousLogoUrl && previousLogoUrl !== logoImageUrl) {
+                            await removeMyFileFromUrl(previousLogoUrl);
                         }
                         if (editing.status === 'approved' && editing.approved_product_id) {
                             try {
@@ -9686,10 +9714,10 @@
                             platform: platformValue,
                             download_url: persistentDownloadUrl,
                             storage_path: storagePath,
-                            image_url: logoImageUrl,
+                            ...(hasImageColumn ? { image_url: logoImageUrl } : {}),
                             owner_id: window.__mfAccountId || '',
                             owner_name: ownerName,
-                            owner_avatar: profile.picture || '',
+                            owner_avatar: ownerAvatarValue,
                             status: 'pending',
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString()
