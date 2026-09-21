@@ -4706,6 +4706,9 @@
             }
 
             function normalizeImageUrl(value) {
+                if (value && typeof value === 'object') {
+                    value = value.secure_url || value.url || value.image_url || value.imageUrl || value.src || '';
+                }
                 let url = String(value || '').trim();
                 const imageFormula = url.match(/^=IMAGE\(\s*["']([^"']+)["']/i);
                 if (imageFormula) url = imageFormula[1].trim();
@@ -5180,7 +5183,9 @@
                             features: primary.features || [],
                             image: primary.image || '',
                             icon: primary.icon || '',
-                            imageCandidates: itemsForProduct.map(item => item.image || item.icon || '').filter(Boolean),
+                            imageCandidates: itemsForProduct
+                                .map(item => normalizeImageUrl(item.image || item.icon || ''))
+                                .filter(Boolean),
                             edition: primary.edition || null,
                             premier: Boolean(primary.premier),
                              comingSoonBadge: primary.comingSoonBadge || primary.badgeText || '',
@@ -6409,7 +6414,10 @@
                     : (product.primaryVersion && String(product.primaryVersion.version || '').trim())
                     ? product.primaryVersion
                     : (validVersions[0] || product.primaryVersion || product.versions?.[0] || {});
-                const icon = product.icon || product.image || '';
+                const icon = normalizeImageUrl(product.icon || product.image || '');
+                const imageCandidates = (product.imageCandidates || [icon])
+                    .map(normalizeImageUrl)
+                    .filter(Boolean);
                 const safeProductId = escapeHtml(product.id);
                 const safeGroupKey = escapeHtml(product.groupKey || '');
                 const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
@@ -6428,7 +6436,7 @@
                 ) || (!hasVersionData && Boolean(String(product.badgeText || '').trim()));
                 const edition = isPremier ? '' : (primary.edition || product.edition || '');
                 const thumbContent = icon
-                    ? `<img src="${escapeHtml(icon)}" alt="${safeTitle}" loading="lazy" data-image-candidates="${escapeHtml(JSON.stringify(product.imageCandidates || [icon]))}" /><div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>`
+                    ? `<img src="${escapeHtml(icon)}" alt="${safeTitle}" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-image-candidates="${escapeHtml(JSON.stringify(imageCandidates))}" /><div class="image-placeholder" style="display:none;"><i class="fas ${catIcon}"></i></div>`
                     : `<div class="image-placeholder"><i class="fas ${catIcon}"></i></div>`;
                 const features = hasVersionData
                     ? (Array.isArray(primary.features) ? primary.features : [])
@@ -7390,11 +7398,11 @@
                 }
                 let html = '<div class="semox-grid">';
                 assets.forEach((asset, idx) => {
-                    const icon = asset.image_url || asset.owner_avatar || '';
+                    const icon = normalizeImageUrl(asset.image_url || asset.owner_avatar || '');
                     const dlUrl = String(asset.download_url || '').trim();
                     const meta = [asset.version, asset.badge, asset.loader, asset.platform].filter(Boolean).join(' · ');
                     const thumb = icon
-                        ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" /><div class="semox-icon-placeholder" style="display:none;"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`
+                        ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /><div class="semox-icon-placeholder" style="display:none;"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`
                         : `<div class="semox-icon-placeholder"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`;
                     html += `
                         <div class="semox-card fade-in fade-in-d${Math.min(idx % 4 + 1, 4)}" data-project-id="${escapeHtml(asset.id)}">
@@ -7419,6 +7427,13 @@
                 });
                 html += '</div>';
                 downloadGrid.innerHTML = html;
+                downloadGrid.querySelectorAll('.semox-p-icon img').forEach(function (img) {
+                    img.addEventListener('error', function () {
+                        img.style.display = 'none';
+                        var placeholder = img.nextElementSibling;
+                        if (placeholder) placeholder.style.display = 'flex';
+                    });
+                });
             }
 
             function hideUserAssetsView() {
@@ -9011,7 +9026,7 @@
         <div class="modal-box mf-upload-box">
             <button class="modal-close" type="button" data-mf-close="upload" aria-label="Close upload dialog"><i class="fas fa-times"></i></button>
             <div class="modal-icon"><i class="fas fa-cloud-arrow-up"></i></div>
-            <h3 id="mfUploadTitle">Submit Release</h3>
+            <h3 id="mfUploadTitle">Submit Upload</h3>
             <p class="mf-upload-intro">Upload a Minecraft plugin, mod, or pack for admin approval.</p>
             <form id="mfUploadForm" class="mf-upload-form">
                 <div class="mf-form-label">
@@ -9085,7 +9100,7 @@
                 <p class="mf-form-error" id="mfUploadError" hidden></p>
                 <div class="mf-form-actions">
                     <button class="mf-secondary-button" type="button" data-mf-close="upload">Cancel</button>
-                    <button class="mf-primary-button" type="submit"><i class="fas fa-cloud-arrow-up"></i> Submit Release</button>
+                    <button class="mf-primary-button" type="submit"><i class="fas fa-cloud-arrow-up"></i> Submit Upload</button>
                 </div>
             </form>
         </div>
@@ -9366,7 +9381,7 @@
         var listEl = document.getElementById('mfDashboardList');
         if (!listEl) return;
         if (!submissions.length) {
-            listEl.innerHTML = '<div class="mf-account-panel-item"><span>No submissions yet. Use Submit Release to upload your first plugin, mod, or pack.</span></div>';
+            listEl.innerHTML = '<div class="mf-account-panel-item"><span>No submissions yet. Use Submit Upload to upload your first plugin, mod, or pack.</span></div>';
             return;
         }
         listEl.innerHTML = submissions.map(function (item) {
@@ -9423,7 +9438,7 @@
         uploadButton.type = 'button';
         uploadButton.className = 'cat-btn mf-creator-nav-action';
         uploadButton.dataset.mfCreatorNav = 'true';
-        uploadButton.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Release';
+        uploadButton.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Upload';
         uploadButton.addEventListener('click', function () {
             closeCreatorMenu();
             openUpload();
@@ -9457,9 +9472,9 @@
         window.__mfEditingSubmission = null;
         pendingLogoUpload = null;
         pendingLogoUrl = '';
-        document.getElementById('mfUploadTitle').textContent = 'Submit Release';
+        document.getElementById('mfUploadTitle').textContent = 'Submit Upload';
         var submitLabel = uploadForm.querySelector('[type="submit"]');
-        if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Release';
+        if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Upload';
         uploadAuthor.value = username;
         resetLogoPreview();
         updateUploadFields();
@@ -9697,8 +9712,8 @@
                     pendingLogoUrl = '';
                     resetLogoPreview();
                     updateUploadFields();
-                    document.getElementById('mfUploadTitle').textContent = 'Submit Release';
-                    if (editing) closeModal(uploadModal);
+                    document.getElementById('mfUploadTitle').textContent = 'Submit Upload';
+                    closeModal(uploadModal);
                     var toast = document.getElementById('semoxToast');
                     if (toast) { toast.textContent = editing ? 'Submission updated. It is still pending approval — check your Dashboard.' : 'Your submission is pending approval. Check your Dashboard.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 3200); }
                 } catch (error) {
@@ -9710,7 +9725,7 @@
         } finally {
                     if (submit) {
                         submit.disabled = false;
-                        submit.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Release';
+                        submit.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Upload';
                     }
         }
     }
