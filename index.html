@@ -5944,10 +5944,15 @@
             }
 
             function getProductsForCategory(categoryId) {
+                // Home is the unified managed catalog: approved user
+                // uploads and admin-panel products are both included here.
                 if (categoryId === 'all') return [...PRODUCTS].sort(compareCatalogProducts);
-                // Published admin and community products share the same
-                // category filter so an approved upload appears on the
-                // exact category selected by its creator.
+                // These categories are backed exclusively by Modrinth. A
+                // catalog product in one of them must never suppress or mix
+                // into the API grid.
+                if (EXTERNAL_CATEGORIES.has(categoryId)) return [];
+                // PE, launchers, and any future managed categories use the
+                // exact category assigned by the admin or uploader.
                 return PRODUCTS.filter(p => p.category === categoryId).sort(compareCatalogProducts);
             }
 
@@ -5965,10 +5970,12 @@
                 window.setTimeout(() => {
                     scheduleExternalPrefetch.started = false;
                     const requests = [];
-                    if (isCategoryAvailable('plugins') && getCategoryCount('plugins') === 0) requests.push(fetchPlugins(1));
-                    if (isCategoryAvailable('resource-packs') && getCategoryCount('resource-packs') === 0) requests.push(fetchResourcePacks(1));
-                    if (isCategoryAvailable('mods') && getCategoryCount('mods') === 0) requests.push(fetchMods(1));
-                    if (isCategoryAvailable('shaders') && getCategoryCount('shaders') === 0) requests.push(fetchShaders(1));
+                    // Modrinth categories are always API-backed. Do not use
+                    // the managed catalog count as an early-return signal.
+                    if (isCategoryAvailable('plugins')) requests.push(fetchPlugins(1));
+                    if (isCategoryAvailable('resource-packs')) requests.push(fetchResourcePacks(1));
+                    if (isCategoryAvailable('mods')) requests.push(fetchMods(1));
+                    if (isCategoryAvailable('shaders')) requests.push(fetchShaders(1));
                     Promise.allSettled(requests);
                 }, 0);
             }
@@ -6288,7 +6295,11 @@
                 }
 
                 // Show/hide filter bars
-                const hasManagedProducts = getCategoryCount(categoryId) > 0;
+                // Only PE, launchers, and other non-API categories use
+                // managed catalog products here. API categories must always
+                // request and display Modrinth results.
+                const hasManagedProducts = !EXTERNAL_CATEGORIES.has(categoryId) &&
+                    getCategoryCount(categoryId) > 0;
                 pluginFilterBar.style.display = (categoryId === 'plugins' && !hasManagedProducts) ? 'flex' : 'none';
                 rpFilterBar.style.display = (categoryId === 'resource-packs' && !hasManagedProducts) ? 'flex' : 'none';
                 modFilterBar.style.display = (categoryId === 'mods' && !hasManagedProducts) ? 'flex' : 'none';
@@ -6342,10 +6353,10 @@
 
                 totalItemsStat.textContent = getTotalItems();
                 totalCategoriesStat.textContent = CATEGORIES.length;
-                // External categories keep the current grid visible while
-                // their background request is running. This prevents the
-                // visible spinner/empty-state flash on every category click.
-                if (!(EXTERNAL_CATEGORIES.has(categoryId) && !hasManagedProducts)) {
+                // Keep API categories on their Modrinth renderer. PE,
+                // launchers, and other managed categories use the catalog
+                // renderer.
+                if (!EXTERNAL_CATEGORIES.has(categoryId)) {
                     renderGrid(categoryId);
                 }
             }
@@ -7272,8 +7283,7 @@
                 const categoryId = type === 'plugins' ? 'plugins' :
                     type === 'resource-packs' ? 'resource-packs' :
                     type === 'mods' ? 'mods' : 'shaders';
-                if (currentCategory !== categoryId || getCategoryCount(categoryId) > 0) {
-                    if (currentCategory === categoryId) renderGrid(categoryId);
+                if (currentCategory !== categoryId || userAssetsViewActive) {
                     return;
                 }
                 const label = type === 'plugins' ? 'plugins' :
@@ -7302,8 +7312,7 @@
                 const categoryId = type === 'plugins' ? 'plugins' :
                     type === 'resource-packs' ? 'resource-packs' :
                     type === 'mods' ? 'mods' : 'shaders';
-                if (currentCategory !== categoryId || getCategoryCount(categoryId) > 0) {
-                    if (currentCategory === categoryId) renderGrid(categoryId);
+                if (currentCategory !== categoryId || userAssetsViewActive) {
                     return;
                 }
                 const label = type === 'plugins' ? 'plugins' :
@@ -7378,27 +7387,82 @@
             }
 
             let userAssetsViewActive = false;
+            let userAssetsRequestId = 0;
+            const USER_ASSET_QUERY_TIMEOUT = 12000;
+
+            function getUserAssetCategoryValues(categoryId) {
+                const aliases = {
+                    plugins: ['plugins', 'plugin'],
+                    mods: ['mods', 'mod'],
+                    shaders: ['shaders', 'shader'],
+                    'resource-packs': ['resource-packs', 'resourcepack', 'resource packs', 'texture-packs', 'texture packs']
+                };
+                return aliases[categoryId] || [categoryId];
+            }
+
+            function parseOwnerMedia(value) {
+                const raw = String(value || '').trim();
+                if (!raw) return { avatar: '', logo: '', displayName: '', handle: '' };
+                if (/\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(raw)) {
+                    return { avatar: '', logo: raw, displayName: '', handle: '' };
+                }
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        return {
+                            avatar: String(parsed.avatar || '').trim(),
+                            logo: String(parsed.logo || '').trim(),
+                            displayName: String(parsed.displayName || parsed.display_name || '').trim(),
+                            handle: String(parsed.handle || parsed.username || parsed.userName || '').trim()
+                        };
+                    }
+                } catch (_) {}
+                return { avatar: raw, logo: '', displayName: '', handle: '' };
+            }
 
             async function loadApprovedUserAssets(categoryId) {
                 try {
-                    if (!window.mobForgeSupabaseReady) return [];
-                    await window.mobForgeSupabaseReady;
                     var sb = window.mobForgeSupabase;
-                    if (!sb) return [];
-                    var res = await sb.from('user_assets').select('*')
+                    if (!sb && window.mobForgeSupabaseReady) {
+                        sb = await Promise.race([
+                            window.mobForgeSupabaseReady,
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase connection timed out.')), USER_ASSET_QUERY_TIMEOUT))
+                        ]);
+                    }
+                    if (!sb) throw new Error('Supabase connection is unavailable.');
+                    const query = sb.from('user_assets').select('*')
                         .eq('status', 'approved')
-                        .eq('category', categoryId)
+                        .in('category', getUserAssetCategoryValues(categoryId))
                         .order('created_at', { ascending: false });
+                    var res = await Promise.race([
+                        query,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('User asset query timed out.')), USER_ASSET_QUERY_TIMEOUT))
+                    ]);
+                    // Older deployments may not have created_at on every
+                    // user_assets row. Keep the user view usable in that
+                    // case instead of leaving it dependent on sorting.
+                    if (res.error && /created_at|column/i.test(String(res.error.message || res.error))) {
+                        const fallbackQuery = sb.from('user_assets').select('*')
+                            .eq('status', 'approved')
+                            .in('category', getUserAssetCategoryValues(categoryId));
+                        res = await Promise.race([
+                            fallbackQuery,
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('User asset fallback query timed out.')), USER_ASSET_QUERY_TIMEOUT))
+                        ]);
+                    }
                     if (res.error) throw res.error;
-                    return res.data || [];
+                    return (res.data || []).sort((a, b) =>
+                        String(b.created_at || '').localeCompare(String(a.created_at || ''))
+                    );
                 } catch (error) {
                     console.warn('Could not load user assets:', error);
-                    return [];
+                    return null;
                 }
             }
 
             async function showUserAssetsForCategory(categoryId) {
                 userAssetsViewActive = true;
+                const requestId = ++userAssetsRequestId;
                 clearCatalogGridListener();
                 downloadGrid.innerHTML = `
                     <div class="empty-state" style="grid-column:1/-1;">
@@ -7407,7 +7471,20 @@
                     </div>
                 `;
                 const assets = await loadApprovedUserAssets(categoryId);
-                if (!userAssetsViewActive) return;
+                if (!userAssetsViewActive || requestId !== userAssetsRequestId) return;
+                if (!Array.isArray(assets)) {
+                    downloadGrid.innerHTML = `
+                        <div class="empty-state" style="grid-column:1/-1;">
+                            <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <h3>Unable to load user ${escapeHtml(getCategoryLabel(categoryId).toLowerCase())}</h3>
+                            <p>The community uploads could not be reached. Please try again.</p>
+                            <button class="semox-btn-download" type="button" data-mf-retry-user-assets="${escapeHtml(categoryId)}" style="margin-top:12px;">
+                                <i class="fas fa-redo"></i> Retry
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
                 if (!assets.length) {
                     downloadGrid.innerHTML = `
                         <div class="empty-state" style="grid-column:1/-1;">
@@ -7467,6 +7544,7 @@
             function hideUserAssetsView() {
                 if (!userAssetsViewActive) return;
                 userAssetsViewActive = false;
+                userAssetsRequestId++;
                 document.querySelectorAll('[data-user-toggle]').forEach(function (button) {
                     button.style.background = '';
                     button.style.borderColor = '';
@@ -7567,8 +7645,7 @@
             }
 
             function renderPluginResults(page) {
-                if (currentCategory !== 'plugins' || getCategoryCount('plugins') > 0) {
-                    if (currentCategory === 'plugins') renderGrid('plugins');
+                if (currentCategory !== 'plugins' || userAssetsViewActive) {
                     return;
                 }
                 clearCatalogGridListener();
@@ -7756,8 +7833,7 @@
             }
 
             function renderResourcePackResults(page) {
-                if (currentCategory !== 'resource-packs' || getCategoryCount('resource-packs') > 0) {
-                    if (currentCategory === 'resource-packs') renderGrid('resource-packs');
+                if (currentCategory !== 'resource-packs' || userAssetsViewActive) {
                     return;
                 }
                 clearCatalogGridListener();
@@ -7939,8 +8015,7 @@
             }
 
             function renderModResults(page) {
-                if (currentCategory !== 'mods' || getCategoryCount('mods') > 0) {
-                    if (currentCategory === 'mods') renderGrid('mods');
+                if (currentCategory !== 'mods' || userAssetsViewActive) {
                     return;
                 }
                 clearCatalogGridListener();
@@ -8127,8 +8202,7 @@
             }
 
             function renderShaderResults(page) {
-                if (currentCategory !== 'shaders' || getCategoryCount('shaders') > 0) {
-                    if (currentCategory === 'shaders') renderGrid('shaders');
+                if (currentCategory !== 'shaders' || userAssetsViewActive) {
                     return;
                 }
                 clearCatalogGridListener();
@@ -8748,10 +8822,7 @@
             // ============================================================
 
             function loadPluginsFromModrinth() {
-                if (getCategoryCount('plugins') > 0) {
-                    renderGrid('plugins');
-                    return;
-                }
+                if (userAssetsViewActive) return;
                 pluginCurrentPage = 1;
                 pluginSearchTerm = pluginSearchInput ? pluginSearchInput.value : '';
                 pluginLoader = pluginLoaderFilter ? pluginLoaderFilter.value : 'all';
@@ -8762,6 +8833,7 @@
             }
 
             function loadResourcePacksFromModrinth() {
+                if (userAssetsViewActive) return;
                 rpCurrentPage = 1;
                 rpSearchTerm = rpSearchInput ? rpSearchInput.value : '';
                 rpLoader = rpLoaderFilter ? rpLoaderFilter.value : 'all';
@@ -8772,10 +8844,7 @@
             }
 
             function loadModsFromModrinth() {
-                if (getCategoryCount('mods') > 0) {
-                    renderGrid('mods');
-                    return;
-                }
+                if (userAssetsViewActive) return;
                 modCurrentPage = 1;
                 modSearchTerm = modSearchInput ? modSearchInput.value : '';
                 modLoader = modLoaderFilter ? modLoaderFilter.value : 'all';
@@ -8786,10 +8855,7 @@
             }
 
             function loadShadersFromModrinth() {
-                if (getCategoryCount('shaders') > 0) {
-                    renderGrid('shaders');
-                    return;
-                }
+                if (userAssetsViewActive) return;
                 shaderCurrentPage = 1;
                 shaderSearchTerm = shaderSearchInput ? shaderSearchInput.value : '';
                 shaderLoader = shaderLoaderFilter ? shaderLoaderFilter.value : 'all';
@@ -8864,6 +8930,13 @@
             // ============================================================
 
             document.addEventListener('click', function(e) {
+                const retryUserAssets = e.target.closest('[data-mf-retry-user-assets]');
+                if (retryUserAssets) {
+                    e.preventDefault();
+                    showUserAssetsForCategory(retryUserAssets.dataset.mfRetryUserAssets);
+                    return;
+                }
+
                 const btn = e.target.closest('.cat-btn, .glassy-nav-item');
                 if (btn && btn.dataset.category) {
                     const cat = btn.dataset.category;
@@ -8875,6 +8948,7 @@
                     currentSearchQuery = '';
                     searchInput.value = '';
                     userAssetsViewActive = false;
+                    userAssetsRequestId++;
                     document.querySelectorAll('[data-user-toggle]').forEach(function (button) {
                         button.style.background = '';
                         button.style.borderColor = '';
