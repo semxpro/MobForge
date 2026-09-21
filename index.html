@@ -9446,7 +9446,7 @@
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(profile.name || username || 'Account') + '</div><div class="mf-profile-label">@' + escapeHtml(username || 'handle') + ' · Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
@@ -9576,20 +9576,22 @@
 
     function parseOwnerMedia(value) {
         var raw = String(value || '').trim();
-        if (!raw) return { avatar: '', logo: '' };
+        if (!raw) return { avatar: '', logo: '', displayName: '', handle: '' };
         if (/\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(raw)) {
-            return { avatar: '', logo: raw };
+            return { avatar: '', logo: raw, displayName: '', handle: '' };
         }
         try {
             var parsed = JSON.parse(raw);
             if (parsed && typeof parsed === 'object') {
                 return {
                     avatar: String(parsed.avatar || '').trim(),
-                    logo: String(parsed.logo || '').trim()
+                    logo: String(parsed.logo || '').trim(),
+                    displayName: String(parsed.displayName || parsed.display_name || '').trim(),
+                    handle: String(parsed.handle || parsed.username || parsed.userName || '').trim()
                 };
             }
         } catch (_) {}
-        return { avatar: raw, logo: '' };
+        return { avatar: raw, logo: '', displayName: '', handle: '' };
     }
 
     function updateUploadFields() {
@@ -9699,15 +9701,13 @@
                         logoImageUrl = await uploadCommunityLogo(imageFile);
                     }
                     var hasImageColumn = window.__mfUserAssetsImageColumn === true;
-                    var existingOwnerMedia = editing ? parseOwnerMedia(editing.owner_avatar) : { avatar: '', logo: '' };
-                    var ownerAvatarValue = hasImageColumn
-                        ? (profile.picture || '')
-                        : logoImageUrl
-                            ? JSON.stringify({
-                                avatar: profile.picture || existingOwnerMedia.avatar || '',
-                                logo: logoImageUrl
-                            })
-                            : (existingOwnerMedia.avatar || profile.picture || '');
+                    var existingOwnerMedia = editing ? parseOwnerMedia(editing.owner_avatar) : { avatar: '', logo: '', displayName: '', handle: '' };
+                    var ownerAvatarValue = JSON.stringify({
+                        avatar: profile.picture || existingOwnerMedia.avatar || '',
+                        logo: logoImageUrl || existingOwnerMedia.logo || '',
+                        displayName: profile.name || existingOwnerMedia.displayName || ownerName,
+                        handle: username || existingOwnerMedia.handle || ownerName
+                    });
                     if (file) {
                         var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
                         var safeFileName = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
