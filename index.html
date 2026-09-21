@@ -2033,6 +2033,12 @@
             color: var(--text-primary);
             font-weight: 700;
         }
+        .semox-card .semox-p-dl-count img {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
         .catalog-latest-badge {
             flex: 0 0 auto;
         }
@@ -4724,6 +4730,16 @@
                 }
             }
 
+            function normalizeOwnerAvatar(value) {
+                const raw = String(value || '').trim();
+                if (!raw || /\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(raw)) return '';
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') return normalizeImageUrl(parsed.avatar || '');
+                } catch (_) {}
+                return normalizeImageUrl(raw);
+            }
+
             function readLocalJson(key, fallback) {
                 try {
                     const value = JSON.parse(localStorage.getItem(key) || 'null');
@@ -5222,13 +5238,7 @@
                     const title = String(data.title || 'Untitled').trim();
                     const normalizedTitle = stripColorTags(title).toLowerCase()
                         .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                        const imageUrl = normalizeImageUrl(
-                            data.imageUrl ||
-                            data.image_url ||
-                            data.image ||
-                            data.icon ||
-                            (/\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(String(data.owner_avatar || '')) ? data.owner_avatar : '')
-                        );
+                        const imageUrl = normalizeImageUrl(data.imageUrl || data.image_url || data.image || data.icon || '');
                     const screenshots = Array.isArray(data.screenshots)
                         ? data.screenshots.map(normalizeImageUrl).filter(Boolean)
                         : [];
@@ -5287,7 +5297,7 @@
                         catalogVersions: hasEmbeddedVersions ? catalogVersions : null,
                          priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
                          author: String(data.owner_name || data.ownerName || data.author || '').trim(),
-                         ownerAvatar: normalizeImageUrl(data.owner_avatar || data.ownerAvatar || '')
+                          ownerAvatar: normalizeOwnerAvatar(data.owner_avatar || data.ownerAvatar || '')
                     };
                 };
 
@@ -7404,9 +7414,14 @@
                 }
                 let html = '<div class="semox-grid">';
                 assets.forEach((asset, idx) => {
-                    const icon = normalizeImageUrl(asset.image_url || asset.owner_avatar || '');
+                    const ownerMedia = parseOwnerMedia(asset.owner_avatar);
+                    const icon = normalizeImageUrl(asset.image_url || ownerMedia.logo || '');
+                    const ownerAvatar = normalizeImageUrl(ownerMedia.avatar || '');
                     const dlUrl = String(asset.download_url || '').trim();
                     const meta = [asset.version, asset.badge, asset.loader, asset.platform].filter(Boolean).join(' · ');
+                    const ownerMarkup = ownerAvatar
+                        ? `<img src="${escapeHtml(ownerAvatar)}" alt="" />`
+                        : '<i class="fas fa-user"></i>';
                     const thumb = icon
                         ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /><div class="semox-icon-placeholder" style="display:none;"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`
                         : `<div class="semox-icon-placeholder"><i class="fas ${getCategoryIcon(categoryId)}"></i></div>`;
@@ -7421,7 +7436,7 @@
                                 </div>
                             </div>
                             <div class="semox-p-footer">
-                                <div class="semox-p-dl-count"><i class="fas fa-user"></i><span class="semox-count">${escapeHtml(asset.owner_name || 'Community')}</span></div>
+                                <div class="semox-p-dl-count">${ownerMarkup}<span class="semox-count">${escapeHtml(asset.owner_name || 'Community')}</span></div>
                                 <div class="semox-p-actions">
                                     ${dlUrl
                                         ? `<a class="semox-btn-download" href="${escapeHtml(dlUrl)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-download"></i> Download</a>`
@@ -9396,7 +9411,8 @@
             var approved = item.status === 'approved';
             var status = approved ? 'Published' : 'Pending — waiting for admin';
             var statusColor = approved ? 'var(--emerald)' : 'var(--amber)';
-            var icon = storedCommunityLogoUrl(item) || item.owner_avatar || '';
+            var ownerMedia = parseOwnerMedia(item.owner_avatar);
+            var icon = storedCommunityLogoUrl(item) || ownerMedia.avatar || '';
             var thumb = icon ? '<img src="' + escapeHtml(icon) + '" alt="" />' : '<i class="fas fa-cube"></i>';
             var dlUrl = String(item.download_url || '').trim();
             return '<div class="mf-account-panel-item"><span class="mf-saved-item-icon">' + thumb + '</span><span class="mf-saved-item-copy"><strong>' + escapeHtml(item.title || 'Untitled') + '</strong><span style="color:' + statusColor + ';font-weight:700;">' + status + '</span><span>' + escapeHtml(item.category || 'Community release') + (item.version ? ' · ' + escapeHtml(item.version) : '') + '</span></span><div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">' + (dlUrl ? '<a href="' + escapeHtml(dlUrl) + '" target="_blank" rel="noopener noreferrer" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-download"></i> Download</a>' : '') + '<button type="button" data-mf-edit-submission="' + escapeHtml(item.id) + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;"><i class="fas fa-pen"></i> Edit</button><button type="button" data-mf-delete-submission="' + escapeHtml(item.id) + '" data-mf-storage="' + escapeHtml(item.storage_path || '') + '" data-mf-approved-id="' + escapeHtml(item.approved_product_id || '') + '" data-mf-image="' + escapeHtml(storedCommunityLogoUrl(item)) + '" class="mf-secondary-button" style="padding:7px 10px;font-size:.7rem;color:#fda4af;"><i class="fas fa-trash"></i> Delete</button></div></div>';
@@ -9539,10 +9555,25 @@
     function storedCommunityLogoUrl(item) {
         var imageUrl = String(item && item.image_url || '').trim();
         if (imageUrl) return imageUrl;
-        var ownerAvatar = String(item && item.owner_avatar || '').trim();
-        return /\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(ownerAvatar)
-            ? ownerAvatar
-            : '';
+        return parseOwnerMedia(item && item.owner_avatar).logo;
+    }
+
+    function parseOwnerMedia(value) {
+        var raw = String(value || '').trim();
+        if (!raw) return { avatar: '', logo: '' };
+        if (/\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(raw)) {
+            return { avatar: '', logo: raw };
+        }
+        try {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                return {
+                    avatar: String(parsed.avatar || '').trim(),
+                    logo: String(parsed.logo || '').trim()
+                };
+            }
+        } catch (_) {}
+        return { avatar: raw, logo: '' };
     }
 
     function updateUploadFields() {
@@ -9652,9 +9683,15 @@
                         logoImageUrl = await uploadCommunityLogo(imageFile);
                     }
                     var hasImageColumn = window.__mfUserAssetsImageColumn === true;
+                    var existingOwnerMedia = editing ? parseOwnerMedia(editing.owner_avatar) : { avatar: '', logo: '' };
                     var ownerAvatarValue = hasImageColumn
                         ? (profile.picture || '')
-                        : (logoImageUrl || (editing ? String(editing.owner_avatar || '') : profile.picture || ''));
+                        : logoImageUrl
+                            ? JSON.stringify({
+                                avatar: profile.picture || existingOwnerMedia.avatar || '',
+                                logo: logoImageUrl
+                            })
+                            : (existingOwnerMedia.avatar || profile.picture || '');
                     if (file) {
                         var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
                         var safeFileName = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
