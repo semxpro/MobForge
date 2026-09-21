@@ -2801,7 +2801,7 @@
         }
 
         /* ============================================================
-           UNIFIED CARD SURFACE — shared by Sheets and Modrinth cards
+           UNIFIED CARD SURFACE — shared by Catalog and Modrinth cards
            ============================================================ */
         .logo-icon img[hidden] {
             display: none !important;
@@ -4067,6 +4067,129 @@
         .account-modal .modal-box { margin: auto; }
         @media (max-width: 620px) { .mf-form-grid { grid-template-columns: 1fr; } .mf-upload-box { padding: 24px 18px !important; } }
     </style>
+    <style>
+        /* Floating quick actions share the existing bottom navigation glass treatment. */
+        .mf-floating-action,
+        .mf-floating-action-drawer {
+            position: fixed;
+            z-index: 930;
+            background: rgba(12, 12, 22, 0.78);
+            backdrop-filter: blur(18px) saturate(1.3);
+            -webkit-backdrop-filter: blur(18px) saturate(1.3);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 12px 60px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .mf-floating-action {
+            right: calc(50% - min(46vw, 370px));
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px) + 118px);
+            width: 60px;
+            height: 60px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border-radius: 50%;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.3s var(--ease), color 0.25s var(--ease), background-color 0.25s var(--ease);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .mf-floating-action i {
+            font-size: 1.45rem;
+            line-height: 1;
+            transition: transform 0.3s var(--ease);
+        }
+        .mf-floating-action:hover,
+        .mf-floating-action:focus-visible {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.09);
+            outline: none;
+            transform: translateY(-2px);
+        }
+        .mf-floating-action[aria-expanded="true"] i {
+            transform: rotate(45deg);
+        }
+        .mf-floating-action-drawer {
+            right: calc(50% - min(46vw, 370px) + 70px);
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px) + 112px);
+            max-width: calc(100vw - 96px);
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px;
+            border-radius: 40px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate3d(-20px, 0, 0) scale(0.98);
+            transform-origin: right center;
+            transition: opacity 0.3s ease, transform 0.42s var(--ease);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .mf-floating-action-drawer::-webkit-scrollbar { display: none; }
+        .mf-floating-action-drawer.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+        .mf-floating-action-drawer button {
+            width: 52px;
+            height: 52px;
+            flex: 0 0 52px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-muted);
+            font: inherit;
+            cursor: pointer;
+            transition: color 0.2s var(--ease), background-color 0.2s var(--ease), transform 0.2s var(--ease);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .mf-floating-action-drawer button:hover,
+        .mf-floating-action-drawer button:focus-visible {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            outline: none;
+            transform: translateY(-2px);
+        }
+        .mf-floating-action-drawer button i {
+            font-size: 1.35rem;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .mf-floating-action-drawer button[data-mf-drawer-action="youtube"] i { color: #ff3b3b; }
+        .mf-floating-action-drawer button[data-mf-drawer-action="tiktok"] i { color: #fff; }
+        .mf-floating-action-drawer button[data-mf-drawer-action="discord"] i { color: #5865f2; }
+        @media (max-width: 820px) {
+            .mf-floating-action {
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px) + 84px);
+                width: 52px;
+                height: 52px;
+            }
+            .mf-floating-action-drawer {
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px) + 78px);
+                min-height: 64px;
+                border-radius: 34px;
+            }
+            .mf-floating-action-drawer button {
+                width: 44px;
+                height: 44px;
+                flex-basis: 44px;
+            }
+            .mf-floating-action-drawer button i { font-size: 1.15rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .mf-floating-action,
+            .mf-floating-action-drawer,
+            .mf-floating-action-drawer button,
+            .mf-floating-action i { transition: none; }
+        }
+    </style>
 
     <!-- Supabase schema expected: public.catalog_products, public.site_settings,
          public.user_assets, public.user_profiles. Storage buckets:
@@ -4380,6 +4503,17 @@
     Order: LAUNCH, PE, PACK, HOME (centered), PLUGIN, MOD, SHADER
     ============================================================ -->
     <nav class="glassy-bottom-nav" id="bottomNav" aria-label="Categories"></nav>
+    <button class="mf-floating-action" id="mfFloatingAction" type="button" aria-label="Open quick actions" aria-controls="mfFloatingActionDrawer" aria-expanded="false">
+        <i class="fas fa-plus" aria-hidden="true"></i>
+    </button>
+    <div class="mf-floating-action-drawer" id="mfFloatingActionDrawer" aria-label="Quick actions">
+        <button type="button" data-mf-drawer-action="upload" aria-label="Upload"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i></button>
+        <button type="button" data-mf-drawer-action="dashboard" aria-label="Dashboard"><i class="fas fa-table-columns" aria-hidden="true"></i></button>
+        <button type="button" data-mf-drawer-action="youtube" aria-label="YouTube"><i class="fab fa-youtube" aria-hidden="true"></i></button>
+        <button type="button" data-mf-drawer-action="tiktok" aria-label="TikTok"><i class="fab fa-tiktok" aria-hidden="true"></i></button>
+        <button type="button" data-mf-drawer-action="discord" aria-label="Discord"><i class="fab fa-discord" aria-hidden="true"></i></button>
+        <button type="button" data-mf-drawer-action="support" aria-label="Support"><i class="fas fa-headset" aria-hidden="true"></i></button>
+    </div>
 
     <!-- ============================================================
     SEARCH OVERLAY
@@ -4471,7 +4605,7 @@
             }
 
             // Modrinth is the only source of truth for Modrinth projects.
-            // Sheet-backed products intentionally do not maintain a counter.
+            // Catalog products intentionally do not maintain a counter.
             function formatOfficialDownloads(value) {
                 const count = Number(value);
                 return Number.isFinite(count) && count >= 0
@@ -4631,84 +4765,6 @@
                         : '';
                     return [id, { enabled, message }];
                 }));
-            }
-
-            function normalizeSheetHeader(value) {
-                return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            }
-
-            function getWebsiteConfig(rows, headers) {
-                const aliases = {
-                    tag: ['Website_Name_tag', 'Website Name tag', 'website_tag'],
-                    logo: ['Website_Logo', 'Website Logo', 'logo_url'],
-                    name: ['Website_Name', 'Website Name', 'site_name'],
-                    title: ['Website_description_title', 'Website description title', 'description_title'],
-                    description: ['Website_description', 'Website description', 'site_description']
-                };
-                const normalizedHeaders = headers.map(normalizeSheetHeader);
-
-                function getEmbeddedHeaderValue(header, key) {
-                    const normalizedHeader = normalizeSheetHeader(header);
-                    for (const alias of aliases[key]) {
-                        const normalizedAlias = normalizeSheetHeader(alias);
-                        if (!normalizedAlias ||
-                            !normalizedHeader.startsWith(normalizedAlias) ||
-                            normalizedHeader === normalizedAlias) {
-                            continue;
-                        }
-
-                        // Some Sheet exports contain the setting and its
-                        // value in the header cell itself, for example:
-                        // "Website_Logo https://example.com/logo.png".
-                        // Consume the alias from the original header so the
-                        // URL's punctuation is preserved.
-                        let position = 0;
-                        let aliasPosition = 0;
-                        while (position < String(header).length && aliasPosition < normalizedAlias.length) {
-                            const character = String(header)[position];
-                            if (/[a-z0-9]/i.test(character)) {
-                                if (character.toLowerCase() !== normalizedAlias[aliasPosition]) {
-                                    aliasPosition = -1;
-                                    break;
-                                }
-                                aliasPosition += 1;
-                            }
-                            position += 1;
-                        }
-                        if (aliasPosition !== normalizedAlias.length) continue;
-                        if (position < String(header).length && !/[\s:=-]/.test(String(header)[position])) continue;
-                        const embeddedValue = String(header).slice(position).replace(/^[\s:=-]+/, '').trim();
-                        if (embeddedValue) return embeddedValue;
-                    }
-                    return '';
-                }
-
-                function getValue(row, key, columnIndex) {
-                    for (const header of headers) {
-                        const embeddedValue = getEmbeddedHeaderValue(header, key);
-                        if (embeddedValue) return embeddedValue;
-                    }
-                    const headerIndex = aliases[key]
-                        .map(normalizeSheetHeader)
-                        .map(alias => normalizedHeaders.indexOf(alias))
-                        .find(index => index >= 0);
-                    const actualIndex = headerIndex >= 0 ? headerIndex : columnIndex;
-                    const actualHeader = headers[actualIndex];
-                    return actualHeader ? String(row[actualHeader] || '').trim() : '';
-                }
-
-                const config = { ...DEFAULT_SITE_CONFIG };
-                Object.keys(config).forEach(key => {
-                    const columnIndex = { tag: 12, logo: 13, name: 14, title: 15, description: 16 }[key];
-                    for (const row of rows) {
-                        const value = getValue(row, key, columnIndex);
-                        if (value) {
-                            config[key] = value;
-                            break;
-                        }
-                    }
-                });
-                return config;
             }
 
             function normalizeImageUrl(value) {
@@ -4876,10 +4932,19 @@
                 const footerCopyrightEl = document.getElementById('footerCopyright');
                 const creatorTitleEl = document.getElementById('creatorVideoTitle');
 
-                const hasSocialConfig = config && Object.prototype.hasOwnProperty.call(config, 'socialLinks');
+                const configuredSocialLinks = config && Object.prototype.hasOwnProperty.call(config, 'social_links')
+                    ? config.social_links
+                    : safeConfig.socialLinks;
+                const hasSocialConfig = config && (
+                    Object.prototype.hasOwnProperty.call(config, 'socialLinks') ||
+                    Object.prototype.hasOwnProperty.call(config, 'social_links')
+                );
                 const hasCreatorConfig = config && config.__live === true &&
                     Object.prototype.hasOwnProperty.call(config, 'creatorVideos');
-                renderSocialLinks(hasSocialConfig ? safeConfig.socialLinks : null);
+                window.__mfSocialLinks = configuredSocialLinks && typeof configuredSocialLinks === 'object'
+                    ? configuredSocialLinks
+                    : {};
+                renderSocialLinks(hasSocialConfig ? configuredSocialLinks : null);
                 renderCreatorVideoShowcase(
                     hasCreatorConfig ? safeConfig.creatorVideos : [],
                     { live: hasCreatorConfig, enabled: safeConfig.creatorEnabled !== false }
@@ -4938,9 +5003,9 @@
             // 2. CATEGORY MATCHING
             // ============================================================
 
-            function matchCategory(catFromSheet) {
-                if (!catFromSheet) return null;
-                const raw = catFromSheet.trim().toLowerCase()
+            function matchCategory(catFromData) {
+                if (!catFromData) return null;
+                const raw = catFromData.trim().toLowerCase()
                     .replace(/[-_]/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
@@ -4973,99 +5038,16 @@
                 const shaderPatterns = ['shaders', 'shader', 'minecraft shader', 'mc shader'];
                 if (shaderPatterns.some(p => raw.includes(p) || p.includes(raw))) return 'shaders';
 
-                const directId = catFromSheet.trim().toLowerCase()
+                const directId = catFromData.trim().toLowerCase()
                     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
                 if (directId) return directId;
                 return null;
             }
 
-            // ============================================================
-            // 3. ROBUST CSV PARSER
-            // ============================================================
-
-            function parseCSV(csvText) {
-                const rows = [];
-                let currentRow = [];
-                let currentField = '';
-                let insideQuotes = false;
-                let i = 0;
-
-                const trimField = (field) => field.trim();
-
-                while (i < csvText.length) {
-                    const ch = csvText[i];
-                    const next = csvText[i + 1] || '';
-
-                    if (insideQuotes) {
-                        if (ch === '"') {
-                            if (next === '"') {
-                                currentField += '"';
-                                i += 2;
-                                continue;
-                            } else {
-                                insideQuotes = false;
-                                i++;
-                                continue;
-                            }
-                        } else {
-                            currentField += ch;
-                            i++;
-                            continue;
-                        }
-                    } else {
-                        if (ch === '"') {
-                            insideQuotes = true;
-                            i++;
-                            continue;
-                        } else if (ch === ',') {
-                            currentRow.push(trimField(currentField));
-                            currentField = '';
-                            i++;
-                            continue;
-                        } else if (ch === '\n') {
-                            if (currentField.trim() !== '' || currentRow.length > 0) {
-                                currentRow.push(trimField(currentField));
-                                if (currentRow.some(f => f !== '')) {
-                                    rows.push(currentRow);
-                                }
-                                currentRow = [];
-                                currentField = '';
-                            }
-                            i++;
-                            continue;
-                        } else {
-                            currentField += ch;
-                            i++;
-                            continue;
-                        }
-                    }
-                }
-
-                if (currentField.trim() !== '' || currentRow.length > 0) {
-                    currentRow.push(trimField(currentField));
-                    if (currentRow.some(f => f !== '')) {
-                        rows.push(currentRow);
-                    }
-                }
-
-                if (rows.length === 0) return [];
-                const headers = rows[0];
-                const result = [];
-                for (let r = 1; r < rows.length; r++) {
-                    const rowData = rows[r];
-                    const obj = {};
-                    for (let c = 0; c < headers.length; c++) {
-                        const key = headers[c].trim();
-                        const value = (rowData[c] || '').trim();
-                        obj[key] = value;
-                    }
-                    result.push(obj);
-                }
-                return result;
-            }
+            // Google Sheets / CSV catalog loader removed — catalog now comes exclusively from Supabase.
 
             // ============================================================
-            // 4. GET BADGE CSS CLASS
+            // 3. GET BADGE CSS CLASS
             // ============================================================
 
             function getBadgeClass(text) {
@@ -5079,36 +5061,6 @@
                 if (t.includes('latest')) return 'latest';
                 if (t.includes('fps')) return 'fps';
                 return '';
-            }
-
-            // ============================================================
-            // 5. GENERATE GROUP KEY
-            // ============================================================
-
-            function generateGroupKey(row, getVal) {
-                let key = getVal(row, 'app_id') || getVal(row, 'group_id');
-                if (key) return key.trim();
-
-                const cat = getVal(row, 'category') || '';
-                let title = getVal(row, 'title') || '';
-                title = stripColorTags(title);
-
-                let base = title
-                    .replace(/\s*\([^)]*\)\s*/g, ' ')
-                    .replace(/\b(v|V)?\d+\.\d+(\.\d+)?\b/g, '')
-                    .replace(/\b(Beta|Release|RC|ALPHA|BETA|RELEASE|SNAPSHOT|PREVIEW|TEST|STABLE)\b/gi, '')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-
-                if (!base) base = title;
-
-                const normalizedBase = base.toLowerCase()
-                    .replace(/[^a-z0-9]/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-
-                const catClean = cat.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-                return `${catClean}_${normalizedBase}`;
             }
 
             function isPremierValue(value) {
@@ -5135,7 +5087,7 @@
             }
 
             // ============================================================
-            // 6. FETCH, GROUP, SORT
+            // 4. FETCH, GROUP, SORT
             // ============================================================
 
             async function fetchDownloads() {
@@ -6477,9 +6429,8 @@
                 const versionMeta = hasVersionData
                     ? `<span class="version" data-version-display="${safeProductId}">${escapeHtml(displayVersion(primary.version))}</span>`
                     : '';
-                // A single Sheet row is already the selected version. Only
-                // show a selector when the same product has two or more
-                // actual versions; blank helper rows must not create a menu.
+                // Show a selector only when the product has two or more
+                // actual versions; empty helper rows must not create a menu.
                 const badgeMarkup = hasAnyBadge
                     ? `<span class="version-badge-display catalog-latest-badge ${badgeClass}" data-badge-display="${safeProductId}" ${badge ? '' : 'style="display:none;"'}>${escapeHtml(badge)}</span>`
                     : '';
@@ -9596,6 +9547,16 @@
         openModal(uploadModal);
     }
 
+    window.mobForgeOpenUpload = openUpload;
+    window.mobForgeOpenDashboard = function () {
+        if (!profile) {
+            if (openAccountButton) openAccountButton.click();
+            return;
+        }
+        renderAccountPanel('dashboard');
+        openModal(accountModal);
+    };
+
     function openEditSubmission(item) {
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
         if (!username) { showUsernamePrompt(); return; }
@@ -10064,6 +10025,64 @@
     setAccountButton();
     renderCreatorNav();
     updateUploadFields();
+})();
+</script>
+<script>
+(function () {
+    'use strict';
+    var actionButton = document.getElementById('mfFloatingAction');
+    var drawer = document.getElementById('mfFloatingActionDrawer');
+    if (!actionButton || !drawer) return;
+
+    function closeDrawer() {
+        drawer.classList.remove('open');
+        actionButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function openExternal(value) {
+        var raw = String(value || '').trim();
+        if (!raw) return;
+        try {
+            var url = new URL(raw);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+            var popup = window.open(url.href, '_blank', 'noopener,noreferrer');
+            if (popup) popup.opener = null;
+        } catch (_) {}
+    }
+
+    actionButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        var isOpen = drawer.classList.toggle('open');
+        actionButton.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    drawer.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-mf-drawer-action]');
+        if (!button) return;
+        var action = button.getAttribute('data-mf-drawer-action');
+        closeDrawer();
+        if (action === 'upload') {
+            if (typeof window.mobForgeOpenUpload === 'function') window.mobForgeOpenUpload();
+            return;
+        }
+        if (action === 'dashboard') {
+            if (typeof window.mobForgeOpenDashboard === 'function') window.mobForgeOpenDashboard();
+            return;
+        }
+        var socialLinks = window.__mfSocialLinks && typeof window.__mfSocialLinks === 'object'
+            ? window.__mfSocialLinks
+            : {};
+        openExternal(socialLinks[action]);
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!drawer.contains(event.target) && event.target !== actionButton && !actionButton.contains(event.target)) {
+            closeDrawer();
+        }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeDrawer();
+    });
 })();
 </script>
 </body>
