@@ -4031,6 +4031,9 @@
         .mf-dashboard-open .mf-account-stat strong { font-size: 1.5rem; }
         .mf-logo-upload { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
         .mf-logo-upload input { display:none; }
+        .mf-logo-upload-panel { display:grid; justify-items:center; gap:10px; padding:16px; border:1px solid rgba(139,92,246,.22); border-radius:14px; background:linear-gradient(145deg,rgba(139,92,246,.11),rgba(255,255,255,.035)); text-align:center; }
+        .mf-logo-preview { width:112px; height:112px; display:grid; place-items:center; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.14); background:rgba(10,10,15,.7); color:var(--text-muted); font-size:2rem; }
+        .mf-logo-preview img { width:100%; height:100%; object-fit:contain; }
         .mf-logo-upload-button { display:inline-flex; align-items:center; gap:8px; padding:10px 13px; border:1px solid rgba(139,92,246,.4); border-radius:9px; background:rgba(139,92,246,.1); color:#dfd2ff; cursor:pointer; font:inherit; font-size:.78rem; font-weight:700; }
         .mf-logo-upload-button:hover { background:rgba(139,92,246,.18); border-color:var(--violet); }
         .mf-logo-upload-status { color:var(--text-muted); font-size:.7rem; }
@@ -6136,7 +6139,10 @@
                     mobileHtml +=
                         `<button class="cat-btn" data-category="${cat.id}"><i class="fas ${cat.icon}"></i> ${cat.label}<span class="cat-count">${count}</span></button>`;
                 });
-                mobileNav.innerHTML = mobileHtml;
+            mobileNav.innerHTML = mobileHtml;
+            // Settings/catalog refreshes rebuild the mobile menu. Re-add
+            // authenticated creator actions after every rebuild.
+            window.mobForgeRefreshCreatorNav?.();
                 // Keep the existing navigation styling and interactions; only
                 // the DOM order is intentional here so Home stays in the
                 // fourth (middle) position.
@@ -8853,6 +8859,7 @@
             });
 
             hamburgerBtn.addEventListener('click', function() {
+                window.mobForgeRefreshCreatorNav?.();
                 const isOpen = mobileNavEl.classList.toggle('open');
                 this.classList.toggle('open', isOpen);
                 this.querySelector('i').className = isOpen ? 'fas fa-times' : 'fas fa-bars';
@@ -9007,6 +9014,15 @@
             <h3 id="mfUploadTitle">Submit Release</h3>
             <p class="mf-upload-intro">Upload a Minecraft plugin, mod, or pack for admin approval.</p>
             <form id="mfUploadForm" class="mf-upload-form">
+                <div class="mf-form-label">
+                    <span>Product logo/icon</span>
+                    <div class="mf-logo-upload-panel">
+                        <div class="mf-logo-preview" id="mfAssetImagePreview"><i class="fas fa-image"></i></div>
+                        <label class="mf-logo-upload-button" for="mfAssetImage"><i class="fas fa-cloud-arrow-up"></i> Upload Logo/Icon</label>
+                        <input id="mfAssetImage" type="file" accept="image/png,image/jpeg" />
+                        <span class="mf-logo-upload-status" id="mfAssetImageStatus">PNG or JPG · up to 10 MB</span>
+                    </div>
+                </div>
                 <label class="mf-form-label">Title
                     <input id="mfAssetTitle" class="mf-form-control" type="text" maxlength="120" required />
                 </label>
@@ -9061,14 +9077,6 @@
                  <label class="mf-form-label">Badge <span style="font-weight:500;color:var(--text-muted);">optional</span>
                      <input id="mfAssetBadge" class="mf-form-control" type="text" maxlength="40" placeholder="NEW, BETA, STABLE…" />
                  </label>
-                <div class="mf-form-label">
-                    <span>Product logo/icon <span style="font-weight:500;color:var(--text-muted);">optional</span></span>
-                    <div class="mf-logo-upload">
-                        <label class="mf-logo-upload-button" for="mfAssetImage"><i class="fas fa-image"></i> Upload Logo/Icon</label>
-                        <input id="mfAssetImage" type="file" accept="image/png,image/jpeg" />
-                        <span class="mf-logo-upload-status" id="mfAssetImageStatus">PNG or JPG · up to 10 MB</span>
-                    </div>
-                </div>
                 <div class="mf-file-wrap">
                     <strong>Release file</strong>
                      <input id="mfAssetFile" type="file" accept="*/*" />
@@ -9120,11 +9128,14 @@
     var avatarInput = null;
     var uploadAuthor = document.getElementById('mfAssetAuthor');
     var maxFileSize = 50 * 1024 * 1024;
+    var pendingLogoUpload = null;
+    var pendingLogoUrl = '';
+    var logoPreviewObjectUrl = '';
 
     async function uploadCommunityLogo(file) {
-        var config = window.__mfCloudinaryConfig || { cloudName: 'r4tentfl', uploadPreset: 'ml_default' };
-        var cloudName = String(config.cloudName || '').trim();
-        var uploadPreset = String(config.uploadPreset || '').trim();
+        var config = window.__mfCloudinaryConfig || {};
+        var cloudName = String(config.cloudName || localStorage.getItem('mob-forge-cloudinary-cloud-name-v1') || 'r4tentfl').trim();
+        var uploadPreset = String(config.uploadPreset || localStorage.getItem('mob-forge-cloudinary-upload-preset-v1') || 'ml_default').trim();
         if (!cloudName || !uploadPreset) throw new Error('Logo upload is not configured.');
         var body = new FormData();
         body.append('file', file);
@@ -9420,6 +9431,17 @@
         mobileNav.appendChild(uploadButton);
     }
 
+    window.mobForgeRefreshCreatorNav = function () {
+        renderCreatorNav();
+    };
+
+    function syncProfileFromStorage() {
+        var saved = readStoredProfile();
+        profile = saved;
+        window.__mfAccountId = profile && profile.id ? profile.id : '';
+        username = localStorage.getItem(USERNAME_KEY) || (profile && profile.name) || '';
+    }
+
     function showUsernamePrompt() {
         if (!usernameModal) return;
         usernameInput.value = username;
@@ -9431,11 +9453,15 @@
     function openUpload() {
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
         if (!username) { showUsernamePrompt(); return; }
+        uploadForm.reset();
         window.__mfEditingSubmission = null;
+        pendingLogoUpload = null;
+        pendingLogoUrl = '';
         document.getElementById('mfUploadTitle').textContent = 'Submit Release';
         var submitLabel = uploadForm.querySelector('[type="submit"]');
         if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Release';
         uploadAuthor.value = username;
+        resetLogoPreview();
         updateUploadFields();
         uploadError.hidden = true;
         openModal(uploadModal);
@@ -9445,6 +9471,11 @@
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
         if (!username) { showUsernamePrompt(); return; }
         window.__mfEditingSubmission = item;
+        pendingLogoUpload = null;
+        pendingLogoUrl = String(item.image_url || '');
+        if (uploadFile) uploadFile.value = '';
+        var editLogoInput = document.getElementById('mfAssetImage');
+        if (editLogoInput) editLogoInput.value = '';
         document.getElementById('mfUploadTitle').textContent = 'Edit Submission';
         var submitLabel = uploadForm.querySelector('[type="submit"]');
         if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-save"></i> Save Changes';
@@ -9455,10 +9486,31 @@
         document.getElementById('mfAssetDescription').value = item.description || '';
         var imageStatus = document.getElementById('mfAssetImageStatus');
         if (imageStatus) imageStatus.textContent = item.image_url ? 'Current logo will remain unless replaced.' : 'PNG or JPG · up to 10 MB';
+        renderLogoPreview(item.image_url || '');
         uploadAuthor.value = item.owner_name || username || '';
         updateUploadFields();
         uploadError.hidden = true;
         openModal(uploadModal);
+    }
+
+    function resetLogoPreview() {
+        if (logoPreviewObjectUrl) {
+            URL.revokeObjectURL(logoPreviewObjectUrl);
+            logoPreviewObjectUrl = '';
+        }
+        var preview = document.getElementById('mfAssetImagePreview');
+        var status = document.getElementById('mfAssetImageStatus');
+        if (preview) preview.innerHTML = '<i class="fas fa-image"></i>';
+        if (status) status.textContent = 'PNG or JPG · up to 10 MB';
+    }
+
+    function renderLogoPreview(url) {
+        var preview = document.getElementById('mfAssetImagePreview');
+        if (!preview) return;
+        var safe = String(url || '').trim();
+        preview.innerHTML = safe
+            ? '<img src="' + escapeHtml(safe) + '" alt="Selected product logo" />'
+            : '<i class="fas fa-image"></i>';
     }
 
     function updateUploadFields() {
@@ -9540,6 +9592,7 @@
         uploadError.hidden = true;
         if (submit) submit.textContent = editing ? 'Saving…' : 'Uploading…';
         try {
+                    if (pendingLogoUpload) await pendingLogoUpload;
                     if (!window.mobForgeSupabaseReady) throw new Error('Storage is still loading. Please try again.');
                     await window.mobForgeSupabaseReady;
                     if (typeof window.mobForgeStorageUpload !== 'function') throw new Error('Persistent upload storage is unavailable.');
@@ -9553,7 +9606,7 @@
                     var ownerName = (document.getElementById('mfAssetAuthor').value || username).trim();
                     var persistentDownloadUrl = editing ? String(editing.download_url || '') : '';
                     var storagePath = editing ? String(editing.storage_path || '') : '';
-                    var logoImageUrl = editing ? String(editing.image_url || '') : '';
+                    var logoImageUrl = editing ? String(editing.image_url || '') : pendingLogoUrl;
                     // Product logos are uploaded directly to Cloudinary and
                     // persisted as the product's image_url. Detect the
                     // optional user_assets column before storing the URL.
@@ -9566,7 +9619,7 @@
                         }
                     }
                     if (!window.__mfUserAssetsImageColumn) imageFile = null;
-                    if (imageFile && window.__mfUserAssetsImageColumn) {
+                    if (imageFile && window.__mfUserAssetsImageColumn && !logoImageUrl) {
                         logoImageUrl = await uploadCommunityLogo(imageFile);
                     }
                     if (file) {
@@ -9640,8 +9693,9 @@
                     window.__mfEditingSubmission = null;
                     uploadForm.reset();
                     uploadAuthor.value = username;
-                    var imageStatus = document.getElementById('mfAssetImageStatus');
-                    if (imageStatus) imageStatus.textContent = 'PNG or JPG · up to 10 MB';
+                    pendingLogoUpload = null;
+                    pendingLogoUrl = '';
+                    resetLogoPreview();
                     updateUploadFields();
                     document.getElementById('mfUploadTitle').textContent = 'Submit Release';
                     if (editing) closeModal(uploadModal);
@@ -9715,6 +9769,9 @@
 
     if (openAccountButton) openAccountButton.addEventListener('click', function (event) {
         event.preventDefault();
+        syncProfileFromStorage();
+        setAccountButton();
+        renderCreatorNav();
         openModal(accountModal);
         renderAccount();
         if (!profile && window.google && window.google.accounts && window.google.accounts.id) {
@@ -9798,7 +9855,43 @@
     if (logoInput) logoInput.addEventListener('change', function () {
         var selected = logoInput.files && logoInput.files[0];
         var status = document.getElementById('mfAssetImageStatus');
-        if (status) status.textContent = selected ? selected.name + ' — uploads to Cloudinary on submit' : 'PNG or JPG · up to 10 MB';
+        pendingLogoUpload = null;
+        pendingLogoUrl = '';
+        if (logoPreviewObjectUrl) URL.revokeObjectURL(logoPreviewObjectUrl);
+        logoPreviewObjectUrl = '';
+        if (!selected) {
+            resetLogoPreview();
+            uploadError.hidden = true;
+            return;
+        }
+        if (!/^image\/(png|jpeg)$/i.test(selected.type) || selected.size > 10 * 1024 * 1024) {
+            if (status) status.textContent = 'Choose a PNG or JPG up to 10 MB.';
+            renderLogoPreview('');
+            uploadError.textContent = 'Choose a PNG or JPG logo/icon up to 10 MB.';
+            uploadError.hidden = false;
+            logoInput.value = '';
+            return;
+        }
+        logoPreviewObjectUrl = URL.createObjectURL(selected);
+        renderLogoPreview(logoPreviewObjectUrl);
+        if (status) status.textContent = 'Uploading to Cloudinary…';
+        var uploadPromise = uploadCommunityLogo(selected).then(function (url) {
+            if (pendingLogoUpload === uploadPromise) {
+                pendingLogoUrl = url;
+                renderLogoPreview(url);
+                if (status) status.textContent = 'Uploaded to Cloudinary ✓';
+            }
+            return url;
+        }).catch(function (error) {
+            if (pendingLogoUpload === uploadPromise) {
+                pendingLogoUrl = '';
+                if (status) status.textContent = 'Cloudinary upload failed.';
+                uploadError.textContent = error && error.message ? error.message : 'Logo upload failed.';
+                uploadError.hidden = false;
+            }
+            throw error;
+        });
+        pendingLogoUpload = uploadPromise;
         uploadError.hidden = true;
     });
     if (uploadCategory) uploadCategory.addEventListener('change', updateUploadFields);
