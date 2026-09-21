@@ -4730,14 +4730,20 @@
                 }
             }
 
-            function normalizeOwnerAvatar(value) {
+            function normalizeOwnerAvatar(value, excludedValue) {
                 const raw = String(value || '').trim();
                 if (!raw || /\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(raw)) return '';
                 try {
                     const parsed = JSON.parse(raw);
-                    if (parsed && typeof parsed === 'object') return normalizeImageUrl(parsed.avatar || '');
+                    if (parsed && typeof parsed === 'object') {
+                        const avatar = normalizeImageUrl(parsed.avatar || '');
+                        const excluded = normalizeImageUrl(excludedValue || parsed.logo || '');
+                        return avatar && avatar !== excluded ? avatar : '';
+                    }
                 } catch (_) {}
-                return normalizeImageUrl(raw);
+                const avatar = normalizeImageUrl(raw);
+                const excluded = normalizeImageUrl(excludedValue || '');
+                return avatar && avatar !== excluded ? avatar : '';
             }
 
             function readLocalJson(key, fallback) {
@@ -5297,7 +5303,7 @@
                         catalogVersions: hasEmbeddedVersions ? catalogVersions : null,
                          priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
                          author: String(data.owner_name || data.ownerName || data.author || '').trim(),
-                          ownerAvatar: normalizeOwnerAvatar(data.owner_avatar || data.ownerAvatar || '')
+                          ownerAvatar: normalizeOwnerAvatar(data.owner_avatar || data.ownerAvatar || '', imageUrl)
                     };
                 };
 
@@ -7416,7 +7422,8 @@
                 assets.forEach((asset, idx) => {
                     const ownerMedia = parseOwnerMedia(asset.owner_avatar);
                     const icon = normalizeImageUrl(asset.image_url || ownerMedia.logo || '');
-                    const ownerAvatar = normalizeImageUrl(ownerMedia.avatar || '');
+                    const ownerAvatarCandidate = normalizeImageUrl(ownerMedia.avatar || '');
+                    const ownerAvatar = ownerAvatarCandidate && ownerAvatarCandidate !== icon ? ownerAvatarCandidate : '';
                     const dlUrl = String(asset.download_url || '').trim();
                     const meta = [asset.version, asset.badge, asset.loader, asset.platform].filter(Boolean).join(' · ');
                     const ownerMarkup = ownerAvatar
@@ -9167,26 +9174,35 @@
     var pendingLogoUpload = null;
     var pendingLogoUrl = '';
     var logoPreviewObjectUrl = '';
+    var CLOUDINARY_CLOUD_NAME_STORAGE = 'mob-forge-cloudinary-cloud-name-v1';
+    var CLOUDINARY_PRESET_STORAGE = 'mob-forge-cloudinary-upload-preset-v1';
+    var DEFAULT_CLOUDINARY_CLOUD_NAME = 'r4tentfl';
+    var DEFAULT_CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 
     async function uploadCommunityLogo(file) {
-        if (!window.mobForgeSupabaseReady) throw new Error('Storage is still loading. Please try again.');
-        await window.mobForgeSupabaseReady;
-        var sb = window.mobForgeSupabase;
-        if (!sb) throw new Error('Persistent upload storage is unavailable.');
-        var safeAccountId = String(window.__mfAccountId || 'account').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'account';
-        var extension = String(file.name || '').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!extension) extension = file.type === 'image/png' ? 'png' : 'jpg';
-        var path = 'logos/' + safeAccountId + '/logo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + extension;
-        var filename = String(file.name || 'logo').replace(/["\r\n]/g, '');
-        var result = await sb.storage.from('user-assets').upload(path, file, {
-            contentType: file.type || 'application/octet-stream',
-            contentDisposition: 'inline; filename="' + filename + '"',
-            upsert: true
+        var cloudName = String(localStorage.getItem(CLOUDINARY_CLOUD_NAME_STORAGE) || DEFAULT_CLOUDINARY_CLOUD_NAME).trim();
+        var uploadPreset = String(localStorage.getItem(CLOUDINARY_PRESET_STORAGE) || DEFAULT_CLOUDINARY_UPLOAD_PRESET).trim();
+        if (!cloudName || !uploadPreset) throw new Error('Cloudinary upload is not configured.');
+        var form = new FormData();
+        form.append('file', file);
+        form.append('upload_preset', uploadPreset);
+        form.append('folder', 'mob-forge');
+        var response = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cloudName) + '/image/upload', {
+            method: 'POST',
+            body: form
         });
-        if (result.error) throw result.error;
-        var publicUrl = sb.storage.from('user-assets').getPublicUrl(path).data.publicUrl;
-        if (!publicUrl) throw new Error('Logo upload did not return a public URL.');
-        return publicUrl;
+        var result;
+        try {
+            result = await response.json();
+        } catch (_) {
+            result = null;
+        }
+        if (!response.ok || !result) {
+            throw new Error(result && result.error && result.error.message ? result.error.message : 'Cloudinary logo upload failed.');
+        }
+        var directUrl = String(result.secure_url || result.url || '').trim();
+        if (!directUrl) throw new Error('Cloudinary did not return a direct image URL.');
+        return directUrl;
     }
 
     function escapeHtml(value) {
@@ -9944,18 +9960,18 @@
         }
         logoPreviewObjectUrl = URL.createObjectURL(selected);
         renderLogoPreview(logoPreviewObjectUrl);
-        if (status) status.textContent = 'Uploading to Supabase…';
+         if (status) status.textContent = 'Uploading to Cloudinary…';
         var uploadPromise = uploadCommunityLogo(selected).then(function (url) {
             if (pendingLogoUpload === uploadPromise) {
                 pendingLogoUrl = url;
                 renderLogoPreview(url);
-                if (status) status.textContent = 'Uploaded to Supabase ✓';
+                 if (status) status.textContent = 'Uploaded to Cloudinary ✓';
             }
             return url;
         }).catch(function (error) {
             if (pendingLogoUpload === uploadPromise) {
                 pendingLogoUrl = '';
-                if (status) status.textContent = 'Supabase upload failed.';
+                 if (status) status.textContent = 'Cloudinary upload failed.';
                 uploadError.textContent = error && error.message ? error.message : 'Logo upload failed.';
                 uploadError.hidden = false;
             }
