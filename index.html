@@ -9580,16 +9580,22 @@
     var CREATOR_ASSETS_KEY = 'mob-forge-creator-assets';
     var PROFILE_KEY = 'mob-forge-google-profile';
     var GOOGLE_CLIENT_ID = '809488850172-uoj4sa9gcuomddbekb5sj525ulldp0fa.apps.googleusercontent.com';
+    function isSupabaseUuid(value) {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+    }
+
     function readStoredProfile() {
         try {
             var saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
-            return saved && typeof saved === 'object' ? saved : null;
+            // Older versions stored Google's numeric `sub` here. Never let that
+            // value become a database identifier again.
+            return saved && typeof saved === 'object' && isSupabaseUuid(saved.id) ? saved : null;
         } catch (error) {
             return null;
         }
     }
     var profile = readStoredProfile();
-    window.__mfAccountId = profile && profile.id ? profile.id : '';
+    window.__mfAccountId = profile && isSupabaseUuid(profile.id) ? profile.id : '';
     var username = localStorage.getItem(USERNAME_KEY) || '';
     var gisInitialized = false;
     var assetsRestored = false;
@@ -9656,17 +9662,37 @@
             var decoded = decodeURIComponent(atob(part).split('').map(function (char) { return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2); }).join(''));
             var data = JSON.parse(decoded);
             return {
-                id: typeof data.sub === 'string' ? data.sub : '',
+                googleId: typeof data.sub === 'string' ? data.sub : '',
                 picture: typeof data.picture === 'string' ? data.picture : '',
-                name: typeof data.name === 'string' ? data.name : ''
+                name: typeof data.name === 'string' ? data.name : '',
+                email: typeof data.email === 'string' ? data.email : ''
             };
         } catch (error) {
-            return { id: '', picture: '', name: '' };
+            return { googleId: '', picture: '', name: '', email: '' };
         }
     }
 
+    async function getSupabaseAuthClient() {
+        if (window.mobForgeSupabaseReady) await window.mobForgeSupabaseReady;
+        // This classic script runs while the head module is still deferred.
+        // Wait briefly so an existing Supabase session can be restored on the
+        // first page load instead of requiring a second sign-in.
+        for (var attempt = 0; !window.mobForgeSupabase && attempt < 40; attempt += 1) {
+            await new Promise(function (resolve) { setTimeout(resolve, 25); });
+        }
+        return window.mobForgeSupabase || null;
+    }
+
+    async function getSupabaseAuthUser() {
+        var sb = await getSupabaseAuthClient();
+        if (!sb) return null;
+        var result = await sb.auth.getUser();
+        if (result.error) return null;
+        return result.data && result.data.user ? result.data.user : null;
+    }
+
     async function loadPersistedProfile(baseProfile) {
-        if (!baseProfile || !baseProfile.id) return baseProfile;
+        if (!baseProfile || !isSupabaseUuid(baseProfile.id)) return baseProfile;
         try {
             if (window.mobForgeSupabaseReady) await window.mobForgeSupabaseReady;
             var sb = window.mobForgeSupabase;
@@ -9686,7 +9712,7 @@
     }
 
     async function persistProfileRecord() {
-        if (!profile || !profile.id || !window.mobForgeSupabase) return;
+        if (!profile || !isSupabaseUuid(profile.id) || !window.mobForgeSupabase) return;
         var timestamp = new Date().toISOString();
         var picture = String(profile.picture || '').trim();
         var base = { id: profile.id, username: username, updated_at: timestamp };
@@ -9708,7 +9734,7 @@
     }
 
     async function syncOwnedProductsProfile() {
-        if (!profile || !profile.id || !window.mobForgeSupabase) return;
+        if (!profile || !isSupabaseUuid(profile.id) || !window.mobForgeSupabase) return;
         var sb = window.mobForgeSupabase;
         var accountId = profile.id;
         var ownerName = String(username || profile.name || 'Account').trim();
@@ -10110,8 +10136,63 @@
     function syncProfileFromStorage() {
         var saved = readStoredProfile();
         profile = saved;
-        window.__mfAccountId = profile && profile.id ? profile.id : '';
+        window.__mfAccountId = profile && isSupabaseUuid(profile.id) ? profile.id : '';
         username = localStorage.getItem(USERNAME_KEY) || (profile && profile.username) || (profile && profile.name) || '';
+    }
+
+    async function applySupabaseAuthUser(authUser, googleProfile) {
+        if (!authUser || !isSupabaseUuid(authUser.id)) {
+            profile = null;
+            window.__mfAccountId = '';
+            username = '';
+            setAccountButton();
+            renderCreatorNav();
+            return null;
+        }
+        var metadata = authUser.user_metadata || {};
+        var saved = readStoredProfile();
+        var baseProfile = {
+            id: authUser.id,
+            googleId: googleProfile?.googleId || saved?.googleId || '',
+            picture: googleProfile?.picture || metadata.avatar_url || metadata.picture || saved?.picture || '',
+            name: googleProfile?.name || metadata.full_name || metadata.name || saved?.name || '',
+            email: googleProfile?.email || authUser.email || saved?.email || ''
+        };
+        profile = await loadPersistedProfile(baseProfile);
+        window.__mfAccountId = authUser.id;
+        username = profile.username || localStorage.getItem(USERNAME_KEY) || profile.name || '';
+        profile.username = username;
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        if (username) localStorage.setItem(USERNAME_KEY, username);
+        setAccountButton();
+        renderCreatorNav();
+        window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
+        return profile;
+    }
+
+    async function restoreSupabaseAuth() {
+        var sb = await getSupabaseAuthClient();
+        if (!sb) return;
+        sb.auth.onAuthStateChange(function (event, session) {
+            if (session && session.user) {
+                setTimeout(function () {
+                    applySupabaseAuthUser(session.user).catch(function (error) {
+                        console.warn('Could not restore the Supabase profile:', error);
+                    });
+                }, 0);
+            } else if (event === 'SIGNED_OUT') {
+                profile = null;
+                window.__mfAccountId = '';
+                username = '';
+                localStorage.removeItem(PROFILE_KEY);
+                localStorage.removeItem(USERNAME_KEY);
+                setAccountButton();
+                renderCreatorNav();
+                window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
+            }
+        });
+        var authUser = await getSupabaseAuthUser();
+        if (authUser) await applySupabaseAuthUser(authUser);
     }
 
     function showUsernamePrompt() {
@@ -10464,26 +10545,42 @@
         if (gisInitialized || !window.google || !window.google.accounts || !window.google.accounts.id) return;
         window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: async function (response) {
             var signedInProfile = decodeProfile(response.credential);
-            if (!signedInProfile.id) signedInProfile.id = signedInProfile.name || 'google-account';
-            profile = await loadPersistedProfile(signedInProfile);
-            window.__mfAccountId = profile.id;
-            var hadSavedUsername = Boolean(profile.username || localStorage.getItem(USERNAME_KEY));
-            username = profile.username || localStorage.getItem(USERNAME_KEY) || '';
-            if (!username && profile.name) username = profile.name;
-            profile.username = username;
-            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-            if (username) localStorage.setItem(USERNAME_KEY, username);
-            closeModal(accountModal);
-            setAccountButton();
-            renderCreatorNav();
-            window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
-            // Show the username prompt only once, for a brand-new user.
-            // After that it never opens automatically again — "Edit username"
-            // remains available inside the Account modal.
-            var promptFlagKey = 'mob-forge-username-prompt-shown:' + (profile.id || 'guest');
-            if (!hadSavedUsername && !localStorage.getItem(promptFlagKey)) {
-                localStorage.setItem(promptFlagKey, '1');
-                showUsernamePrompt();
+            try {
+                var sb = await getSupabaseAuthClient();
+                if (!sb) throw new Error('Supabase authentication is unavailable.');
+                // Exchange Google's ID token for a Supabase Auth session. The
+                // returned user.id is Supabase's UUID and is the only ID used
+                // in user_profiles, user_assets, catalog_products, and chat.
+                var signIn = await sb.auth.signInWithIdToken({
+                    provider: 'google',
+                    token: response.credential
+                });
+                if (signIn.error) throw signIn.error;
+                var authUser = signIn.data && signIn.data.user
+                    ? signIn.data.user
+                    : await getSupabaseAuthUser();
+                if (!authUser || !isSupabaseUuid(authUser.id)) {
+                    throw new Error('Supabase did not return a valid authenticated user UUID.');
+                }
+                var hadSavedUsername = Boolean(readStoredProfile()?.username || localStorage.getItem(USERNAME_KEY));
+                await applySupabaseAuthUser(authUser, signedInProfile);
+                closeModal(accountModal);
+                // Show the username prompt only once, for a brand-new user.
+                // After that it never opens automatically again — "Edit username"
+                // remains available inside the Account modal.
+                var promptFlagKey = 'mob-forge-username-prompt-shown:' + authUser.id;
+                if (!hadSavedUsername && !localStorage.getItem(promptFlagKey)) {
+                    localStorage.setItem(promptFlagKey, '1');
+                    showUsernamePrompt();
+                }
+            } catch (error) {
+                console.error('Supabase Google sign-in failed:', error);
+                var signInToast = document.getElementById('semoxToast');
+                if (signInToast) {
+                    signInToast.textContent = error?.message || 'Google sign-in could not be completed.';
+                    signInToast.classList.add('show');
+                    setTimeout(function () { signInToast.classList.remove('show'); }, 3200);
+                }
             }
         }});
         gisInitialized = true;
@@ -10565,17 +10662,29 @@
         if (publish) { closeModal(accountModal); openUpload(); }
         var signOut = event.target.closest('[data-mf-sign-out]');
         if (signOut) {
-            profile = null;
-            window.__mfAccountId = '';
-            localStorage.removeItem(PROFILE_KEY);
-            localStorage.removeItem(USERNAME_KEY);
-            if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect();
-            closeModal(accountModal);
-            setAccountButton();
-            renderCreatorNav();
-            window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
-            var toast = document.getElementById('semoxToast');
-            if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+            (async function () {
+                try {
+                    var sb = await getSupabaseAuthClient();
+                    if (sb) {
+                        var result = await sb.auth.signOut();
+                        if (result.error) throw result.error;
+                    }
+                } catch (error) {
+                    console.error('Supabase sign-out failed:', error);
+                } finally {
+                    profile = null;
+                    window.__mfAccountId = '';
+                    localStorage.removeItem(PROFILE_KEY);
+                    localStorage.removeItem(USERNAME_KEY);
+                    if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect();
+                    closeModal(accountModal);
+                    setAccountButton();
+                    renderCreatorNav();
+                    window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
+                    var toast = document.getElementById('semoxToast');
+                    if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+                }
+            })();
         }
     });
     if (usernameForm) usernameForm.addEventListener('submit', async function (event) {
@@ -10666,6 +10775,9 @@
     setAccountButton();
     renderCreatorNav();
     updateUploadFields();
+    restoreSupabaseAuth().catch(function (error) {
+        console.warn('Could not restore the Supabase session:', error);
+    });
 })();
 </script>
 <script>
@@ -10760,6 +10872,7 @@
     let mediaRecorder = null;
     let mediaChunks = [];
     let chatLoading = false;
+     const isChatUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 
     const escapeChat = value => String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -10779,10 +10892,12 @@
         if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
         return `${Math.floor(hours / 24)} day${hours === 24 ? '' : 's'} ago`;
     };
-    const chatProfile = () => {
+     const chatProfile = authUserId => {
         let profile = {};
         try { profile = JSON.parse(localStorage.getItem('mob-forge-google-profile') || '{}') || {}; } catch (_) {}
-        const id = String(window.__mfAccountId || profile.id || '').trim();
+         // The local profile is display metadata only. The database ID must
+         // come from the current Supabase Auth user.
+         const id = String(authUserId || '').trim();
         const name = String(localStorage.getItem('mob-forge-username') || profile.username || profile.name || 'Guest').trim();
         return {
             id,
@@ -10790,7 +10905,7 @@
             avatar: String(profile.picture || profile.login_avatar || profile.avatar || '').trim()
         };
     };
-    const chatReadKey = () => `mob-forge-chat-read:${chatProfile().id || 'guest'}`;
+     const chatReadKey = () => `mob-forge-chat-read:${String(window.__mfAccountId || '').trim() || 'guest'}`;
     const unreadCount = rows => {
         const lastRead = Number(localStorage.getItem(chatReadKey()) || 0);
         return rows.filter(row => row.sender_role === 'owner' && new Date(row.created_at).getTime() > lastRead).length;
@@ -10854,11 +10969,18 @@
         }).join('');
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
-    const getCurrentRows = async () => {
-        const user = chatProfile();
-        if (!user.id) return [];
+     const getChatAuthUser = async () => {
+         const result = await chatSupabase.auth.getUser();
+         if (result.error) throw result.error;
+         const authUser = result.data && result.data.user;
+         if (!authUser || !isChatUuid(authUser.id)) return null;
+         return authUser;
+     };
+     const getCurrentRows = async authUser => {
+         const userId = String(authUser?.id || '').trim();
+         if (!isChatUuid(userId)) return [];
         const { data, error } = await chatSupabase.from(CHAT_TABLE).select('*')
-            .eq('user_id', user.id).gt('expires_at', new Date().toISOString())
+             .eq('user_id', userId).gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: true }).limit(500);
         if (error) throw error;
         return Array.isArray(data) ? data : [];
@@ -10867,12 +10989,11 @@
         localStorage.setItem(chatReadKey(), String(Date.now()));
         setChatUnread(0);
     };
-    const bindChatChannel = () => {
+     const bindChatChannel = userId => {
         chatChannel && chatSupabase.removeChannel(chatChannel);
-        const user = chatProfile();
-        if (!user.id) return;
-        chatChannel = chatSupabase.channel(`mob-forge-chat-${user.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: CHAT_TABLE, filter: `user_id=eq.${user.id}` }, payload => {
+         if (!isChatUuid(userId)) return;
+         chatChannel = chatSupabase.channel(`mob-forge-chat-${userId}`)
+             .on('postgres_changes', { event: '*', schema: 'public', table: CHAT_TABLE, filter: `user_id=eq.${userId}` }, payload => {
                 if (payload.eventType === 'DELETE') {
                     chatRows = chatRows.filter(row => row.id !== payload.old?.id);
                 } else if (payload.new) {
@@ -10887,19 +11008,26 @@
             }).subscribe();
     };
     const loadChat = async () => {
-        const user = chatProfile();
-        if (!user.id) {
+         let authUser = null;
+         try {
+             authUser = await getChatAuthUser();
+         } catch (error) {
+             console.error('Could not read the Supabase Auth user:', error);
+         }
+         if (!authUser) {
             chatRows = [];
             renderChat();
             setChatStatus('Sign in to chat with Admin.');
             return;
         }
+         const user = chatProfile(authUser.id);
+         window.__mfAccountId = authUser.id;
         setChatStatus('Loading messages…');
         try {
-            chatRows = await getCurrentRows();
+             chatRows = await getCurrentRows(authUser);
             renderChat();
             setChatStatus('');
-            bindChatChannel();
+             bindChatChannel(authUser.id);
             setChatUnread(unreadCount(chatRows));
         } catch (error) {
             console.error('Could not load chat:', error);
@@ -10907,7 +11035,9 @@
         }
     };
     const uploadChatFile = async file => {
-        const user = chatProfile();
+         const authUser = await getChatAuthUser();
+         if (!authUser) throw new Error('Sign in before uploading an attachment.');
+         const user = chatProfile(authUser.id);
         const safeName = String(file.name || 'attachment').replace(/[^a-zA-Z0-9._-]/g, '-').slice(-100);
         const randomId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const path = `${user.id || 'guest'}/${randomId}-${safeName}`;
@@ -10919,12 +11049,20 @@
     };
     const sendChatMessage = async event => {
         event.preventDefault();
-        const user = chatProfile();
-        if (!user.id) {
+         let authUser = null;
+         try { authUser = await getChatAuthUser(); } catch (error) {
+             console.error('Could not read the Supabase Auth user:', error);
+         }
+         if (!authUser) {
             document.getElementById('openAccountBtn')?.click();
             setChatStatus('Sign in first, then send your message.', true);
             return;
         }
+         // Always take both UUID columns from Supabase Auth, never from
+         // localStorage or the Google numeric subject/client ID.
+         const user = chatProfile(authUser.id);
+         user.id = authUser.id;
+         window.__mfAccountId = authUser.id;
         const body = chatInput?.value.trim() || '';
         if (!body && !selectedChatFile) return;
         if (chatLoading) return;
@@ -10964,8 +11102,8 @@
         }
     };
     const openChat = async () => {
-        const user = chatProfile();
-        if (!user.id) {
+         const authUser = await getChatAuthUser().catch(() => null);
+         if (!authUser) {
             document.getElementById('openAccountBtn')?.click();
             return;
         }
@@ -11028,17 +11166,16 @@
         if (event.key === 'mob-forge-google-profile' || event.key === 'mob-forge-username') setChatUnread(unreadCount(chatRows));
     });
     window.addEventListener('mobforge:profile-ready', () => {
-        bindChatChannel();
+         getChatAuthUser().then(authUser => bindChatChannel(authUser?.id)).catch(() => {});
         loadChat().catch(() => {});
     });
     setInterval(() => {
         if (chatRows.length) renderChat();
     }, 30000);
-    if (chatProfile().id) {
-        loadChat().catch(() => {});
-    } else {
-        setChatUnread(0);
-    }
+     getChatAuthUser().then(authUser => {
+         if (authUser) loadChat().catch(() => {});
+         else setChatUnread(0);
+     }).catch(() => setChatUnread(0));
 </script>
 </body>
 </html>
