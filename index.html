@@ -9864,6 +9864,17 @@
         }
     }
 
+    function readableAuthError(error) {
+        var message = String(error?.message || error || '');
+        if (/provider.*not enabled|provider is not enabled/i.test(message)) {
+            return 'Google sign-in is not enabled in Supabase Auth yet. Enable Authentication → Providers → Google in your Supabase project, then try again.';
+        }
+        if (/invalid.*(client|credential)|unauthorized/i.test(message)) {
+            return 'Google sign-in configuration is invalid. Check that the Google Client ID in Supabase matches this website.';
+        }
+        return message || 'Google sign-in could not be completed.';
+    }
+
     function storedList(key) {
         try {
             var scopedKey = key + ':' + (window.__mfAccountId || 'guest');
@@ -10577,7 +10588,7 @@
                 console.error('Supabase Google sign-in failed:', error);
                 var signInToast = document.getElementById('semoxToast');
                 if (signInToast) {
-                    signInToast.textContent = error?.message || 'Google sign-in could not be completed.';
+                    signInToast.textContent = readableAuthError(error);
                     signInToast.classList.add('show');
                     setTimeout(function () { signInToast.classList.remove('show'); }, 3200);
                 }
@@ -10872,6 +10883,7 @@
     let mediaRecorder = null;
     let mediaChunks = [];
     let chatLoading = false;
+     let chatRefreshInFlight = false;
      const isChatUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 
     const escapeChat = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -11034,6 +11046,25 @@
             setChatStatus('Could not load messages. Check your connection and try again.', true);
         }
     };
+     // Realtime delivers the message immediately when the table is in the
+     // Supabase realtime publication. This lightweight fallback also keeps
+     // the conversation current if that publication was not enabled yet.
+     const refreshOpenChat = async () => {
+         if (!chatPage?.classList.contains('open') || chatRefreshInFlight) return;
+         chatRefreshInFlight = true;
+         try {
+             const authUser = await getChatAuthUser();
+             if (!authUser) return;
+             const rows = await getCurrentRows(authUser);
+             chatRows = rows;
+             renderChat();
+             setChatUnread(unreadCount(chatRows));
+         } catch (error) {
+             console.warn('Could not refresh chat:', error);
+         } finally {
+             chatRefreshInFlight = false;
+         }
+     };
     const uploadChatFile = async file => {
          const authUser = await getChatAuthUser();
          if (!authUser) throw new Error('Sign in before uploading an attachment.');
@@ -11172,6 +11203,7 @@
     setInterval(() => {
         if (chatRows.length) renderChat();
     }, 30000);
+     setInterval(refreshOpenChat, 4000);
      getChatAuthUser().then(authUser => {
          if (authUser) loadChat().catch(() => {});
          else setChatUnread(0);
