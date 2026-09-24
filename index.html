@@ -3985,7 +3985,6 @@
         // authoritative state as soon as its listener is ready.
         document.documentElement.classList.add('mf-maintenance-pending');
     </script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
     <style>
         .mf-auth-copy { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 18px; }
         .mf-google-button { display: flex; justify-content: center; min-height: 44px; }
@@ -9165,7 +9164,6 @@
     var USERNAME_KEY = 'mob-forge-username';
     var CREATOR_ASSETS_KEY = 'mob-forge-creator-assets';
     var PROFILE_KEY = 'mob-forge-google-profile';
-    var GOOGLE_CLIENT_ID = '809488850172-uoj4sa9gcuomddbekb5sj525ulldp0fa.apps.googleusercontent.com';
     function readStoredProfile() {
         try {
             var saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
@@ -9174,10 +9172,12 @@
             return null;
         }
     }
-    var profile = readStoredProfile();
-    window.__mfAccountId = profile && profile.id ? profile.id : '';
+    var profile = null;
+    window.__mfAccountId = '';
     var username = localStorage.getItem(USERNAME_KEY) || '';
-    var gisInitialized = false;
+    var supabaseAuth = null;
+    var authInitialized = false;
+    var authInitializing = false;
     var assetsRestored = false;
     var accountModal = document.getElementById('accountModal');
     var originalAccountContent = accountModal ? accountModal.querySelector('.modal-box') : null;
@@ -9236,21 +9236,6 @@
         });
     }
 
-    function decodeProfile(credential) {
-        try {
-            var part = credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-            var decoded = decodeURIComponent(atob(part).split('').map(function (char) { return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2); }).join(''));
-            var data = JSON.parse(decoded);
-            return {
-                id: typeof data.sub === 'string' ? data.sub : '',
-                picture: typeof data.picture === 'string' ? data.picture : '',
-                name: typeof data.name === 'string' ? data.name : ''
-            };
-        } catch (error) {
-            return { id: '', picture: '', name: '' };
-        }
-    }
-
     function avatarMarkup() {
         var label = username.slice(0, 1).toUpperCase() || 'A';
         return profile && profile.picture ? '<img src="' + escapeHtml(profile.picture) + '" alt="" />' : escapeHtml(label);
@@ -9279,15 +9264,51 @@
         document.body.classList.add('modal-open');
     }
 
-    function renderGoogleButton() {
+    async function waitForSupabaseClient() {
+        if (window.mobForgeSupabaseReady) {
+            await window.mobForgeSupabaseReady;
+        }
+        var deadline = Date.now() + 10000;
+        while (!window.mobForgeSupabase && Date.now() < deadline) {
+            await new Promise(function (resolve) { setTimeout(resolve, 50); });
+        }
+        return window.mobForgeSupabase;
+    }
+
+    async function signInWithGoogle(button) {
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Connecting…';
+        }
+        try {
+            var sb = await waitForSupabaseClient();
+            if (!sb || !sb.auth) throw new Error('Supabase authentication is unavailable.');
+            var result = await sb.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.href.split('#')[0] }
+            });
+            if (result && result.error) throw result.error;
+        } catch (error) {
+            console.error('Supabase Google sign-in failed:', error);
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fab fa-google" aria-hidden="true"></i> Continue with Google';
+            }
+            var toast = document.getElementById('semoxToast');
+            if (toast) {
+                toast.textContent = error && error.message ? error.message : 'Sign-in failed. Please try again.';
+                toast.classList.add('show');
+                setTimeout(function () { toast.classList.remove('show'); }, 3200);
+            }
+        }
+    }
+
+    function renderSignInButton() {
         var mount = document.getElementById('mfGoogleButton');
         if (!mount) return;
-        mount.innerHTML = '';
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-            window.google.accounts.id.renderButton(mount, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
-        } else {
-            mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;" disabled>Google Sign-In is loading…</button>';
-        }
+        mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;"><i class="fab fa-google" aria-hidden="true"></i> Continue with Google</button>';
+        var button = mount.querySelector('button');
+        if (button) button.addEventListener('click', function () { signInWithGoogle(button); });
     }
 
     function storedList(key) {
@@ -9467,7 +9488,7 @@
         if (!box) return;
         if (!profile) {
             box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-user-circle"></i></div><h3>Account</h3><p class="mf-auth-copy">Sign in to save releases and track your downloads.</p><div class="mf-google-button" id="mfGoogleButton"></div><p class="mf-auth-note">Your account avatar and saved items stay on this browser until you sign out or clear browser data.</p>';
-            renderGoogleButton();
+            renderSignInButton();
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
@@ -9516,9 +9537,6 @@
     };
 
     function syncProfileFromStorage() {
-        var saved = readStoredProfile();
-        profile = saved;
-        window.__mfAccountId = profile && profile.id ? profile.id : '';
         username = localStorage.getItem(USERNAME_KEY) || (profile && profile.name) || '';
     }
 
@@ -9863,29 +9881,73 @@
         }
     }
 
-    function initializeGIS() {
-        if (gisInitialized || !window.google || !window.google.accounts || !window.google.accounts.id) return;
-        window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: function (response) {
-            profile = decodeProfile(response.credential);
-            if (!profile.id) profile.id = profile.name || 'google-account';
-            window.__mfAccountId = profile.id;
-            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-            closeModal(accountModal);
-            username = localStorage.getItem(USERNAME_KEY) || '';
-            if (!username && profile.name) username = profile.name;
-            setAccountButton();
-            renderCreatorNav();
-            // Show the username prompt only once, for a brand-new user.
-            // After that it never opens automatically again — "Edit username"
-            // remains available inside the Account modal.
+    function profileFromSupabaseUser(user) {
+        var metadata = user && user.user_metadata && typeof user.user_metadata === 'object'
+            ? user.user_metadata
+            : {};
+        return {
+            id: user && user.id ? user.id : '',
+            picture: String(metadata.avatar_url || metadata.picture || '').trim(),
+            name: String(metadata.full_name || metadata.name || metadata.user_name || user.email || '').trim()
+        };
+    }
+
+    function clearLocalAuth() {
+        profile = null;
+        window.__mfAccountId = '';
+        username = '';
+        localStorage.removeItem(PROFILE_KEY);
+        localStorage.removeItem(USERNAME_KEY);
+        setAccountButton();
+        renderCreatorNav();
+    }
+
+    function applySupabaseSession(session, showUsernamePrompt) {
+        var user = session && session.user;
+        if (!user) {
+            clearLocalAuth();
+            return;
+        }
+        var nextProfile = profileFromSupabaseUser(user);
+        var savedProfile = readStoredProfile();
+        if (savedProfile && savedProfile.id === nextProfile.id) {
+            nextProfile.picture = savedProfile.picture || nextProfile.picture;
+            nextProfile.name = nextProfile.name || savedProfile.name;
+        }
+        profile = nextProfile;
+        window.__mfAccountId = user.id;
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        username = localStorage.getItem(USERNAME_KEY) || '';
+        setAccountButton();
+        renderCreatorNav();
+        closeModal(accountModal);
+        if (showUsernamePrompt && !username && profile.name) {
             var promptFlagKey = 'mob-forge-username-prompt-shown:' + (profile.id || 'guest');
-            if (!localStorage.getItem(USERNAME_KEY) && !localStorage.getItem(promptFlagKey)) {
+            if (!localStorage.getItem(promptFlagKey)) {
                 localStorage.setItem(promptFlagKey, '1');
                 showUsernamePrompt();
             }
-        }});
-        gisInitialized = true;
-        if (accountModal && accountModal.classList.contains('open')) renderGoogleButton();
+        }
+    }
+
+    async function initializeSupabaseAuth() {
+        if (authInitialized || authInitializing || !window.mobForgeSupabaseReady) return;
+        authInitializing = true;
+        try {
+            supabaseAuth = await window.mobForgeSupabaseReady;
+            if (!supabaseAuth || !supabaseAuth.auth) throw new Error('Supabase authentication is unavailable.');
+            var sessionResult = await supabaseAuth.auth.getSession();
+            if (sessionResult.error) throw sessionResult.error;
+            applySupabaseSession(sessionResult.data && sessionResult.data.session, false);
+            supabaseAuth.auth.onAuthStateChange(function (event, session) {
+                applySupabaseSession(session, event === 'SIGNED_IN');
+            });
+            authInitialized = true;
+        } catch (error) {
+            console.error('Supabase authentication initialization failed:', error);
+        } finally {
+            authInitializing = false;
+        }
     }
 
     if (openAccountButton) openAccountButton.addEventListener('click', function (event) {
@@ -9895,9 +9957,6 @@
         renderCreatorNav();
         openModal(accountModal);
         renderAccount();
-        if (!profile && window.google && window.google.accounts && window.google.accounts.id) {
-            window.google.accounts.id.prompt();
-        }
     });
     if (accountModal) accountModal.addEventListener('click', function (event) {
         var changeAvatar = event.target.closest('[data-mf-change-avatar]');
@@ -9957,16 +10016,25 @@
         if (publish) { closeModal(accountModal); openUpload(); }
         var signOut = event.target.closest('[data-mf-sign-out]');
         if (signOut) {
-            profile = null;
-            window.__mfAccountId = '';
-            localStorage.removeItem(PROFILE_KEY);
-            localStorage.removeItem(USERNAME_KEY);
-            if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect();
-            closeModal(accountModal);
-            setAccountButton();
-            renderCreatorNav();
-            var toast = document.getElementById('semoxToast');
-            if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+            signOut.disabled = true;
+            (async function () {
+                try {
+                    var sb = supabaseAuth || await waitForSupabaseClient();
+                    if (!sb || !sb.auth) throw new Error('Supabase authentication is unavailable.');
+                    var result = await sb.auth.signOut();
+                    if (result && result.error) throw result.error;
+                    clearLocalAuth();
+                    closeModal(accountModal);
+                    var toast = document.getElementById('semoxToast');
+                    if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+                } catch (error) {
+                    signOut.disabled = false;
+                    console.error('Supabase sign-out failed:', error);
+                    var errorToast = document.getElementById('semoxToast');
+                    if (errorToast) { errorToast.textContent = error && error.message ? error.message : 'Sign-out failed. Please try again.'; errorToast.classList.add('show'); setTimeout(function () { errorToast.classList.remove('show'); }, 3200); }
+                }
+            })();
+            return;
         }
     });
     if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
@@ -10021,7 +10089,13 @@
     });
     document.addEventListener('click', function (event) { var close = event.target.closest('[data-mf-close]'); if (close) closeModal(close.dataset.mfClose === 'username' ? usernameModal : uploadModal); });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeModal(usernameModal); closeModal(uploadModal); } });
-    var readyTimer = setInterval(function () { initializeGIS(); if (gisInitialized) clearInterval(readyTimer); }, 250);
+    var readyTimer = setInterval(function () {
+        if (window.mobForgeSupabaseReady) {
+            clearInterval(readyTimer);
+            initializeSupabaseAuth();
+        }
+    }, 250);
+    initializeSupabaseAuth();
     setAccountButton();
     renderCreatorNav();
     updateUploadFields();
