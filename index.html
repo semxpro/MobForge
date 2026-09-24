@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Supabase schema expected: public.catalog_products, public.site_settings,
+    <!-- Supabase schema expected: public.catalog_products, public.site_settings
+         (including notice_enabled boolean and notice_text text),
          public.user_assets, public.user_profiles. Storage buckets:
          catalog-files, maintenance-pages, user-assets, profile-avatars. -->
     <!-- Google tag (gtag.js) -->
@@ -26,17 +27,20 @@
     <meta property="og:title" content="Mob Forge — Minecraft Mods &amp; Downloads" />
     <meta property="og:description" content="Discover curated Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins." />
     <meta property="og:image" content="https://res.cloudinary.com/p35rwudq/image/upload/20260628_192515_sxwegq.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Mob Forge Minecraft downloads" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Mob Forge — Minecraft Mods &amp; Downloads" />
     <meta name="twitter:description" content="Discover curated Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins." />
     <meta name="twitter:image" content="https://res.cloudinary.com/p35rwudq/image/upload/20260628_192515_sxwegq.png" />
+    <meta name="twitter:image:alt" content="Mob Forge Minecraft downloads" />
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://tpefnptjkfiwsmhpxuea.supabase.co" crossorigin />
 
     <style>
@@ -642,16 +646,24 @@
         .download-card .card-info .title-row {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 6px;
             margin-bottom: 2px;
+            min-width: 0;
         }
         .download-card .card-info .title {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
             font-size: 1.05rem;
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1.3;
             transition: all var(--duration);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow-wrap: normal;
         }
         .download-card .card-info .version {
             font-size: 0.65rem;
@@ -1392,6 +1404,86 @@
             border-radius: var(--radius);
             background: #050509;
         }
+        .mf-site-notice {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin: -12px 0 28px;
+            padding: 18px 20px;
+            border: 1px solid rgba(196, 181, 253, .28);
+            border-radius: var(--radius-lg);
+            background:
+                radial-gradient(circle at 8% 0%, rgba(167, 139, 250, .24), transparent 38%),
+                radial-gradient(circle at 92% 110%, rgba(34, 211, 238, .14), transparent 42%),
+                linear-gradient(135deg, rgba(255, 255, 255, .105), rgba(255, 255, 255, .035));
+            box-shadow:
+                0 18px 45px rgba(5, 5, 15, .28),
+                inset 0 1px 0 rgba(255, 255, 255, .16),
+                inset 0 -1px 0 rgba(255, 255, 255, .04);
+            backdrop-filter: blur(22px) saturate(145%);
+            -webkit-backdrop-filter: blur(22px) saturate(145%);
+        }
+        .mf-site-notice::before,
+        .mf-site-notice::after {
+            position: absolute;
+            z-index: -1;
+            content: "";
+            pointer-events: none;
+            border-radius: 50%;
+            filter: blur(2px);
+        }
+        .mf-site-notice::before {
+            width: 170px;
+            height: 170px;
+            top: -112px;
+            left: 18%;
+            background: rgba(196, 181, 253, .14);
+        }
+        .mf-site-notice::after {
+            width: 130px;
+            height: 130px;
+            right: 12%;
+            bottom: -100px;
+            background: rgba(34, 211, 238, .12);
+        }
+        .mf-site-notice[hidden] {
+            display: none !important;
+        }
+        .mf-site-notice-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+            margin-top: 1px;
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 13px;
+            color: #ede9fe;
+            background: linear-gradient(145deg, rgba(167, 139, 250, .38), rgba(34, 211, 238, .14));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 8px 20px rgba(76, 29, 149, .2);
+        }
+        .mf-site-notice-copy {
+            min-width: 0;
+        }
+        .mf-site-notice-copy strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #fff;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .mf-site-notice-copy p {
+            margin: 0;
+            color: rgba(248, 250, 252, .78);
+            font-size: .82rem;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
         .coming-soon-badge {
             display: inline-flex;
             align-items: center;
@@ -1945,8 +2037,17 @@
             margin-bottom: 1px;
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 6px;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .semox-card .semox-p-info .semox-p-title {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .semox-card .semox-p-info .semox-p-badge {
             font-size: 0.55rem;
@@ -2869,6 +2970,14 @@
         .download-card .title,
         .semox-card .semox-p-name {
             overflow-wrap: anywhere;
+        }
+        .download-card .title-row .title {
+            overflow-wrap: normal;
+        }
+        .download-card .title-row .mf-card-favorite,
+        .download-card .title-row .version,
+        .download-card .title-row .catalog-latest-badge {
+            flex: 0 0 auto;
         }
         .card-more-btn {
             position: absolute;
@@ -3985,10 +4094,9 @@
         // authoritative state as soon as its listener is ready.
         document.documentElement.classList.add('mf-maintenance-pending');
     </script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
     <style>
         .mf-auth-copy { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 18px; }
-        .mf-google-button { display: flex; justify-content: center; min-height: 44px; }
+        .mf-auth-button { display: flex; justify-content: center; min-height: 44px; }
         .mf-profile { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 4px 0 20px; }
         .mf-profile-avatar-wrap { position:relative; width:48px; height:48px; }
         .mf-profile-avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--violet), var(--pink)); font-weight: 800; }
@@ -4191,6 +4299,97 @@
         }
     </style>
 
+    <style>
+        /* ============================================================
+           USER CHAT + MESSAGE NOTIFICATION
+           ============================================================ */
+        .mf-message-notice {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            width: min(100% - 28px, 760px);
+            margin: 10px auto 0;
+            padding: 10px 14px;
+            border: 1px solid rgba(139, 92, 246, .34);
+            border-radius: 14px;
+            color: #eeeaff;
+            background: linear-gradient(100deg, rgba(139, 92, 246, .18), rgba(236, 72, 153, .08));
+            box-shadow: 0 12px 34px rgba(0, 0, 0, .2);
+            cursor: pointer;
+            font-size: .76rem;
+            text-align: left;
+        }
+        .mf-message-notice.show { display: flex; animation: mfNoticeIn .35s var(--ease); }
+        .mf-message-notice i { color: #c4b5fd; font-size: .9rem; }
+        .mf-message-notice strong { color: #fff; }
+        .mf-message-notice span { min-width: 0; flex: 1; }
+        .mf-message-notice b { min-width: 20px; padding: 2px 6px; border-radius: 99px; color: #fff; background: var(--rose); font-size: .62rem; text-align: center; }
+        @keyframes mfNoticeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        .mf-chat-open-button { position: relative; }
+        .mf-chat-open-button .mf-chat-button-badge {
+            position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px;
+            display: none; place-items: center; padding: 0 4px; border: 2px solid var(--bg-primary);
+            border-radius: 99px; color: #fff; background: var(--rose); font-size: .52rem; font-weight: 800;
+        }
+        .mf-chat-open-button .mf-chat-button-badge.show { display: grid; }
+        .mf-chat-page {
+            position: fixed; inset: 0; z-index: 1200; display: none; padding: 18px;
+            background: rgba(4, 4, 10, .88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+        }
+        .mf-chat-page.open { display: grid; place-items: center; animation: mfChatFade .25s ease; }
+        @keyframes mfChatFade { from { opacity: 0; } to { opacity: 1; } }
+        .mf-chat-window {
+            display: flex; width: min(960px, 100%); height: min(760px, 100%);
+            min-height: 420px; flex-direction: column; overflow: hidden;
+            border: 1px solid rgba(139, 92, 246, .32); border-radius: 24px;
+            background: linear-gradient(155deg, #181624, #0d0d15); box-shadow: 0 30px 100px rgba(0,0,0,.72);
+        }
+        .mf-chat-header { display: flex; align-items: center; gap: 12px; padding: 17px 20px; border-bottom: 1px solid var(--border-subtle); }
+        .mf-chat-header-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--violet), var(--pink)); }
+        .mf-chat-header-copy { min-width: 0; flex: 1; }
+        .mf-chat-header-copy strong { display: block; color: var(--text-primary); font-size: .95rem; }
+        .mf-chat-header-copy span { display: block; margin-top: 3px; color: var(--text-muted); font-size: .68rem; }
+        .mf-chat-close { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: rgba(255,255,255,.04); cursor: pointer; }
+        .mf-chat-close:hover { color: #fff; background: rgba(255,255,255,.09); }
+        .mf-chat-messages { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 14px; padding: 20px; overflow-y: auto; }
+        .mf-chat-empty { display: grid; place-items: center; min-height: 260px; gap: 9px; color: var(--text-muted); font-size: .78rem; text-align: center; }
+        .mf-chat-empty i { color: var(--violet); font-size: 1.9rem; }
+        .mf-chat-message { display: flex; align-items: flex-start; gap: 10px; max-width: min(700px, 92%); }
+        .mf-chat-message.owner { align-self: flex-start; }
+        .mf-chat-message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .mf-chat-avatar { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; color: #fff; background: linear-gradient(135deg, var(--violet), var(--pink)); font-size: .62rem; font-weight: 800; }
+        .mf-chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .mf-chat-message-copy { min-width: 0; }
+        .mf-chat-meta { display: flex; align-items: baseline; gap: 7px; margin: 0 0 4px; color: var(--text-muted); font-size: .61rem; }
+        .mf-chat-message.user .mf-chat-meta { justify-content: flex-end; }
+        .mf-chat-meta strong { color: var(--text-secondary); font-size: .66rem; }
+        .mf-chat-bubble { padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 15px 15px 15px 4px; color: var(--text-secondary); background: rgba(255,255,255,.055); font-size: .77rem; line-height: 1.5; overflow-wrap: anywhere; }
+        .mf-chat-message.user .mf-chat-bubble { border-color: rgba(139, 92, 246, .35); border-radius: 15px 15px 4px 15px; color: #fff; background: linear-gradient(135deg, rgba(139,92,246,.38), rgba(124,58,237,.2)); }
+        .mf-chat-bubble a { color: #c4b5fd; text-decoration: underline; text-underline-offset: 2px; }
+        .mf-chat-bubble img { display: block; max-width: min(340px, 100%); max-height: 260px; margin-top: 8px; border-radius: 10px; object-fit: contain; background: rgba(0,0,0,.2); }
+        .mf-chat-bubble audio { display: block; width: min(340px, 100%); margin-top: 8px; }
+        .mf-chat-composer { display: flex; align-items: flex-end; gap: 8px; padding: 13px 15px; border-top: 1px solid var(--border-subtle); background: rgba(0,0,0,.16); }
+        .mf-chat-composer textarea { min-height: 42px; max-height: 120px; flex: 1; resize: vertical; padding: 11px 13px; border: 1px solid var(--border-subtle); border-radius: 13px; outline: none; color: var(--text-primary); background: rgba(255,255,255,.05); font: inherit; font-size: .78rem; }
+        .mf-chat-composer textarea:focus { border-color: rgba(139,92,246,.7); box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+        .mf-chat-attach, .mf-chat-record { position: relative; width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border: 1px solid var(--border-subtle); border-radius: 12px; color: var(--text-secondary); background: rgba(255,255,255,.045); cursor: pointer; }
+        .mf-chat-attach:hover, .mf-chat-record:hover, .mf-chat-record.recording { color: #fff; background: rgba(244,63,94,.16); border-color: rgba(244,63,94,.46); }
+        .mf-chat-attach input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .mf-chat-attachment-name { padding: 0 15px 8px; color: var(--text-muted); font-size: .64rem; }
+        .mf-chat-status { min-height: 18px; padding: 0 15px 9px; color: var(--text-muted); font-size: .64rem; }
+        .mf-chat-status.error { color: #fda4af; }
+        .mf-floating-action-drawer button[data-mf-drawer-action="chat"] i { color: #c4b5fd; }
+        @media (max-width: 620px) {
+            .mf-message-notice { width: calc(100% - 20px); }
+            .mf-chat-page { padding: 0; }
+            .mf-chat-window { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; }
+            .mf-chat-messages { padding: 15px 12px; }
+            .mf-chat-message { max-width: 97%; }
+            .mf-chat-composer { padding: 10px; }
+            .mf-chat-composer .mf-primary-button { padding-left: 12px; padding-right: 12px; }
+            .mf-chat-composer .mf-primary-button span { display: none; }
+        }
+    </style>
+
     <!-- Supabase schema expected: public.catalog_products, public.site_settings,
          public.user_assets, public.user_profiles. Storage buckets:
          catalog-files, maintenance-pages, user-assets, profile-avatars. -->
@@ -4347,6 +4546,12 @@
         </div>
     </header>
 
+    <button class="mf-message-notice" id="mfMessageNotice" type="button" aria-label="Open messages">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        <span><strong>New message from Mob Forge Admin.</strong> Tap to open your chat.</span>
+        <b id="mfMessageNoticeCount">0</b>
+    </button>
+
     <div class="mobile-nav-overlay" id="mobileNav"></div>
 
     <!-- ============================================================
@@ -4373,6 +4578,14 @@
                 <h2 id="creatorVideoTitle">Content Creators</h2>
             </div>
             <div class="creator-video-grid" id="creatorVideoGrid"></div>
+        </section>
+
+        <section class="mf-site-notice" id="siteNotice" hidden aria-labelledby="siteNoticeTitle" role="status">
+            <span class="mf-site-notice-icon" aria-hidden="true"><i class="fas fa-bell"></i></span>
+            <div class="mf-site-notice-copy">
+                <strong id="siteNoticeTitle">Notice</strong>
+                <p id="siteNoticeText"></p>
+            </div>
         </section>
 
         <div class="category-indicator" id="categoryIndicator">
@@ -4512,7 +4725,38 @@
         <button type="button" data-mf-drawer-action="youtube" aria-label="YouTube"><i class="fab fa-youtube" aria-hidden="true"></i></button>
         <button type="button" data-mf-drawer-action="tiktok" aria-label="TikTok"><i class="fab fa-tiktok" aria-hidden="true"></i></button>
         <button type="button" data-mf-drawer-action="discord" aria-label="Discord"><i class="fab fa-discord" aria-hidden="true"></i></button>
+        <button type="button" data-mf-drawer-action="chat" aria-label="Chat with Admin"><i class="fas fa-comments" aria-hidden="true"></i></button>
         <button type="button" data-mf-drawer-action="support" aria-label="Support"><i class="fas fa-headset" aria-hidden="true"></i></button>
+    </div>
+
+    <!-- ============================================================
+         USER CHAT PAGE
+         ============================================================ -->
+    <div class="mf-chat-page" id="mfChatPage" role="dialog" aria-modal="true" aria-labelledby="mfChatTitle">
+        <section class="mf-chat-window">
+            <header class="mf-chat-header">
+                <div class="mf-chat-header-icon"><i class="fas fa-headset" aria-hidden="true"></i></div>
+                <div class="mf-chat-header-copy">
+                    <strong id="mfChatTitle">Chat with Mob Forge Admin</strong>
+                    <span>Replies appear here in real time · messages expire after 4 hours</span>
+                </div>
+                <button class="mf-chat-close" id="mfChatClose" type="button" aria-label="Close chat"><i class="fas fa-times"></i></button>
+            </header>
+            <div class="mf-chat-messages" id="mfChatMessages">
+                <div class="mf-chat-empty"><i class="fas fa-comments"></i><span>Sign in to start a conversation with Admin.</span></div>
+            </div>
+            <form class="mf-chat-composer" id="mfChatForm">
+                <label class="mf-chat-attach" title="Attach an image or audio file">
+                    <i class="fas fa-paperclip"></i>
+                    <input id="mfChatFile" type="file" accept="image/*,audio/*" />
+                </label>
+                <button class="mf-chat-record" id="mfChatRecord" type="button" aria-label="Record voice message" title="Record voice message"><i class="fas fa-microphone"></i></button>
+                <textarea id="mfChatInput" rows="1" maxlength="4000" placeholder="Message Admin…"></textarea>
+                <button class="mf-primary-button" type="submit"><i class="fas fa-paper-plane"></i><span>Send</span></button>
+            </form>
+            <div class="mf-chat-attachment-name" id="mfChatAttachmentName" hidden></div>
+            <div class="mf-chat-status" id="mfChatStatus" aria-live="polite"></div>
+        </section>
     </div>
 
     <!-- ============================================================
@@ -4538,7 +4782,7 @@
             <div class="modal-icon"><i class="fas fa-user-circle"></i></div>
              <h3 id="accountModalTitle">Account</h3>
              <p class="mf-auth-copy">Sign in to save releases, track downloads, and publish your own Minecraft assets.</p>
-             <div class="mf-google-button" id="mfGoogleButton"></div>
+             <div class="mf-auth-button" id="mfAuthButton"></div>
         </div>
     </div>
 
@@ -4718,10 +4962,73 @@
                 creatorEnabled: true,
                 creatorTitle: 'Content Creators',
                 creatorVideos: [],
+                noticeEnabled: false,
+                noticeText: '',
                 cloudinaryCloudName: 'r4tentfl',
                 cloudinaryUploadPreset: 'ml_default',
                 categories: FALLBACK_CATEGORIES
             };
+
+            const DEFAULT_SHARE_IMAGE = 'https://res.cloudinary.com/p35rwudq/image/upload/20260628_192515_sxwegq.png';
+            let siteShareMetadata = {
+                title: 'Mob Forge — Minecraft Mods & Downloads',
+                description: 'Discover curated Minecraft PE releases, launchers, resource packs, mods, shaders, and plugins.',
+                image: DEFAULT_SHARE_IMAGE,
+                url: ''
+            };
+
+            function setShareMeta(attribute, key, value) {
+                const selector = `meta[${attribute}="${key}"]`;
+                let element = document.head.querySelector(selector);
+                if (!element) {
+                    element = document.createElement('meta');
+                    element.setAttribute(attribute, key);
+                    document.head.appendChild(element);
+                }
+                element.setAttribute('content', String(value || ''));
+            }
+
+            function updateShareMetadata(metadata = {}, rememberAsSite = false) {
+                const next = {
+                    ...siteShareMetadata,
+                    ...metadata,
+                    title: String(metadata.title || siteShareMetadata.title || 'Mob Forge').trim(),
+                    description: String(metadata.description || siteShareMetadata.description || '').trim(),
+                    image: normalizeImageUrl(metadata.image || siteShareMetadata.image || DEFAULT_SHARE_IMAGE) || DEFAULT_SHARE_IMAGE,
+                    url: String(metadata.url || siteShareMetadata.url || window.location.href).trim()
+                };
+                if (rememberAsSite) siteShareMetadata = next;
+                document.title = next.title;
+                setShareMeta('property', 'og:type', metadata.type || 'website');
+                setShareMeta('property', 'og:title', next.title);
+                setShareMeta('property', 'og:description', next.description);
+                setShareMeta('property', 'og:image', next.image);
+                setShareMeta('property', 'og:image:alt', next.title);
+                setShareMeta('property', 'og:url', next.url);
+                setShareMeta('name', 'twitter:title', next.title);
+                setShareMeta('name', 'twitter:description', next.description);
+                setShareMeta('name', 'twitter:image', next.image);
+                setShareMeta('name', 'twitter:image:alt', next.title);
+                setShareMeta('name', 'twitter:url', next.url);
+                let canonical = document.head.querySelector('link[rel="canonical"]');
+                if (!canonical) {
+                    canonical = document.createElement('link');
+                    canonical.rel = 'canonical';
+                    document.head.appendChild(canonical);
+                }
+                canonical.href = next.url;
+            }
+
+            function restoreSiteShareMetadata() {
+                updateShareMetadata(siteShareMetadata);
+            }
+
+            function getSiteShareUrl() {
+                const url = new URL(window.location.href);
+                url.search = '';
+                url.hash = '';
+                return url.href;
+            }
 
             function normalizeCategories(value) {
                 const input = Array.isArray(value) ? value : [];
@@ -4915,6 +5222,15 @@
                 if (videos.length) writeLocalJson(CREATOR_VIDEOS_STORAGE_KEY, videos);
             }
 
+            function renderSiteNotice(text, enabled) {
+                const section = document.getElementById('siteNotice');
+                const textEl = document.getElementById('siteNoticeText');
+                if (!section || !textEl) return;
+                const message = String(text || '').trim();
+                textEl.textContent = message;
+                section.hidden = !(enabled === true && message);
+            }
+
             function applyWebsiteConfig(config) {
                 const safeConfig = { ...DEFAULT_SITE_CONFIG, ...(config || {}) };
                 window.__mfCloudinaryConfig = {
@@ -4949,6 +5265,10 @@
                     hasCreatorConfig ? safeConfig.creatorVideos : [],
                     { live: hasCreatorConfig, enabled: safeConfig.creatorEnabled !== false }
                 );
+                renderSiteNotice(
+                    safeConfig.noticeText,
+                    safeConfig.noticeEnabled === true || String(safeConfig.noticeEnabled || '').toLowerCase() === 'true'
+                );
 
                 if (tagEl) tagEl.textContent = safeConfig.tag || '';
                 if (nameEl) nameEl.textContent = safeConfig.name || '';
@@ -4957,6 +5277,13 @@
                 if (footerBrandEl) footerBrandEl.textContent = safeConfig.footerText || '';
                 if (footerCopyrightEl) footerCopyrightEl.textContent = safeConfig.footerCopyright || '';
                 if (creatorTitleEl) creatorTitleEl.textContent = safeConfig.creatorTitle || 'Content Creators';
+                updateShareMetadata({
+                    title: stripColorTags(safeConfig.title || safeConfig.name || DEFAULT_SITE_CONFIG.title || 'Mob Forge'),
+                    description: safeConfig.description || DEFAULT_SITE_CONFIG.description,
+                    image: safeConfig.logo || DEFAULT_SHARE_IMAGE,
+                    url: getSiteShareUrl(),
+                    type: 'website'
+                }, true);
                 if (Array.isArray(safeConfig.categories)) {
                     CATEGORIES = normalizeCategories(safeConfig.categories);
                     if (typeof renderCategories === 'function' && navCategories && mobileNav && bottomNav) {
@@ -5172,7 +5499,7 @@
                             ownerAvatar: primary.ownerAvatar || ''
                         });
                     });
-                    const nextCatalogSignature = PRODUCTS.map(p => `${p.id}|${p.primaryVersion?.version || ''}|${(p.versions || []).length}`).sort().join('§');
+                    const nextCatalogSignature = PRODUCTS.map(p => `${p.id}|${p.primaryVersion?.version || ''}|${(p.versions || []).length}|${p.author || ''}|${p.ownerAvatar || ''}`).sort().join('§');
                     const previousCatalogSignature = window.__mfCatalogSignature || '';
                     PRODUCTS.sort(compareCatalogProducts);
                     catalogReady = true;
@@ -5184,6 +5511,11 @@
                     // flickering on refresh.
                     if (nextCatalogSignature !== previousCatalogSignature) {
                         setActiveCategory(currentCategory || 'all', { updateUrl: false });
+                    }
+                    const catalogRoute = parseAppRoute();
+                    if (catalogRoute.catalogProductId && !detailsModal.classList.contains('open')) {
+                        const sharedProduct = PRODUCTS.find(item => item.id === catalogRoute.catalogProductId);
+                        if (sharedProduct) openCatalogDetailsModal(sharedProduct, sharedProduct.primaryVersion);
                     }
                     scheduleExternalPrefetch();
                 };
@@ -5312,6 +5644,8 @@
                                 categories: normalizeCategories(settings.categories),
                                  creatorEnabled: (settings.creator_enabled ?? settings.creatorEnabled) !== false,
                                  creatorTitle: String(settings.creator_title ?? settings.creatorTitle ?? DEFAULT_SITE_CONFIG.creatorTitle),
+                                  noticeEnabled: settings.notice_enabled ?? settings.noticeEnabled ?? DEFAULT_SITE_CONFIG.noticeEnabled,
+                                  noticeText: String(settings.notice_text ?? settings.noticeText ?? DEFAULT_SITE_CONFIG.noticeText),
                                  socialLinks: Object.prototype.hasOwnProperty.call(settings, 'social_links') || Object.prototype.hasOwnProperty.call(settings, 'socialLinks')
                                      ? (settings.social_links ?? settings.socialLinks ?? {})
                                     : readLocalJson(SOCIAL_LINKS_STORAGE_KEY, {}),
@@ -5564,7 +5898,7 @@
                 const segment = projectTypeRouteMap[type];
                 const slug = String(projectSlug || '').trim();
                 return segment && slug
-                    ? `#project=${encodeURIComponent(`${segment}:${slug}`)}`
+                    ? `?project=${encodeURIComponent(`${segment}:${slug}`)}`
                     : '';
             }
 
@@ -5572,10 +5906,17 @@
                 const parts = window.location.pathname.split('/').filter(Boolean);
                 const basePath = parts.length ? `/${parts[0].toLowerCase()}` : '/';
                 const legacyCategory = legacyRouteCategoryMap[basePath];
+                const query = new URLSearchParams(window.location.search);
                 const hashValue = window.location.hash.replace(/^#/, '');
+                const routeProjectValue = query.get('project') || (
+                    hashValue.startsWith('project=') ? hashValue.slice('project='.length) : ''
+                );
+                const routeProductValue = query.get('product') || (
+                    hashValue.startsWith('product=') ? hashValue.slice('product='.length) : ''
+                );
 
-                if (hashValue.startsWith('project=')) {
-                    let projectValue = hashValue.slice('project='.length);
+                if (routeProjectValue) {
+                    let projectValue = routeProjectValue;
                     try {
                         projectValue = decodeURIComponent(projectValue);
                     } catch (error) {
@@ -5603,8 +5944,8 @@
                     }
                 }
 
-                if (hashValue.startsWith('product=')) {
-                    let productId = hashValue.slice('product='.length);
+                if (routeProductValue) {
+                    let productId = routeProductValue;
                     try {
                         productId = decodeURIComponent(productId);
                     } catch (error) {
@@ -5630,14 +5971,20 @@
                 /*
                  * Category changes are UI state only. Keeping the pathname
                  * unchanged makes copied category links safe on GitHub Pages.
-                 * Clear a project hash when the user returns to a category.
+                 * Clear a shared project/product query when the user returns to a category.
                  */
-                if (window.location.hash) {
-                    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+                const currentUrl = new URL(window.location.href);
+                const hadRoute = currentUrl.searchParams.has('project') ||
+                    currentUrl.searchParams.has('product') ||
+                    Boolean(currentUrl.hash);
+                if (hadRoute) {
+                    currentUrl.searchParams.delete('project');
+                    currentUrl.searchParams.delete('product');
+                    currentUrl.hash = '';
                     history[replace ? 'replaceState' : 'pushState'](
                         { category: categoryId },
                         '',
-                        cleanUrl
+                        currentUrl.href
                     );
                 }
             }
@@ -5646,8 +5993,11 @@
                 const projectRoute = getProjectRoute(type, projectSlug);
                 if (!projectRoute) return;
                 const url = new URL(window.location.href);
-                if (window.location.hash === projectRoute) return;
-                url.hash = projectRoute.slice(1);
+                const nextSearch = projectRoute.slice(1);
+                if (url.search === `?${nextSearch}` && !url.hash) return;
+                url.searchParams.delete('product');
+                url.searchParams.set('project', `${projectTypeRouteMap[type]}:${String(projectSlug || '').trim()}`);
+                url.hash = '';
                 history[replace ? 'replaceState' : 'pushState'](
                     { category: currentCategory, project: projectSlug },
                     '',
@@ -5666,14 +6016,20 @@
             function getCurrentProjectUrl(type, slugOrId) {
                 const url = new URL(window.location.href);
                 const projectRoute = getProjectRoute(type, slugOrId);
-                if (projectRoute) url.hash = projectRoute.slice(1);
+                if (projectRoute) {
+                    url.searchParams.delete('product');
+                    url.searchParams.set('project', `${projectTypeRouteMap[type]}:${String(slugOrId || '').trim()}`);
+                    url.hash = '';
+                }
                 return url.href;
             }
 
             function getCatalogProductUrl(product) {
                 const url = new URL(window.location.href);
                 if (product?.id) {
-                    url.hash = `product=${encodeURIComponent(product.id)}`;
+                    url.searchParams.delete('project');
+                    url.searchParams.set('product', product.id);
+                    url.hash = '';
                 }
                 return url.href;
             }
@@ -5819,10 +6175,16 @@
             function closeDetailsModal() {
                 detailsModal.classList.remove('open');
                 currentRouteProject = null;
-                if (window.location.hash.startsWith('#project=') ||
-                    window.location.hash.startsWith('#product=')) {
-                    const cleanUrl = `${window.location.pathname}${window.location.search}`;
-                    history.replaceState({ category: currentCategory }, '', cleanUrl);
+                restoreSiteShareMetadata();
+                const currentUrl = new URL(window.location.href);
+                if (currentUrl.searchParams.has('project') ||
+                    currentUrl.searchParams.has('product') ||
+                    currentUrl.hash.startsWith('#project=') ||
+                    currentUrl.hash.startsWith('#product=')) {
+                    currentUrl.searchParams.delete('project');
+                    currentUrl.searchParams.delete('product');
+                    currentUrl.hash = '';
+                    history.replaceState({ category: currentCategory }, '', currentUrl.href);
                 }
             }
 
@@ -6803,6 +7165,13 @@
                         return all.findIndex(item => `${item.version || ''}|${item.downloadUrl}` === key) === index;
                     });
                 const productUrl = getCatalogProductUrl(product);
+                updateShareMetadata({
+                    title: `${title} — Mob Forge`,
+                    description: primary.description || product.description || `Download ${title} from Mob Forge.`,
+                    image: icon || siteShareMetadata.image,
+                    url: productUrl,
+                    type: 'article'
+                });
                 const productBadgeMarkup = productBadge
                     ? `<span class="version-badge-display ${isPremier ? '' : getBadgeClass(productBadge)}">${isPremier ? '<i class="fas fa-clock" aria-hidden="true"></i> ' : ''}${escapeHtml(productBadge)}</span>`
                     : '';
@@ -7339,6 +7708,8 @@
 
             let userAssetsViewActive = false;
             let userAssetsRequestId = 0;
+            let userAssetsRealtimeChannel = null;
+            let userAssetsRealtimeTimer = null;
             const USER_ASSET_QUERY_TIMEOUT = 12000;
 
             function getUserAssetCategoryValues(categoryId) {
@@ -7465,7 +7836,7 @@
                             <div class="semox-p-top">
                                 <div class="semox-p-icon">${thumb}</div>
                                 <div class="semox-p-info">
-                                    <div class="semox-p-name">${escapeHtml(asset.title || 'Untitled')}<span class="semox-p-badge">${escapeHtml(getCategoryLabel(categoryId))}</span></div>
+                                    <div class="semox-p-name"><span class="semox-p-title">${escapeHtml(asset.title || 'Untitled')}</span><span class="semox-p-badge">${escapeHtml(getCategoryLabel(categoryId))}</span></div>
                                     <div class="semox-p-meta">${meta ? `<span class="semox-p-tag"><i class="fas fa-tag"></i> ${escapeHtml(meta)}</span>` : ''}</div>
                                     <div class="semox-p-desc">${escapeHtml(asset.description || '')}</div>
                                 </div>
@@ -7501,6 +7872,37 @@
                     button.style.borderColor = '';
                 });
                 setActiveCategory(currentCategory, { updateUrl: false, refresh: true });
+            }
+
+            function startUserAssetsRealtimeSync() {
+                if (userAssetsRealtimeChannel) return;
+                const connect = async () => {
+                    try {
+                        const sb = window.mobForgeSupabase || (
+                            window.mobForgeSupabaseReady
+                                ? await window.mobForgeSupabaseReady
+                                : null
+                        );
+                        if (!sb || userAssetsRealtimeChannel) return;
+                        userAssetsRealtimeChannel = sb.channel('storefront-user-assets-sync')
+                            .on('postgres_changes', {
+                                event: '*',
+                                schema: 'public',
+                                table: 'user_assets',
+                                filter: 'status=eq.approved'
+                            }, () => {
+                                if (!userAssetsViewActive || !window.__mfUserToggleCategory) return;
+                                window.clearTimeout(userAssetsRealtimeTimer);
+                                userAssetsRealtimeTimer = window.setTimeout(() => {
+                                    showUserAssetsForCategory(window.__mfUserToggleCategory);
+                                }, 120);
+                            })
+                            .subscribe();
+                    } catch (error) {
+                        console.warn('Could not start community product sync:', error);
+                    }
+                };
+                connect();
             }
 
             function getApiDisplayTags(project, type) {
@@ -7576,7 +7978,7 @@
                         <div class="semox-p-top">
                             <div class="semox-p-icon">${iconHtml}</div>
                             <div class="semox-p-info">
-                                <div class="semox-p-name">${safeName}<span class="semox-p-badge">${escapeHtml(categoryLabel)}</span>${favoriteMarkup}</div>
+                            <div class="semox-p-name"><span class="semox-p-title">${safeName}</span><span class="semox-p-badge">${escapeHtml(categoryLabel)}</span>${favoriteMarkup}</div>
                                 <div class="semox-p-meta">${metaTags}</div>
                                 <div class="semox-p-desc">${escapeHtml(project.description || '')}</div>
                             </div>
@@ -8382,6 +8784,13 @@
                 const gallery = data.gallery || [];
                 updateUrlForProject(type, data.slug || data.id);
                 const projectUrl = getCurrentProjectUrl(type, data.slug || data.id);
+                updateShareMetadata({
+                    title: `${stripColorTags(name)} — Mob Forge`,
+                    description: stripColorTags(description) || `Explore ${stripColorTags(name)} on Mob Forge.`,
+                    image: icon || siteShareMetadata.image,
+                    url: projectUrl,
+                    type: 'article'
+                });
                 const safeName = escapeHtml(name);
                 const safeDescription = escapeHtml(description);
                 const safeIcon = escapeHtml(icon);
@@ -8915,7 +9324,9 @@
 
             logoHome.addEventListener('click', function(e) {
                 e.preventDefault();
-                if (currentCategory === 'all' && !window.location.hash) return;
+                const hasRouteQuery = new URL(window.location.href).searchParams.has('project') ||
+                    new URL(window.location.href).searchParams.has('product');
+                if (currentCategory === 'all' && !window.location.hash && !hasRouteQuery) return;
                 currentSearchQuery = '';
                 searchInput.value = '';
                 setActiveCategory('all');
@@ -9018,6 +9429,7 @@
                 initModFilters();
                 initShaderFilters();
                 initUserAssetToggles();
+                startUserAssetsRealtimeSync();
                 setActiveCategory(route.category, { updateUrl: false });
                 if (route.projectSlug) {
                     openDirectProjectRoute(route.category, route.projectSlug);
@@ -9164,20 +9576,23 @@
     'use strict';
     var USERNAME_KEY = 'mob-forge-username';
     var CREATOR_ASSETS_KEY = 'mob-forge-creator-assets';
-    var PROFILE_KEY = 'mob-forge-google-profile';
-    var GOOGLE_CLIENT_ID = '809488850172-uoj4sa9gcuomddbekb5sj525ulldp0fa.apps.googleusercontent.com';
+    var PROFILE_KEY = 'mob-forge-supabase-profile';
+    function isSupabaseUuid(value) {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+    }
+
     function readStoredProfile() {
         try {
             var saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
-            return saved && typeof saved === 'object' ? saved : null;
+            // Only Supabase UUIDs are valid database identifiers here.
+            return saved && typeof saved === 'object' && isSupabaseUuid(saved.id) ? saved : null;
         } catch (error) {
             return null;
         }
     }
     var profile = readStoredProfile();
-    window.__mfAccountId = profile && profile.id ? profile.id : '';
+    window.__mfAccountId = profile && isSupabaseUuid(profile.id) ? profile.id : '';
     var username = localStorage.getItem(USERNAME_KEY) || '';
-    var gisInitialized = false;
     var assetsRestored = false;
     var accountModal = document.getElementById('accountModal');
     var originalAccountContent = accountModal ? accountModal.querySelector('.modal-box') : null;
@@ -9236,19 +9651,157 @@
         });
     }
 
-    function decodeProfile(credential) {
-        try {
-            var part = credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-            var decoded = decodeURIComponent(atob(part).split('').map(function (char) { return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2); }).join(''));
-            var data = JSON.parse(decoded);
-            return {
-                id: typeof data.sub === 'string' ? data.sub : '',
-                picture: typeof data.picture === 'string' ? data.picture : '',
-                name: typeof data.name === 'string' ? data.name : ''
-            };
-        } catch (error) {
-            return { id: '', picture: '', name: '' };
+    async function getSupabaseAuthClient() {
+        if (window.mobForgeSupabaseReady) await window.mobForgeSupabaseReady;
+        // This classic script runs while the head module is still deferred.
+        // Wait briefly so an existing Supabase session can be restored on the
+        // first page load instead of requiring a second sign-in.
+        for (var attempt = 0; !window.mobForgeSupabase && attempt < 40; attempt += 1) {
+            await new Promise(function (resolve) { setTimeout(resolve, 25); });
         }
+        return window.mobForgeSupabase || null;
+    }
+
+    async function getSupabaseAuthUser() {
+        var sb = await getSupabaseAuthClient();
+        if (!sb) return null;
+        var result = await sb.auth.getUser();
+        if (result.error) return null;
+        return result.data && result.data.user ? result.data.user : null;
+    }
+
+    async function loadPersistedProfile(baseProfile) {
+        if (!baseProfile || !isSupabaseUuid(baseProfile.id)) return baseProfile;
+        try {
+            if (window.mobForgeSupabaseReady) await window.mobForgeSupabaseReady;
+            var sb = window.mobForgeSupabase;
+            if (!sb) return baseProfile;
+            var result = await sb.from('user_profiles').select('*').eq('id', baseProfile.id).maybeSingle();
+            if (result.error || !result.data) return baseProfile;
+            var row = result.data;
+            return Object.assign({}, baseProfile, {
+                picture: String(row.login_avatar || row.avatar_url || row.picture || baseProfile.picture || '').trim(),
+                name: String(row.display_name || row.name || baseProfile.name || '').trim(),
+                username: String(row.username || '').trim()
+            });
+        } catch (error) {
+            console.warn('Could not load the persisted profile:', error);
+            return baseProfile;
+        }
+    }
+
+    async function persistProfileRecord() {
+        if (!profile || !isSupabaseUuid(profile.id) || !window.mobForgeSupabase) return;
+        var timestamp = new Date().toISOString();
+        var picture = String(profile.picture || '').trim();
+        var base = { id: profile.id, username: username, updated_at: timestamp };
+        var payloads = [
+            Object.assign({}, base, { login_avatar: picture, avatar_url: picture }),
+            Object.assign({}, base, { login_avatar: picture }),
+            Object.assign({}, base, { avatar_url: picture }),
+            { id: profile.id, username: username }
+        ];
+        var lastError = null;
+        for (var index = 0; index < payloads.length; index += 1) {
+            var result = await window.mobForgeSupabase.from('user_profiles').upsert(payloads[index], { onConflict: 'id' });
+            if (!result.error) return;
+            lastError = result.error;
+            var message = String(result.error.message || result.error).toLowerCase();
+            if (!/column|schema cache|login_avatar|avatar_url|updated_at/.test(message)) break;
+        }
+        throw lastError || new Error('Could not save the profile.');
+    }
+
+    async function syncOwnedProductsProfile() {
+        if (!profile || !isSupabaseUuid(profile.id) || !window.mobForgeSupabase) return;
+        var sb = window.mobForgeSupabase;
+        var accountId = profile.id;
+        var ownerName = String(username || profile.name || 'Account').trim();
+        var ownerAvatar = String(profile.picture || '').trim();
+        try {
+            var assetsResult = await sb.from('user_assets')
+                .select('id, owner_avatar, owner_id, approved_product_id')
+                .eq('owner_id', accountId);
+            if (assetsResult.error) throw assetsResult.error;
+            var assets = assetsResult.data || [];
+            var productIds = assets.map(function (asset) {
+                return String(asset.approved_product_id || '').trim();
+            }).filter(Boolean);
+            var assetWrites = assets.map(function (asset) {
+                var media = parseOwnerMedia(asset.owner_avatar);
+                return sb.from('user_assets').update({
+                    owner_name: ownerName,
+                    owner_avatar: JSON.stringify({
+                        avatar: ownerAvatar,
+                        logo: media.logo || '',
+                        displayName: ownerName,
+                        handle: username || media.handle || ownerName
+                    }),
+                    updated_at: new Date().toISOString()
+                }).eq('id', asset.id);
+            });
+
+            var catalogResult = await sb.from('catalog_products')
+                .select('id, owner_avatar')
+                .eq('created_by', accountId);
+            if (catalogResult.error) throw catalogResult.error;
+            var catalogRows = catalogResult.data || [];
+            var knownProductIds = new Set(catalogRows.map(function (product) { return String(product.id); }));
+            var missingProductIds = productIds.filter(function (id) { return !knownProductIds.has(id); });
+            if (missingProductIds.length) {
+                var linkedResult = await sb.from('catalog_products')
+                    .select('id, owner_avatar')
+                    .in('id', missingProductIds);
+                if (!linkedResult.error) catalogRows = catalogRows.concat(linkedResult.data || []);
+            }
+            var catalogWrites = catalogRows.map(function (product) {
+                var media = parseOwnerMedia(product.owner_avatar);
+                return sb.from('catalog_products').update({
+                    owner_name: ownerName,
+                    owner_avatar: JSON.stringify({
+                        avatar: ownerAvatar,
+                        logo: media.logo || '',
+                        displayName: ownerName,
+                        handle: username || media.handle || ownerName
+                    }),
+                    updated_at: new Date().toISOString()
+                }).eq('id', product.id);
+            });
+            var writes = await Promise.all(assetWrites.concat(catalogWrites));
+            var failed = writes.filter(function (result) { return result && result.error; });
+            if (failed.length) console.warn('Some owned products could not sync:', failed[0].error);
+            if (window.__build && Array.isArray(window.__build.products) && catalogRows.length) {
+                var syncedProductIds = new Set(catalogRows.map(function (product) { return String(product.id); }));
+                var changedInMemory = false;
+                window.__build.products.forEach(function (product) {
+                    if (!syncedProductIds.has(String(product.id))) return;
+                    product.author = ownerName;
+                    product.ownerAvatar = ownerAvatar;
+                    changedInMemory = true;
+                });
+                if (changedInMemory && typeof window.__build.setActiveCategory === 'function') {
+                    var syncedCategory = typeof window.__build.currentCategory === 'function'
+                        ? window.__build.currentCategory()
+                        : (window.__build.currentCategory || 'all');
+                    window.__build.setActiveCategory(syncedCategory, {
+                        updateUrl: false,
+                        refresh: true
+                    });
+                }
+            }
+        } catch (error) {
+            // Profile persistence should still succeed when an older policy
+            // prevents updating one of the legacy product tables.
+            console.warn('Could not sync profile data to owned products:', error);
+        }
+    }
+
+    async function persistCurrentProfile() {
+        await persistProfileRecord();
+        profile.username = username;
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        localStorage.setItem(USERNAME_KEY, username);
+        await syncOwnedProductsProfile();
     }
 
     function avatarMarkup() {
@@ -9279,15 +9832,21 @@
         document.body.classList.add('modal-open');
     }
 
-    function renderGoogleButton() {
-        var mount = document.getElementById('mfGoogleButton');
+    function renderSupabaseSignInButton() {
+        var mount = document.getElementById('mfAuthButton');
         if (!mount) return;
-        mount.innerHTML = '';
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-            window.google.accounts.id.renderButton(mount, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
-        } else {
-            mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;" disabled>Google Sign-In is loading…</button>';
+        mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;" data-mf-sign-in><i class="fab fa-google"></i> Continue with Google</button>';
+    }
+
+    function readableAuthError(error) {
+        var message = String(error?.message || error || '');
+        if (/provider.*not enabled|provider is not enabled/i.test(message)) {
+            return 'Google sign-in is not enabled in Supabase Auth yet. Enable Authentication → Providers → Google in your Supabase project, then try again.';
         }
+        if (/invalid.*(client|credential)|unauthorized/i.test(message)) {
+            return 'Google sign-in configuration is invalid. Check the Google provider settings in Supabase Auth.';
+        }
+        return message || 'Google sign-in could not be completed.';
     }
 
     function storedList(key) {
@@ -9367,18 +9926,17 @@
     }
 
     async function removeMyFileFromUrl(url) {
-        try {
-            var marker = '/storage/v1/object/public/';
-            var raw = String(url || '');
-            var index = raw.indexOf(marker);
-            if (index < 0) return;
-            var rest = raw.slice(index + marker.length);
-            var slash = rest.indexOf('/');
-            if (slash < 0) return;
-            var bucket = rest.slice(0, slash);
-            var path = decodeURIComponent(rest.slice(slash + 1));
-            await window.mobForgeSupabase.storage.from(bucket).remove([path]);
-        } catch (_) {}
+        var marker = '/storage/v1/object/public/';
+        var raw = String(url || '');
+        var index = raw.indexOf(marker);
+        if (index < 0) return;
+        var rest = raw.slice(index + marker.length);
+        var slash = rest.indexOf('/');
+        if (slash < 0) return;
+        var bucket = rest.slice(0, slash);
+        var path = decodeURIComponent(rest.slice(slash + 1));
+        var result = await window.mobForgeSupabase.storage.from(bucket).remove([path]);
+        if (result.error) throw result.error;
     }
 
     async function deleteMySubmission(assetId, storagePath, approvedProductId, imageUrl) {
@@ -9387,19 +9945,64 @@
         try {
             await window.mobForgeSupabaseReady;
             var sb = window.mobForgeSupabase;
-            await sb.from('user_assets').delete().eq('id', assetId);
-            if (approvedProductId) {
-                try { await sb.from('catalog_products').delete().eq('id', approvedProductId); } catch (_) {}
+            var assetResult = await sb.from('user_assets').select('*').eq('id', assetId).maybeSingle();
+            if (assetResult.error) throw assetResult.error;
+            var asset = assetResult.data || {};
+            var productId = approvedProductId || asset.approved_product_id || '';
+            var product = null;
+            if (productId) {
+                var productResult = await sb.from('catalog_products').select('*').eq('id', productId).maybeSingle();
+                if (productResult.error) throw productResult.error;
+                product = productResult.data || null;
             }
-            if (storagePath) {
-                try { await sb.storage.from('user-assets').remove([storagePath]); } catch (_) {}
+            var objects = [];
+            var addObject = function (bucket, path) {
+                path = String(path || '').replace(/^\/+|\/+$/g, '');
+                if (bucket && path) objects.push({ bucket: bucket, path: path });
+            };
+            var addUrl = function (url) {
+                var marker = '/storage/v1/object/public/';
+                var raw = String(url || '');
+                var index = raw.indexOf(marker);
+                if (index < 0) return;
+                var rest = raw.slice(index + marker.length);
+                var slash = rest.indexOf('/');
+                if (slash > 0) addObject(rest.slice(0, slash), decodeURIComponent(rest.slice(slash + 1)));
+            };
+            addObject('user-assets', storagePath || asset.storage_path);
+            addUrl(imageUrl || asset.image_url);
+            addUrl(asset.download_url);
+            if (product) {
+                addObject('catalog-files', product.storage_path);
+                addUrl(product.image_url);
+                (Array.isArray(product.versions) ? product.versions : []).forEach(function (version) {
+                    addUrl(version.downloadUrl || version.download_url);
+                });
             }
-            // Remove a legacy storage-hosted logo when one exists.
-            if (imageUrl) {
-                await removeMyFileFromUrl(imageUrl);
+            var seen = {};
+            for (var i = 0; i < objects.length; i += 1) {
+                var object = objects[i];
+                var key = object.bucket + '|' + object.path;
+                if (seen[key]) continue;
+                seen[key] = true;
+                var removeResult = await sb.storage.from(object.bucket).remove([object.path]);
+                if (removeResult.error) throw removeResult.error;
             }
+            if (productId) {
+                var catalogDelete = await sb.from('catalog_products').delete().eq('id', productId);
+                if (catalogDelete.error) throw catalogDelete.error;
+            }
+            var assetDelete = await sb.from('user_assets').delete().eq('id', assetId);
+            if (assetDelete.error) throw assetDelete.error;
         } catch (error) {
-            console.warn('Could not delete submission:', error);
+            console.error('Could not delete submission:', error);
+            var deleteToast = document.getElementById('semoxToast');
+            if (deleteToast) {
+                deleteToast.textContent = error.message || 'Could not delete submission and its files.';
+                deleteToast.classList.add('show');
+                setTimeout(function () { deleteToast.classList.remove('show'); }, 2600);
+            }
+            return;
         }
         renderAccountPanel('dashboard');
     }
@@ -9433,7 +10036,7 @@
         accountModal.classList.add('mf-dashboard-open');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
-        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-table-columns"></i></div><h3>My Dashboard</h3><p class="mf-auth-copy" style="margin-bottom:14px;">All releases you have submitted, with their approval status.</p><div class="mf-account-summary" style="margin:0 0 14px;"><div class="mf-account-stat"><strong id="mfDashboardPendingCount">—</strong><span>Pending</span></div><div class="mf-account-stat"><strong id="mfDashboardPublishedCount">—</strong><span>Published</span></div></div><div class="mf-account-panel"><div class="mf-account-panel-list" id="mfDashboardList"><div class="mf-account-panel-item"><span>Loading your submissions…</span></div></div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home style="margin-top:14px;"><i class="fas fa-arrow-left"></i> Back to account</button></div>';
+        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-table-columns"></i></div><h3>My Dashboard</h3><p class="mf-auth-copy" style="margin-bottom:14px;">All releases you have submitted, with their approval status.</p><button type="button" class="mf-account-action creator" data-mf-open-chat style="margin:0 0 14px;"><i class="fas fa-comments"></i> Chat with Admin</button><div class="mf-account-summary" style="margin:0 0 14px;"><div class="mf-account-stat"><strong id="mfDashboardPendingCount">—</strong><span>Pending</span></div><div class="mf-account-stat"><strong id="mfDashboardPublishedCount">—</strong><span>Published</span></div></div><div class="mf-account-panel"><div class="mf-account-panel-list" id="mfDashboardList"><div class="mf-account-panel-item"><span>Loading your submissions…</span></div></div><button type="button" class="mf-secondary-button mf-account-back" data-mf-account-home style="margin-top:14px;"><i class="fas fa-arrow-left"></i> Back to account</button></div>';
         var submissions = await fetchMySubmissions();
         window.__mfDashboardItems = submissions;
         var pendingCount = submissions.filter(function (item) { return item.status !== 'approved'; }).length;
@@ -9466,12 +10069,12 @@
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
         if (!profile) {
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-user-circle"></i></div><h3>Account</h3><p class="mf-auth-copy">Sign in to save releases and track your downloads.</p><div class="mf-google-button" id="mfGoogleButton"></div><p class="mf-auth-note">Your account avatar and saved items stay on this browser until you sign out or clear browser data.</p>';
-            renderGoogleButton();
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="modal-icon"><i class="fas fa-user-circle"></i></div><h3>Account</h3><p class="mf-auth-copy">Sign in to save releases and track your downloads.</p><div class="mf-auth-button" id="mfAuthButton"></div><p class="mf-auth-note">Your account avatar and saved items stay on this browser until you sign out or clear browser data.</p>';
+            renderSupabaseSignInButton();
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(profile.name || username || 'Account') + '</div><div class="mf-profile-label">@' + escapeHtml(username || 'handle') + ' · Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(username || profile.name || 'Account') + '</div><div class="mf-profile-label">@' + escapeHtml(username || 'handle') + ' · Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
@@ -9518,8 +10121,62 @@
     function syncProfileFromStorage() {
         var saved = readStoredProfile();
         profile = saved;
-        window.__mfAccountId = profile && profile.id ? profile.id : '';
-        username = localStorage.getItem(USERNAME_KEY) || (profile && profile.name) || '';
+        window.__mfAccountId = profile && isSupabaseUuid(profile.id) ? profile.id : '';
+        username = localStorage.getItem(USERNAME_KEY) || (profile && profile.username) || (profile && profile.name) || '';
+    }
+
+    async function applySupabaseAuthUser(authUser) {
+        if (!authUser || !isSupabaseUuid(authUser.id)) {
+            profile = null;
+            window.__mfAccountId = '';
+            username = '';
+            setAccountButton();
+            renderCreatorNav();
+            return null;
+        }
+        var metadata = authUser.user_metadata || {};
+        var saved = readStoredProfile();
+        var baseProfile = {
+            id: authUser.id,
+            picture: metadata.avatar_url || metadata.picture || saved?.picture || '',
+            name: metadata.full_name || metadata.name || saved?.name || '',
+            email: authUser.email || saved?.email || ''
+        };
+        profile = await loadPersistedProfile(baseProfile);
+        window.__mfAccountId = authUser.id;
+        username = profile.username || localStorage.getItem(USERNAME_KEY) || profile.name || '';
+        profile.username = username;
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        if (username) localStorage.setItem(USERNAME_KEY, username);
+        setAccountButton();
+        renderCreatorNav();
+        window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
+        return profile;
+    }
+
+    async function restoreSupabaseAuth() {
+        var sb = await getSupabaseAuthClient();
+        if (!sb) return;
+        sb.auth.onAuthStateChange(function (event, session) {
+            if (session && session.user) {
+                setTimeout(function () {
+                    applySupabaseAuthUser(session.user).catch(function (error) {
+                        console.warn('Could not restore the Supabase profile:', error);
+                    });
+                }, 0);
+            } else if (event === 'SIGNED_OUT') {
+                profile = null;
+                window.__mfAccountId = '';
+                username = '';
+                localStorage.removeItem(PROFILE_KEY);
+                localStorage.removeItem(USERNAME_KEY);
+                setAccountButton();
+                renderCreatorNav();
+                window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
+            }
+        });
+        var authUser = await getSupabaseAuthUser();
+        if (authUser) await applySupabaseAuthUser(authUser);
     }
 
     function showUsernamePrompt() {
@@ -9740,7 +10397,7 @@
                     var ownerAvatarValue = JSON.stringify({
                         avatar: profile.picture || existingOwnerMedia.avatar || '',
                         logo: logoImageUrl || existingOwnerMedia.logo || '',
-                        displayName: profile.name || existingOwnerMedia.displayName || ownerName,
+                        displayName: username || profile.name || existingOwnerMedia.displayName || ownerName,
                         handle: username || existingOwnerMedia.handle || ownerName
                     });
                     if (file) {
@@ -9770,6 +10427,13 @@
                         if (updateResult && updateResult.error) throw updateResult.error;
                         if (imageFile && previousLogoUrl && previousLogoUrl !== logoImageUrl) {
                             await removeMyFileFromUrl(previousLogoUrl);
+                        }
+                        if (file && editing.storage_path && editing.storage_path !== storagePath) {
+                            var oldPathResult = await sb.storage.from('user-assets').remove([editing.storage_path]);
+                            if (oldPathResult.error) throw oldPathResult.error;
+                        } else if (file && editing.download_url && editing.download_url !== persistentDownloadUrl) {
+                            // Legacy rows may have a URL without a stored path.
+                            await removeMyFileFromUrl(editing.download_url);
                         }
                         if (editing.status === 'approved' && editing.approved_product_id) {
                             try {
@@ -9848,10 +10512,8 @@
             var path = safeAccountId + '/avatar-' + Date.now() + '.' + (file.name.split('.').pop() || 'jpg');
             var pictureUrl = await window.mobForgeStorageUpload(file, path, 'profile-avatars');
             profile.picture = pictureUrl;
-            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-            if (window.mobForgeUpdateProfile) {
-                await window.mobForgeUpdateProfile({ id: window.__mfAccountId, username: username, avatar_url: pictureUrl, updated_at: new Date().toISOString() });
-            }
+            profile.login_avatar = pictureUrl;
+            await persistCurrentProfile();
             setAccountButton();
             renderAccount();
             var successToast = document.getElementById('semoxToast');
@@ -9863,29 +10525,11 @@
         }
     }
 
-    function initializeGIS() {
-        if (gisInitialized || !window.google || !window.google.accounts || !window.google.accounts.id) return;
-        window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: function (response) {
-            profile = decodeProfile(response.credential);
-            if (!profile.id) profile.id = profile.name || 'google-account';
-            window.__mfAccountId = profile.id;
-            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-            closeModal(accountModal);
-            username = localStorage.getItem(USERNAME_KEY) || '';
-            if (!username && profile.name) username = profile.name;
-            setAccountButton();
-            renderCreatorNav();
-            // Show the username prompt only once, for a brand-new user.
-            // After that it never opens automatically again — "Edit username"
-            // remains available inside the Account modal.
-            var promptFlagKey = 'mob-forge-username-prompt-shown:' + (profile.id || 'guest');
-            if (!localStorage.getItem(USERNAME_KEY) && !localStorage.getItem(promptFlagKey)) {
-                localStorage.setItem(promptFlagKey, '1');
-                showUsernamePrompt();
-            }
-        }});
-        gisInitialized = true;
-        if (accountModal && accountModal.classList.contains('open')) renderGoogleButton();
+    async function signInWithGoogle() {
+        var sb = await getSupabaseAuthClient();
+        if (!sb) throw new Error('Supabase authentication is unavailable.');
+        var signIn = await sb.auth.signInWithOAuth({ provider: 'google' });
+        if (signIn.error) throw signIn.error;
     }
 
     if (openAccountButton) openAccountButton.addEventListener('click', function (event) {
@@ -9895,11 +10539,29 @@
         renderCreatorNav();
         openModal(accountModal);
         renderAccount();
-        if (!profile && window.google && window.google.accounts && window.google.accounts.id) {
-            window.google.accounts.id.prompt();
+        if (!profile) {
+            var signInButton = accountModal && accountModal.querySelector('[data-mf-sign-in]');
+            if (signInButton) signInButton.click();
         }
     });
     if (accountModal) accountModal.addEventListener('click', function (event) {
+        var signInButton = event.target.closest('[data-mf-sign-in]');
+        if (signInButton) {
+            signInButton.disabled = true;
+            signInButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redirecting to Google…';
+            signInWithGoogle().catch(function (error) {
+                console.error('Supabase Google sign-in failed:', error);
+                signInButton.disabled = false;
+                signInButton.innerHTML = '<i class="fab fa-google"></i> Continue with Google';
+                var signInToast = document.getElementById('semoxToast');
+                if (signInToast) {
+                    signInToast.textContent = readableAuthError(error);
+                    signInToast.classList.add('show');
+                    setTimeout(function () { signInToast.classList.remove('show'); }, 3200);
+                }
+            });
+            return;
+        }
         var changeAvatar = event.target.closest('[data-mf-change-avatar]');
         if (changeAvatar) {
             avatarInput = document.getElementById('mfProfileAvatarInput');
@@ -9921,6 +10583,12 @@
         }
         var target = event.target.closest('[data-mf-account-close]');
         if (target) closeModal(accountModal);
+        var openChatButton = event.target.closest('[data-mf-open-chat]');
+        if (openChatButton) {
+            closeModal(accountModal);
+            if (typeof window.mobForgeOpenChat === 'function') window.mobForgeOpenChat();
+            return;
+        }
         var panel = event.target.closest('[data-mf-show-panel]');
         if (panel) { renderAccountPanel(panel.dataset.mfShowPanel); return; }
         var editSubmission = event.target.closest('[data-mf-edit-submission]');
@@ -9957,19 +10625,63 @@
         if (publish) { closeModal(accountModal); openUpload(); }
         var signOut = event.target.closest('[data-mf-sign-out]');
         if (signOut) {
-            profile = null;
-            window.__mfAccountId = '';
-            localStorage.removeItem(PROFILE_KEY);
-            localStorage.removeItem(USERNAME_KEY);
-            if (window.google && window.google.accounts && window.google.accounts.id.disableAutoSelect) window.google.accounts.id.disableAutoSelect();
-            closeModal(accountModal);
-            setAccountButton();
-            renderCreatorNav();
-            var toast = document.getElementById('semoxToast');
-            if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+            (async function () {
+                try {
+                    var sb = await getSupabaseAuthClient();
+                    if (sb) {
+                        var result = await sb.auth.signOut();
+                        if (result.error) throw result.error;
+                    }
+                } catch (error) {
+                    console.error('Supabase sign-out failed:', error);
+                } finally {
+                    profile = null;
+                    window.__mfAccountId = '';
+                    localStorage.removeItem(PROFILE_KEY);
+                    localStorage.removeItem(USERNAME_KEY);
+                    closeModal(accountModal);
+                    setAccountButton();
+                    renderCreatorNav();
+                    window.dispatchEvent(new CustomEvent('mobforge:profile-ready'));
+                    var toast = document.getElementById('semoxToast');
+                    if (toast) { toast.textContent = '✓ You are signed out of Mob Forge.'; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+                }
+            })();
         }
     });
-    if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
+    if (usernameForm) usernameForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var clean = usernameInput.value.trim().replace(/\s+/g, ' ');
+        if (clean.length < 2 || clean.length > 24) {
+            usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.';
+            usernameError.hidden = false;
+            return;
+        }
+        var submit = usernameForm.querySelector('[type="submit"]');
+        if (submit) submit.disabled = true;
+        username = clean;
+        profile.username = username;
+        usernameError.hidden = true;
+        try {
+            await persistCurrentProfile();
+            closeModal(usernameModal);
+            setAccountButton();
+            renderAccount();
+            renderCreatorNav();
+            var usernameToast = document.getElementById('semoxToast');
+            if (usernameToast) {
+                usernameToast.textContent = '✓ Username updated across your releases.';
+                usernameToast.classList.add('show');
+                setTimeout(function () { usernameToast.classList.remove('show'); }, 2600);
+            }
+        } catch (error) {
+            console.error('Username update failed:', error);
+            usernameError.textContent = 'Could not save your username. Please try again.';
+            usernameError.hidden = false;
+        } finally {
+            if (submit) submit.disabled = false;
+        }
+    });
     if (uploadForm) uploadForm.addEventListener('submit', publishAsset);
     if (uploadFile) uploadFile.addEventListener('change', function () { uploadError.hidden = true; });
     var logoInput = document.getElementById('mfAssetImage');
@@ -10021,10 +10733,12 @@
     });
     document.addEventListener('click', function (event) { var close = event.target.closest('[data-mf-close]'); if (close) closeModal(close.dataset.mfClose === 'username' ? usernameModal : uploadModal); });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeModal(usernameModal); closeModal(uploadModal); } });
-    var readyTimer = setInterval(function () { initializeGIS(); if (gisInitialized) clearInterval(readyTimer); }, 250);
     setAccountButton();
     renderCreatorNav();
     updateUploadFields();
+    restoreSupabaseAuth().catch(function (error) {
+        console.warn('Could not restore the Supabase session:', error);
+    });
 })();
 </script>
 <script>
@@ -10069,6 +10783,10 @@
             if (typeof window.mobForgeOpenDashboard === 'function') window.mobForgeOpenDashboard();
             return;
         }
+        if (action === 'chat') {
+            if (typeof window.mobForgeOpenChat === 'function') window.mobForgeOpenChat();
+            return;
+        }
         var socialLinks = window.__mfSocialLinks && typeof window.__mfSocialLinks === 'object'
             ? window.__mfSocialLinks
             : {};
@@ -10084,6 +10802,362 @@
         if (event.key === 'Escape') closeDrawer();
     });
 })();
+</script>
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    /* Messaging is deliberately isolated from the existing account/catalog
+       code. It reads the same Supabase profile metadata already stored by the
+       site and does not change authentication. */
+    const chatSupabase = window.mobForgeSupabase || createClient(
+        'https://tpefnptjkfiwsmhpxuea.supabase.co',
+        'sb_publishable_VuujVl_3i10DmKHzTTO3TA_q9XS0fcE'
+    );
+    const CHAT_TABLE = 'chat_messages';
+    const CHAT_BUCKET = 'chat-media';
+    const chatPage = document.getElementById('mfChatPage');
+    const chatMessages = document.getElementById('mfChatMessages');
+    const chatForm = document.getElementById('mfChatForm');
+    const chatInput = document.getElementById('mfChatInput');
+    const chatFile = document.getElementById('mfChatFile');
+    const chatRecord = document.getElementById('mfChatRecord');
+    const chatAttachmentName = document.getElementById('mfChatAttachmentName');
+    const chatStatus = document.getElementById('mfChatStatus');
+    const chatNotice = document.getElementById('mfMessageNotice');
+    const chatNoticeCount = document.getElementById('mfMessageNoticeCount');
+    const chatButtonBadge = document.getElementById('mfChatButtonBadge');
+    const chatClose = document.getElementById('mfChatClose');
+    let chatRows = [];
+    let chatChannel = null;
+    let selectedChatFile = null;
+    let mediaRecorder = null;
+    let mediaChunks = [];
+    let chatLoading = false;
+     let chatRefreshInFlight = false;
+     const isChatUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+
+    const escapeChat = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+    const safeChatUrl = value => {
+        try {
+            const url = new URL(String(value || '').trim());
+            return /^https?:$/.test(url.protocol) ? url.href : '';
+        } catch (_) { return ''; }
+    };
+    const relativeChatTime = value => {
+        const age = Math.max(0, Date.now() - new Date(value).getTime());
+        const minutes = Math.floor(age / 60000);
+        if (minutes < 1) return 'just now';
+        if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        return `${Math.floor(hours / 24)} day${hours === 24 ? '' : 's'} ago`;
+    };
+     const chatProfile = authUserId => {
+        let profile = {};
+         try { profile = JSON.parse(localStorage.getItem('mob-forge-supabase-profile') || '{}') || {}; } catch (_) {}
+          // The local profile is display metadata only. The database ID must
+          // come from the current Supabase Auth user.
+         const id = String(authUserId || '').trim();
+        const name = String(localStorage.getItem('mob-forge-username') || profile.username || profile.name || 'Guest').trim();
+        return {
+            id,
+            name: name || 'Guest',
+            avatar: String(profile.picture || profile.login_avatar || profile.avatar || '').trim()
+        };
+    };
+     const chatReadKey = () => `mob-forge-chat-read:${String(window.__mfAccountId || '').trim() || 'guest'}`;
+    const unreadCount = rows => {
+        const lastRead = Number(localStorage.getItem(chatReadKey()) || 0);
+        return rows.filter(row => row.sender_role === 'owner' && new Date(row.created_at).getTime() > lastRead).length;
+    };
+    const setChatUnread = count => {
+        const safeCount = Math.max(0, Number(count) || 0);
+        [chatNoticeCount, chatButtonBadge].forEach(el => {
+            if (!el) return;
+            el.textContent = safeCount > 99 ? '99+' : String(safeCount);
+            el.classList.toggle('show', safeCount > 0);
+        });
+        chatNotice?.classList.toggle('show', safeCount > 0);
+    };
+    const setChatStatus = (message, error = false) => {
+        if (!chatStatus) return;
+        chatStatus.textContent = message || '';
+        chatStatus.classList.toggle('error', Boolean(error));
+    };
+    const initials = value => String(value || 'A').trim().slice(0, 1).toUpperCase();
+    const avatarMarkup = (row, owner) => {
+        const avatar = owner ? '' : safeChatUrl(row.user_avatar);
+        return avatar ? `<img src="${escapeChat(avatar)}" alt="" />` : `<span>${escapeChat(owner ? 'O' : initials(row.user_name))}</span>`;
+    };
+    const linkifyChatText = value => {
+        const escaped = escapeChat(value);
+        return escaped.replace(/(https?:\/\/[^\s<]+)/g, raw => {
+            const cleanUrl = safeChatUrl(raw.replace(/[),.!?]+$/, ''));
+            if (!cleanUrl) return raw;
+            const trailing = raw.slice(cleanUrl.length);
+            return `<a href="${escapeChat(cleanUrl)}" target="_blank" rel="noopener noreferrer">${escapeChat(cleanUrl)}</a>${escapeChat(trailing)}`;
+        }).replace(/\n/g, '<br>');
+    };
+    const attachmentMarkup = row => {
+        const url = safeChatUrl(row.attachment_url);
+        if (!url) return '';
+        if (String(row.attachment_type || '').startsWith('image/')) {
+            return `<a href="${escapeChat(url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeChat(url)}" alt="${escapeChat(row.attachment_name || 'Attached image')}" loading="lazy" /></a>`;
+        }
+        if (String(row.attachment_type || '').startsWith('audio/')) {
+            return `<audio controls preload="metadata" src="${escapeChat(url)}"></audio>`;
+        }
+        return `<a href="${escapeChat(url)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-paperclip"></i> ${escapeChat(row.attachment_name || 'Open attachment')}</a>`;
+    };
+    const renderChat = () => {
+        if (!chatMessages) return;
+        if (!chatRows.length) {
+            chatMessages.innerHTML = `<div class="mf-chat-empty"><i class="fas fa-comments"></i><span>No messages yet. Send a message to Admin.</span></div>`;
+            return;
+        }
+        chatMessages.innerHTML = chatRows.map(row => {
+            const owner = row.sender_role === 'owner';
+            const name = owner ? 'Owner' : String(row.user_name || 'You');
+            const body = row.body ? `<div>${linkifyChatText(row.body)}</div>` : '';
+            return `<article class="mf-chat-message ${owner ? 'owner' : 'user'}">
+                <div class="mf-chat-avatar">${avatarMarkup(row, owner)}</div>
+                <div class="mf-chat-message-copy">
+                    <div class="mf-chat-meta"><strong>${escapeChat(name)}</strong><span>${escapeChat(relativeChatTime(row.created_at))}</span></div>
+                    <div class="mf-chat-bubble">${body}${attachmentMarkup(row)}</div>
+                </div>
+            </article>`;
+        }).join('');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+     const getChatAuthUser = async () => {
+         const result = await chatSupabase.auth.getUser();
+         if (result.error) throw result.error;
+         const authUser = result.data && result.data.user;
+         if (!authUser || !isChatUuid(authUser.id)) return null;
+         return authUser;
+     };
+     const getCurrentRows = async authUser => {
+         const userId = String(authUser?.id || '').trim();
+         if (!isChatUuid(userId)) return [];
+        const { data, error } = await chatSupabase.from(CHAT_TABLE).select('*')
+             .eq('user_id', userId).gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: true }).limit(500);
+        if (error) throw error;
+        return Array.isArray(data) ? data : [];
+    };
+    const markChatRead = () => {
+        localStorage.setItem(chatReadKey(), String(Date.now()));
+        setChatUnread(0);
+    };
+     const bindChatChannel = userId => {
+        chatChannel && chatSupabase.removeChannel(chatChannel);
+         if (!isChatUuid(userId)) return;
+         chatChannel = chatSupabase.channel(`mob-forge-chat-${userId}`)
+             .on('postgres_changes', { event: '*', schema: 'public', table: CHAT_TABLE, filter: `user_id=eq.${userId}` }, payload => {
+                if (payload.eventType === 'DELETE') {
+                    chatRows = chatRows.filter(row => row.id !== payload.old?.id);
+                } else if (payload.new) {
+                    const index = chatRows.findIndex(row => row.id === payload.new.id);
+                    if (index >= 0) chatRows[index] = payload.new;
+                    else chatRows.push(payload.new);
+                    chatRows.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                }
+                renderChat();
+                const unread = unreadCount(chatRows);
+                setChatUnread(chatPage?.classList.contains('open') ? 0 : unread);
+            }).subscribe();
+    };
+    const loadChat = async () => {
+         let authUser = null;
+         try {
+             authUser = await getChatAuthUser();
+         } catch (error) {
+             console.error('Could not read the Supabase Auth user:', error);
+         }
+         if (!authUser) {
+            chatRows = [];
+            renderChat();
+            setChatStatus('Sign in to chat with Admin.');
+            return;
+        }
+         const user = chatProfile(authUser.id);
+         window.__mfAccountId = authUser.id;
+        setChatStatus('Loading messages…');
+        try {
+             chatRows = await getCurrentRows(authUser);
+            renderChat();
+            setChatStatus('');
+             bindChatChannel(authUser.id);
+            setChatUnread(unreadCount(chatRows));
+        } catch (error) {
+            console.error('Could not load chat:', error);
+            setChatStatus('Could not load messages. Check your connection and try again.', true);
+        }
+    };
+     // Realtime delivers the message immediately when the table is in the
+     // Supabase realtime publication. This lightweight fallback also keeps
+     // the conversation current if that publication was not enabled yet.
+     const refreshOpenChat = async () => {
+         if (!chatPage?.classList.contains('open') || chatRefreshInFlight) return;
+         chatRefreshInFlight = true;
+         try {
+             const authUser = await getChatAuthUser();
+             if (!authUser) return;
+             const rows = await getCurrentRows(authUser);
+             chatRows = rows;
+             renderChat();
+             setChatUnread(unreadCount(chatRows));
+         } catch (error) {
+             console.warn('Could not refresh chat:', error);
+         } finally {
+             chatRefreshInFlight = false;
+         }
+     };
+    const uploadChatFile = async file => {
+         const authUser = await getChatAuthUser();
+         if (!authUser) throw new Error('Sign in before uploading an attachment.');
+         const user = chatProfile(authUser.id);
+        const safeName = String(file.name || 'attachment').replace(/[^a-zA-Z0-9._-]/g, '-').slice(-100);
+        const randomId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const path = `${user.id || 'guest'}/${randomId}-${safeName}`;
+        const { error } = await chatSupabase.storage.from(CHAT_BUCKET).upload(path, file, {
+            contentType: file.type || 'application/octet-stream', upsert: false
+        });
+        if (error) throw error;
+        return { url: chatSupabase.storage.from(CHAT_BUCKET).getPublicUrl(path).data.publicUrl, path };
+    };
+    const sendChatMessage = async event => {
+        event.preventDefault();
+         let authUser = null;
+         try { authUser = await getChatAuthUser(); } catch (error) {
+             console.error('Could not read the Supabase Auth user:', error);
+         }
+         if (!authUser) {
+            document.getElementById('openAccountBtn')?.click();
+            setChatStatus('Sign in first, then send your message.', true);
+            return;
+        }
+         // Always take both UUID columns from Supabase Auth, never from
+         // localStorage or a provider-specific identifier.
+         const user = chatProfile(authUser.id);
+         user.id = authUser.id;
+         window.__mfAccountId = authUser.id;
+        const body = chatInput?.value.trim() || '';
+        if (!body && !selectedChatFile) return;
+        if (chatLoading) return;
+        chatLoading = true;
+        const submit = chatForm?.querySelector('[type="submit"]');
+        if (submit) submit.disabled = true;
+        setChatStatus(selectedChatFile ? 'Uploading attachment…' : 'Sending…');
+        try {
+            let attachment = { url: '', path: '' };
+            if (selectedChatFile) attachment = await uploadChatFile(selectedChatFile);
+            const payload = {
+                user_id: user.id, user_name: user.name, user_avatar: user.avatar,
+                sender_role: 'user', sender_id: user.id, body,
+                attachment_url: attachment.url,
+                attachment_type: selectedChatFile?.type || '',
+                attachment_name: selectedChatFile?.name || '',
+                attachment_path: attachment.path,
+                created_at: new Date().toISOString()
+            };
+            const { data, error } = await chatSupabase.from(CHAT_TABLE).insert(payload).select().single();
+            if (error) throw error;
+            chatRows.push(data);
+            chatRows.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            if (chatInput) chatInput.value = '';
+            selectedChatFile = null;
+            if (chatFile) chatFile.value = '';
+            if (chatAttachmentName) chatAttachmentName.hidden = true;
+            renderChat();
+            markChatRead();
+            setChatStatus('');
+        } catch (error) {
+            console.error('Could not send chat message:', error);
+            setChatStatus(error?.message || 'Could not send message.', true);
+        } finally {
+            chatLoading = false;
+            if (submit) submit.disabled = false;
+        }
+    };
+    const openChat = async () => {
+         const authUser = await getChatAuthUser().catch(() => null);
+         if (!authUser) {
+            document.getElementById('openAccountBtn')?.click();
+            return;
+        }
+        chatPage?.classList.add('open');
+        document.body.classList.add('modal-open');
+        markChatRead();
+        await loadChat();
+        setTimeout(() => chatInput?.focus(), 80);
+    };
+    const closeChat = () => {
+        chatPage?.classList.remove('open');
+        document.body.classList.remove('modal-open');
+    };
+    window.mobForgeOpenChat = openChat;
+    document.getElementById('mfOpenChatBtn')?.addEventListener('click', openChat);
+    chatNotice?.addEventListener('click', openChat);
+    chatClose?.addEventListener('click', closeChat);
+    chatPage?.addEventListener('click', event => { if (event.target === chatPage) closeChat(); });
+    chatForm?.addEventListener('submit', sendChatMessage);
+    chatFile?.addEventListener('change', () => {
+        selectedChatFile = chatFile.files?.[0] || null;
+        if (chatAttachmentName) {
+            chatAttachmentName.textContent = selectedChatFile ? `${selectedChatFile.name} selected` : '';
+            chatAttachmentName.hidden = !selectedChatFile;
+        }
+    });
+    chatRecord?.addEventListener('click', async () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            chatRecord.classList.remove('recording');
+            chatRecord.innerHTML = '<i class="fas fa-microphone"></i>';
+            return;
+        }
+        if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+            setChatStatus('Voice recording is not supported in this browser.', true);
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.addEventListener('dataavailable', event => { if (event.data.size) mediaChunks.push(event.data); });
+            mediaRecorder.addEventListener('stop', () => {
+                stream.getTracks().forEach(track => track.stop());
+                const blob = new Blob(mediaChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                selectedChatFile = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type });
+                if (chatAttachmentName) { chatAttachmentName.textContent = 'Voice message ready'; chatAttachmentName.hidden = false; }
+                setChatStatus('Voice message ready. Add text or press Send.');
+            });
+            mediaRecorder.start();
+            chatRecord.classList.add('recording');
+            chatRecord.innerHTML = '<i class="fas fa-stop"></i>';
+            setChatStatus('Recording… tap the microphone again to stop.');
+        } catch (error) {
+            setChatStatus('Microphone permission was not granted.', true);
+        }
+    });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && chatPage?.classList.contains('open')) closeChat(); });
+    window.addEventListener('storage', event => {
+        if (event.key === 'mob-forge-supabase-profile' || event.key === 'mob-forge-username') setChatUnread(unreadCount(chatRows));
+    });
+    window.addEventListener('mobforge:profile-ready', () => {
+         getChatAuthUser().then(authUser => bindChatChannel(authUser?.id)).catch(() => {});
+        loadChat().catch(() => {});
+    });
+    setInterval(() => {
+        if (chatRows.length) renderChat();
+    }, 30000);
+     setInterval(refreshOpenChat, 4000);
+     getChatAuthUser().then(authUser => {
+         if (authUser) loadChat().catch(() => {});
+         else setChatUnread(0);
+     }).catch(() => setChatUnread(0));
 </script>
 </body>
 </html>
