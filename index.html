@@ -3987,7 +3987,7 @@
     </script>
     <style>
         .mf-auth-copy { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 18px; }
-        .mf-google-button { display: flex; justify-content: center; min-height: 44px; }
+        .mf-google-button { display: flex; flex-direction: column; justify-content: center; gap: 9px; min-height: 44px; }
         .mf-profile { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 4px 0 20px; }
         .mf-profile-avatar-wrap { position:relative; width:48px; height:48px; }
         .mf-profile-avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--violet), var(--pink)); font-weight: 800; }
@@ -9372,12 +9372,43 @@
         }
     }
 
+    async function signInWithDiscord(button) {
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Connecting…';
+        }
+        try {
+            var sb = await waitForSupabaseClient();
+            if (!sb || !sb.auth) throw new Error('Supabase authentication is unavailable.');
+            var result = await sb.auth.signInWithOAuth({
+                provider: 'discord',
+                options: { redirectTo: window.location.href.split('#')[0] }
+            });
+            if (result && result.error) throw result.error;
+        } catch (error) {
+            console.error('Supabase Discord sign-in failed:', error);
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fab fa-discord" aria-hidden="true"></i> Continue with Discord';
+            }
+            var toast = document.getElementById('semoxToast');
+            if (toast) {
+                toast.textContent = error && error.message ? error.message : 'Sign-in failed. Please try again.';
+                toast.classList.add('show');
+                setTimeout(function () { toast.classList.remove('show'); }, 3200);
+            }
+        }
+    }
+
     function renderSignInButton() {
         var mount = document.getElementById('mfGoogleButton');
         if (!mount) return;
-        mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;"><i class="fab fa-google" aria-hidden="true"></i> Continue with Google</button>';
-        var button = mount.querySelector('button');
+        mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;"><i class="fab fa-google" aria-hidden="true"></i> Continue with Google</button>'
+            + '<button type="button" class="mf-primary-button" style="width:100%;"><i class="fab fa-discord" aria-hidden="true"></i> Continue with Discord</button>';
+        var button = mount.querySelector('button:first-child');
         if (button) button.addEventListener('click', function () { signInWithGoogle(button); });
+        var discordButton = mount.querySelector('button:last-child');
+        if (discordButton) discordButton.addEventListener('click', function () { signInWithDiscord(discordButton); });
         renderEmailAuth(mount);
     }
 
