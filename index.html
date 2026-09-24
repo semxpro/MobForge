@@ -4067,6 +4067,7 @@
         .mf-email-auth[hidden], .mf-email-auth form[hidden] { display:none !important; }
         .mf-email-auth form { display:grid; gap:10px; }
         .mf-email-auth .mf-auth-links { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:.72rem; }
+        .mf-email-auth .mf-auth-links.mf-auth-back-link { justify-content:center; }
         .mf-email-auth .mf-auth-links button { color:#dfd2ff; background:none; border:0; padding:0; cursor:pointer; font:inherit; }
         .mf-email-auth .mf-auth-links button:hover { text-decoration:underline; }
         .mf-form-success { color:#86efac; font-size:.75rem; margin:0; }
@@ -9197,6 +9198,7 @@
     var supabaseAuth = null;
     var authInitialized = false;
     var authInitializing = false;
+    var passwordRecoveryActive = false;
     var assetsRestored = false;
     var accountModal = document.getElementById('accountModal');
     var originalAccountContent = accountModal ? accountModal.querySelector('.modal-box') : null;
@@ -9357,12 +9359,12 @@
             + '<span class="mf-file-help" style="margin:0;">' + PASSWORD_HINT + '</span>'
             + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
             + '<button type="submit" class="mf-primary-button" style="width:100%;">Create Account</button>'
-            + '<div class="mf-auth-links"><button type="button" data-mf-email-go="signin">Back to sign in</button></div></form>'
+            + '<div class="mf-auth-links mf-auth-back-link"><button type="button" data-mf-email-go="signin">Back to Sign In</button></div></form>'
             + '<form data-mf-email-view="forgot" novalidate hidden>'
             + '<input class="mf-form-control" name="email" type="email" autocomplete="email" placeholder="Email" required />'
             + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
             + '<button type="submit" class="mf-primary-button" style="width:100%;">Send reset link</button>'
-            + '<div class="mf-auth-links"><button type="button" data-mf-email-go="signin">Back to sign in</button></div></form>'
+            + '<div class="mf-auth-links mf-auth-back-link"><button type="button" data-mf-email-go="signin">Back to Sign In</button></div></form>'
             + '</div>';
         mount.insertAdjacentElement('beforebegin', wrap);
 
@@ -9462,6 +9464,67 @@
                     submit.textContent = label;
                 }
             });
+        });
+    }
+
+    function renderPasswordRecovery() {
+        if (!accountModal) return;
+        passwordRecoveryActive = true;
+        accountModal.classList.remove('mf-dashboard-open');
+        accountModal.classList.add('mf-login-glass');
+        var box = accountModal.querySelector('.modal-box');
+        if (!box) return;
+        box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button>'
+            + '<div class="modal-icon"><i class="fas fa-lock"></i></div>'
+            + '<h3 id="accountModalTitle">Set a new password</h3>'
+            + '<p class="mf-auth-copy">Choose a new password for your account.</p>'
+            + '<form class="mf-email-auth" id="mfPasswordRecoveryForm" novalidate>'
+            + '<input class="mf-form-control" name="password" type="password" autocomplete="new-password" placeholder="New password" required />'
+            + '<input class="mf-form-control" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm password" required />'
+            + '<span class="mf-file-help" style="margin:0;">' + PASSWORD_HINT + '</span>'
+            + '<p class="mf-form-error" hidden></p>'
+            + '<button type="submit" class="mf-primary-button" style="width:100%;">Update Password</button>'
+            + '</form>';
+        openModal(accountModal);
+
+        var form = document.getElementById('mfPasswordRecoveryForm');
+        if (!form) return;
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            var password = form.elements.password.value;
+            var confirmPassword = form.elements.confirmPassword.value;
+            var errorMessage = form.querySelector('.mf-form-error');
+            var submit = form.querySelector('button[type="submit"]');
+            var label = submit.textContent;
+            errorMessage.textContent = '';
+            errorMessage.hidden = true;
+            if (!PASSWORD_RULE.test(password)) {
+                errorMessage.textContent = PASSWORD_HINT;
+                errorMessage.hidden = false;
+                return;
+            }
+            if (password !== confirmPassword) {
+                errorMessage.textContent = 'Passwords do not match.';
+                errorMessage.hidden = false;
+                return;
+            }
+            submit.disabled = true;
+            submit.textContent = 'Updating…';
+            try {
+                var sb = await waitForSupabaseClient();
+                if (!sb || !sb.auth) throw new Error('Supabase authentication is unavailable.');
+                var result = await sb.auth.updateUser({ password: password });
+                if (result.error) throw result.error;
+                passwordRecoveryActive = false;
+                renderAccount();
+                openModal(accountModal);
+            } catch (error) {
+                errorMessage.textContent = error && error.message ? error.message : 'Could not update the password. Please try again.';
+                errorMessage.hidden = false;
+            } finally {
+                submit.disabled = false;
+                submit.textContent = label;
+            }
         });
     }
 
@@ -10049,6 +10112,7 @@
     }
 
     function clearLocalAuth() {
+        passwordRecoveryActive = false;
         profile = null;
         window.__mfAccountId = '';
         username = '';
@@ -10078,7 +10142,7 @@
         if (!username && metaUsername) { username = metaUsername; localStorage.setItem(USERNAME_KEY, username); }
         setAccountButton();
         renderCreatorNav();
-        closeModal(accountModal);
+        if (!passwordRecoveryActive) closeModal(accountModal);
         if (showUsernamePrompt && !username && profile.name) {
             var promptFlagKey = 'mob-forge-username-prompt-shown:' + (profile.id || 'guest');
             if (!localStorage.getItem(promptFlagKey)) {
@@ -10094,12 +10158,14 @@
         try {
             supabaseAuth = await window.mobForgeSupabaseReady;
             if (!supabaseAuth || !supabaseAuth.auth) throw new Error('Supabase authentication is unavailable.');
+            supabaseAuth.auth.onAuthStateChange(function (event, session) {
+                if (event === 'PASSWORD_RECOVERY') passwordRecoveryActive = Boolean(session && session.user);
+                applySupabaseSession(session, event === 'SIGNED_IN');
+                if (event === 'PASSWORD_RECOVERY' && session && session.user) renderPasswordRecovery();
+            });
             var sessionResult = await supabaseAuth.auth.getSession();
             if (sessionResult.error) throw sessionResult.error;
             applySupabaseSession(sessionResult.data && sessionResult.data.session, false);
-            supabaseAuth.auth.onAuthStateChange(function (event, session) {
-                applySupabaseSession(session, event === 'SIGNED_IN');
-            });
             authInitialized = true;
         } catch (error) {
             console.error('Supabase authentication initialization failed:', error);
