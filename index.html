@@ -4059,7 +4059,26 @@
         .mf-primary-button, .mf-secondary-button { padding: 10px 15px; border-radius: 9px; font-weight: 700; font-size: .78rem; }
         .mf-primary-button { color: #fff; background: linear-gradient(135deg, var(--violet), var(--violet-dark)); }
         .mf-secondary-button { color: var(--text-secondary); border: 1px solid var(--border-subtle); background: rgba(255,255,255,.04); }
+        .mf-auth-divider { display:flex; align-items:center; gap:10px; margin:16px 0 12px; color:var(--text-muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; }
+        .mf-auth-divider::before, .mf-auth-divider::after { content:''; flex:1; height:1px; background:var(--border-subtle); }
+        .mf-auth-divider[hidden] { display:none !important; }
+        .mf-auth-providers { display:grid; gap:9px; }
+        .mf-email-auth { display:grid; gap:10px; text-align:left; margin-top:12px; }
+        .mf-email-auth[hidden], .mf-email-auth form[hidden] { display:none !important; }
+        .mf-email-auth form { display:grid; gap:10px; }
+        .mf-email-auth .mf-auth-links { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:.72rem; }
+        .mf-email-auth .mf-auth-links button { color:#dfd2ff; background:none; border:0; padding:0; cursor:pointer; font:inherit; }
+        .mf-email-auth .mf-auth-links button:hover { text-decoration:underline; }
+        .mf-form-success { color:#86efac; font-size:.75rem; margin:0; }
+        .mf-email-auth h4 { margin:0; font-size:.9rem; color:var(--text-primary); }
         .mf-auth-note { color: var(--text-muted); font-size: .72rem; line-height: 1.6; margin-top: 15px; }
+        .account-modal.mf-login-glass .modal-box {
+            background: linear-gradient(145deg, rgba(35, 31, 53, .84), rgba(13, 13, 22, .78));
+            border: 1px solid rgba(221, 211, 255, .2);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .12), 0 0 36px rgba(139, 92, 246, .1);
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+        }
         /* Upload / account modal scroll fix — the full form stays visible
            and scrollable on small screens. */
         .account-modal { overflow-y: auto; }
@@ -9309,6 +9328,141 @@
         mount.innerHTML = '<button type="button" class="mf-primary-button" style="width:100%;"><i class="fab fa-google" aria-hidden="true"></i> Continue with Google</button>';
         var button = mount.querySelector('button');
         if (button) button.addEventListener('click', function () { signInWithGoogle(button); });
+        renderEmailAuth(mount);
+    }
+
+    var PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    var PASSWORD_HINT = 'Password needs 8+ characters with lowercase, uppercase, a number, and a symbol.';
+
+    function renderEmailAuth(mount) {
+        var previous = document.getElementById('mfAuthProviders');
+        if (previous) previous.remove();
+        var wrap = document.createElement('div');
+        wrap.id = 'mfAuthProviders';
+        wrap.className = 'mf-auth-providers';
+        wrap.innerHTML = '<div class="mf-email-auth" id="mfEmailAuth">'
+            + '<form data-mf-email-view="signin" novalidate>'
+            + '<input class="mf-form-control" name="identifier" type="text" autocomplete="username" placeholder="Email or Username" aria-label="Email or Username" required />'
+            + '<input class="mf-form-control" name="password" type="password" autocomplete="current-password" placeholder="Password" required />'
+            + '<div class="mf-auth-links"><button type="button" data-mf-email-go="signup">Create a new account</button><button type="button" data-mf-email-go="forgot">Forget password?</button></div>'
+            + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
+            + '<button type="submit" class="mf-primary-button" style="width:100%;">Sign In</button></form>'
+            + '<div class="mf-auth-divider" data-mf-signin-divider>OR</div>'
+            + '<form data-mf-email-view="signup" novalidate hidden>'
+            + '<input class="mf-form-control" name="displayName" type="text" autocomplete="name" placeholder="Display name" required />'
+            + '<input class="mf-form-control" name="username" type="text" autocomplete="username" placeholder="Username (2–24 characters)" aria-label="Username" maxlength="24" required />'
+            + '<input class="mf-form-control" name="email" type="email" autocomplete="email" placeholder="Email" required />'
+            + '<input class="mf-form-control" name="password" type="password" autocomplete="new-password" placeholder="Password" required />'
+            + '<input class="mf-form-control" name="confirm" type="password" autocomplete="new-password" placeholder="Confirm password" required />'
+            + '<span class="mf-file-help" style="margin:0;">' + PASSWORD_HINT + '</span>'
+            + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
+            + '<button type="submit" class="mf-primary-button" style="width:100%;">Create Account</button>'
+            + '<div class="mf-auth-links"><button type="button" data-mf-email-go="signin">Back to sign in</button></div></form>'
+            + '<form data-mf-email-view="forgot" novalidate hidden>'
+            + '<input class="mf-form-control" name="email" type="email" autocomplete="email" placeholder="Email" required />'
+            + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
+            + '<button type="submit" class="mf-primary-button" style="width:100%;">Send reset link</button>'
+            + '<div class="mf-auth-links"><button type="button" data-mf-email-go="signin">Back to sign in</button></div></form>'
+            + '</div>';
+        mount.insertAdjacentElement('beforebegin', wrap);
+
+        var panel = wrap.querySelector('#mfEmailAuth');
+        var signinDivider = wrap.querySelector('[data-mf-signin-divider]');
+        function show(view) {
+            if (signinDivider) signinDivider.hidden = view !== 'signin';
+            wrap.querySelectorAll('[data-mf-email-view]').forEach(function (form) {
+                form.hidden = form.dataset.mfEmailView !== view;
+                setMsg(form, '', '');
+            });
+        }
+        function setMsg(form, error, success) {
+            var e = form.querySelector('.mf-form-error'), ok = form.querySelector('.mf-form-success');
+            e.textContent = error; e.hidden = !error;
+            ok.textContent = success; ok.hidden = !success;
+        }
+        wrap.addEventListener('click', function (event) {
+            var go = event.target.closest('[data-mf-email-go]');
+            if (go) { event.preventDefault(); show(go.dataset.mfEmailGo); }
+        });
+        wrap.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                var view = form.dataset.mfEmailView;
+                var submit = form.querySelector('button[type="submit"]');
+                var label = submit.textContent;
+                var v = function (n) { var el = form.elements[n]; return el ? el.value : ''; };
+                var email = v('email').trim();
+                var identifier = v('identifier').trim();
+                setMsg(form, '', '');
+                var displayName = '', cleanUsername = '';
+                if (view === 'signin') {
+                    if (!identifier) { setMsg(form, 'Enter your email or username.', ''); return; }
+                    if (identifier.indexOf('@') !== -1 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+                        setMsg(form, 'Enter a valid email address.', '');
+                        return;
+                    }
+                    if (!v('password')) { setMsg(form, 'Enter your password.', ''); return; }
+                }
+                if (view === 'signup') {
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setMsg(form, 'Enter a valid email address.', ''); return; }
+                    displayName = v('displayName').trim().replace(/\s+/g, ' ');
+                    cleanUsername = v('username').trim().replace(/\s+/g, ' ');
+                    if (!displayName) { setMsg(form, 'Enter a display name.', ''); return; }
+                    if (cleanUsername.length < 2 || cleanUsername.length > 24) { setMsg(form, 'Username must be 2–24 characters.', ''); return; }
+                    if (!PASSWORD_RULE.test(v('password'))) { setMsg(form, PASSWORD_HINT, ''); return; }
+                    if (v('password') !== v('confirm')) { setMsg(form, 'Passwords do not match.', ''); return; }
+                }
+                if (view === 'forgot' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    setMsg(form, 'Enter a valid email address.', '');
+                    return;
+                }
+                submit.disabled = true;
+                submit.textContent = 'Please wait…';
+                try {
+                    var sb = await waitForSupabaseClient();
+                    if (!sb || !sb.auth) throw new Error('Supabase authentication is unavailable.');
+                    var result;
+                    if (view === 'signin') {
+                        var signInEmail = identifier;
+                        if (identifier.indexOf('@') === -1) {
+                            var usernameLookup = await sb.from('user_profiles')
+                                .select('email')
+                                .ilike('username', identifier)
+                                .maybeSingle();
+                            if (usernameLookup.error || !usernameLookup.data || !usernameLookup.data.email) {
+                                throw new Error('Could not find an email for that username. Use the email address on your account instead.');
+                            }
+                            signInEmail = String(usernameLookup.data.email).trim();
+                        }
+                        result = await sb.auth.signInWithPassword({ email: signInEmail, password: v('password') });
+                        if (result.error) throw result.error;
+                    } else if (view === 'signup') {
+                        localStorage.setItem(USERNAME_KEY, cleanUsername);
+                        result = await sb.auth.signUp({
+                            email: email,
+                            password: v('password'),
+                            options: { data: { display_name: displayName, full_name: displayName, name: displayName, username: cleanUsername } }
+                        });
+                        if (result.error) { if (!profile) localStorage.removeItem(USERNAME_KEY); throw result.error; }
+                        if (!result.data || !result.data.session) {
+                            localStorage.removeItem(USERNAME_KEY);
+                            form.reset();
+                            setMsg(form, '', 'Account created. Check your email to confirm, then sign in.');
+                        }
+                    } else {
+                        result = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+                        if (result.error) throw result.error;
+                        setMsg(form, '', 'If an account exists for that email, a reset link is on its way.');
+                    }
+                } catch (error) {
+                    console.error('Supabase email auth failed:', error);
+                    setMsg(form, error && error.message ? error.message : 'Something went wrong. Please try again.', '');
+                } finally {
+                    submit.disabled = false;
+                    submit.textContent = label;
+                }
+            });
+        });
     }
 
     function storedList(key) {
@@ -9484,6 +9638,7 @@
     function renderAccount() {
         if (!accountModal) return;
         accountModal.classList.remove('mf-dashboard-open');
+        accountModal.classList.toggle('mf-login-glass', !profile);
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
         if (!profile) {
@@ -9492,7 +9647,7 @@
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(profile.name || username || 'Account') + '</div><div class="mf-profile-label">@' + escapeHtml(username || 'handle') + ' · Google account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(profile.name || username || 'Account') + '</div><div class="mf-profile-label">@' + escapeHtml(username || 'handle') + ' · ' + (profile.provider === 'email' ? 'Email' : 'Google') + ' account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
@@ -9888,7 +10043,8 @@
         return {
             id: user && user.id ? user.id : '',
             picture: String(metadata.avatar_url || metadata.picture || '').trim(),
-            name: String(metadata.full_name || metadata.name || metadata.user_name || user.email || '').trim()
+            name: String(metadata.display_name || metadata.full_name || metadata.name || metadata.user_name || user.email || '').trim(),
+            provider: String((user && user.app_metadata && user.app_metadata.provider) || '').trim()
         };
     }
 
@@ -9918,6 +10074,8 @@
         window.__mfAccountId = user.id;
         localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
         username = localStorage.getItem(USERNAME_KEY) || '';
+        var metaUsername = user.user_metadata && typeof user.user_metadata.username === 'string' ? user.user_metadata.username.trim() : '';
+        if (!username && metaUsername) { username = metaUsername; localStorage.setItem(USERNAME_KEY, username); }
         setAccountButton();
         renderCreatorNav();
         closeModal(accountModal);
