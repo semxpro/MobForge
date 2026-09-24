@@ -4067,18 +4067,66 @@
         .mf-email-auth[hidden], .mf-email-auth form[hidden] { display:none !important; }
         .mf-email-auth form { display:grid; gap:10px; }
         .mf-email-auth .mf-auth-links { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:.72rem; }
-        .mf-email-auth .mf-auth-links.mf-auth-back-link { justify-content:center; }
         .mf-email-auth .mf-auth-links button { color:#dfd2ff; background:none; border:0; padding:0; cursor:pointer; font:inherit; }
         .mf-email-auth .mf-auth-links button:hover { text-decoration:underline; }
         .mf-form-success { color:#86efac; font-size:.75rem; margin:0; }
         .mf-email-auth h4 { margin:0; font-size:.9rem; color:var(--text-primary); }
         .mf-auth-note { color: var(--text-muted); font-size: .72rem; line-height: 1.6; margin-top: 15px; }
+        .mf-google-button[hidden], .mf-auth-back-footer[hidden] { display:none !important; }
         .account-modal.mf-login-glass .modal-box {
-            background: linear-gradient(145deg, rgba(35, 31, 53, .84), rgba(13, 13, 22, .78));
-            border: 1px solid rgba(221, 211, 255, .2);
-            box-shadow: 0 24px 70px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .12), 0 0 36px rgba(139, 92, 246, .1);
-            backdrop-filter: blur(24px) saturate(145%);
-            -webkit-backdrop-filter: blur(24px) saturate(145%);
+            background: linear-gradient(145deg, rgba(38, 34, 57, .72), rgba(12, 13, 22, .66));
+            border: 1px solid rgba(221, 211, 255, .24);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .16), 0 0 42px rgba(139, 92, 246, .14);
+            backdrop-filter: blur(30px) saturate(160%);
+            -webkit-backdrop-filter: blur(30px) saturate(160%);
+        }
+        .account-modal.mf-login-glass.mf-auth-subview-open .modal-box {
+            display: flex;
+            flex-direction: column;
+            min-height: min(680px, calc(100vh - 40px));
+            min-height: min(680px, calc(100dvh - 40px));
+        }
+        .mf-auth-back-footer {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: auto;
+            padding-top: 18px;
+        }
+        .account-modal.mf-login-glass .mf-form-control {
+            background: rgba(255, 255, 255, .055);
+            border-color: rgba(221, 211, 255, .18);
+            border-radius: 12px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .account-modal.mf-login-glass .mf-form-control:focus {
+            border-color: rgba(190, 166, 255, .75);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, .16), inset 0 1px 0 rgba(255, 255, 255, .08);
+        }
+        .account-modal.mf-login-glass .mf-primary-button {
+            border: 1px solid rgba(228, 219, 255, .22);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, .52), rgba(109, 59, 217, .34));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 8px 22px rgba(66, 36, 133, .2);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        .account-modal.mf-login-glass .mf-auth-back-footer button {
+            min-height: 38px;
+            padding: 9px 18px;
+            border: 1px solid rgba(221, 211, 255, .24);
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, .1), rgba(139, 92, 246, .1));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 5px 16px rgba(0, 0, 0, .18);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: #f3edff;
+        }
+        .account-modal.mf-login-glass .mf-auth-back-footer button:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(139, 92, 246, .18));
+            border-color: rgba(221, 211, 255, .36);
         }
         /* Upload / account modal scroll fix — the full form stays visible
            and scrollable on small screens. */
@@ -9358,20 +9406,30 @@
             + '<input class="mf-form-control" name="confirm" type="password" autocomplete="new-password" placeholder="Confirm password" required />'
             + '<span class="mf-file-help" style="margin:0;">' + PASSWORD_HINT + '</span>'
             + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
-            + '<button type="submit" class="mf-primary-button" style="width:100%;">Create Account</button>'
-            + '<div class="mf-auth-links mf-auth-back-link"><button type="button" data-mf-email-go="signin">Back to Sign In</button></div></form>'
+            + '<button type="submit" class="mf-primary-button" style="width:100%;">Create Account</button></form>'
             + '<form data-mf-email-view="forgot" novalidate hidden>'
             + '<input class="mf-form-control" name="email" type="email" autocomplete="email" placeholder="Email" required />'
             + '<p class="mf-form-error" hidden></p><p class="mf-form-success" hidden></p>'
-            + '<button type="submit" class="mf-primary-button" style="width:100%;">Send reset link</button>'
-            + '<div class="mf-auth-links mf-auth-back-link"><button type="button" data-mf-email-go="signin">Back to Sign In</button></div></form>'
+            + '<button type="submit" class="mf-primary-button" style="width:100%;">Send reset link</button></form>'
             + '</div>';
         mount.insertAdjacentElement('beforebegin', wrap);
 
         var panel = wrap.querySelector('#mfEmailAuth');
         var signinDivider = wrap.querySelector('[data-mf-signin-divider]');
+        var modalBox = accountModal && accountModal.querySelector('.modal-box');
+        var oldBackFooter = document.getElementById('mfAuthBackFooter');
+        if (oldBackFooter) oldBackFooter.remove();
+        var backFooter = document.createElement('div');
+        backFooter.id = 'mfAuthBackFooter';
+        backFooter.className = 'mf-auth-back-footer';
+        backFooter.hidden = true;
+        backFooter.innerHTML = '<button type="button" class="mf-secondary-button">Back to Sign In</button>';
+        if (modalBox) modalBox.appendChild(backFooter);
         function show(view) {
             if (signinDivider) signinDivider.hidden = view !== 'signin';
+            mount.hidden = view !== 'signin';
+            if (backFooter) backFooter.hidden = view === 'signin';
+            if (accountModal) accountModal.classList.toggle('mf-auth-subview-open', view !== 'signin');
             wrap.querySelectorAll('[data-mf-email-view]').forEach(function (form) {
                 form.hidden = form.dataset.mfEmailView !== view;
                 setMsg(form, '', '');
@@ -9386,6 +9444,8 @@
             var go = event.target.closest('[data-mf-email-go]');
             if (go) { event.preventDefault(); show(go.dataset.mfEmailGo); }
         });
+        var backButton = backFooter.querySelector('button');
+        if (backButton) backButton.addEventListener('click', function () { show('signin'); });
         wrap.querySelectorAll('form').forEach(function (form) {
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
@@ -9465,12 +9525,14 @@
                 }
             });
         });
+        show('signin');
     }
 
     function renderPasswordRecovery() {
         if (!accountModal) return;
         passwordRecoveryActive = true;
         accountModal.classList.remove('mf-dashboard-open');
+        accountModal.classList.remove('mf-auth-subview-open');
         accountModal.classList.add('mf-login-glass');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
@@ -9701,6 +9763,7 @@
     function renderAccount() {
         if (!accountModal) return;
         accountModal.classList.remove('mf-dashboard-open');
+        accountModal.classList.remove('mf-auth-subview-open');
         accountModal.classList.toggle('mf-login-glass', !profile);
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
