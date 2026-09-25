@@ -4003,6 +4003,7 @@
         .mf-account-action.danger { color: #fda4af; }
         .mf-card-owner { display:flex; align-items:center; gap:5px; color:var(--text-muted); font-size:.66rem; margin:4px 0 7px; }
         .mf-card-owner img { width:18px; height:18px; border-radius:50%; object-fit:cover; }
+        .mf-owner-handle { color:var(--text-muted); font-size:.62rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .mf-account-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:16px 0 12px; }
         .mf-account-stat { padding:10px 6px; border:1px solid var(--border-subtle); border-radius:10px; background:rgba(255,255,255,.035); }
         .mf-account-stat strong { display:block; color:var(--text-primary); font-size:1.05rem; }
@@ -5374,6 +5375,18 @@
                 return avatar && avatar !== excluded ? avatar : '';
             }
 
+            function normalizeOwnerHandle(value) {
+                const raw = String(value || '').trim();
+                if (!raw) return '';
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        return String(parsed.handle || parsed.username || parsed.userName || '').trim();
+                    }
+                } catch (_) {}
+                return '';
+            }
+
             function readLocalJson(key, fallback) {
                 try {
                     const value = JSON.parse(localStorage.getItem(key) || 'null');
@@ -5741,10 +5754,14 @@
                             screenshots: itemsForProduct.flatMap(item => item.screenshots || []),
                             primaryVersion,
                             author: primary.author || '',
-                            ownerAvatar: primary.ownerAvatar || ''
+                            ownerAvatar: primary.ownerAvatar || '',
+                            ownerId: primary.ownerId || '',
+                            ownerHandle: primary.ownerHandle || ''
                         });
                     });
-                    const nextCatalogSignature = PRODUCTS.map(p => `${p.id}|${p.primaryVersion?.version || ''}|${(p.versions || []).length}`).sort().join('§');
+                    const nextCatalogSignature = PRODUCTS.map(p =>
+                        `${p.id}|${p.primaryVersion?.version || ''}|${(p.versions || []).length}|${p.author || ''}|${p.ownerAvatar || ''}|${p.ownerHandle || ''}|${p.ownerId || ''}`
+                    ).sort().join('§');
                     const previousCatalogSignature = window.__mfCatalogSignature || '';
                     PRODUCTS.sort(compareCatalogProducts);
                     catalogReady = true;
@@ -5827,7 +5844,9 @@
                         catalogVersions: hasEmbeddedVersions ? catalogVersions : null,
                          priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : null,
                          author: String(data.owner_name || data.ownerName || data.author || '').trim(),
-                          ownerAvatar: normalizeOwnerAvatar(data.owner_avatar || data.ownerAvatar || '', imageUrl)
+                          ownerAvatar: normalizeOwnerAvatar(data.owner_avatar || data.ownerAvatar || '', imageUrl),
+                          ownerId: String(data.owner_id || data.ownerId || '').trim(),
+                          ownerHandle: normalizeOwnerHandle(data.owner_avatar || data.ownerAvatar || '')
                     };
                 };
 
@@ -6979,8 +6998,8 @@
                 const safeGroupKey = escapeHtml(product.groupKey || '');
                 const cleanTitle = product.cleanTitle || stripColorTags(product.title).trim();
                 const safeTitle = escapeHtml(cleanTitle);
-                const ownerMarkup = product.author
-                    ? `<span class="mf-card-owner">${product.ownerAvatar ? `<img src="${escapeHtml(product.ownerAvatar)}" alt="" />` : '<i class="fas fa-user"></i>'} ${escapeHtml(product.author)}</span>`
+                const ownerMarkup = (product.ownerHandle || product.ownerAvatar || product.author)
+                    ? `<span class="mf-card-owner" data-mf-owner-id="${escapeHtml(product.ownerId || '')}" data-mf-owner-name="${escapeHtml(product.author || '')}" data-mf-owner-avatar="${escapeHtml(product.ownerAvatar || '')}" data-mf-owner-handle="${escapeHtml(product.ownerHandle || '')}">${product.ownerAvatar ? `<img src="${escapeHtml(product.ownerAvatar)}" alt="" />` : '<i class="fas fa-user"></i>'}${product.ownerHandle ? `<span class="mf-owner-handle">@${escapeHtml(product.ownerHandle)}</span>` : ''}</span>`
                     : '';
                 const badge = isPremier
                     ? (product.comingSoonBadge || product.badgeText || '')
@@ -7063,11 +7082,11 @@
                                     ${titleBadgeMarkup}
                                     ${favoriteMarkup}
                                 </div>
-                                 ${ownerMarkup}
                                 <div class="card-meta-row">
                                     <span class="category-tag">${escapeHtml(getCategoryLabel(product.category))}</span>
                                     <span class="edition-badge" data-edition-display="${safeProductId}" ${edition ? '' : 'style="display:none;"'}>${escapeHtml(edition)}</span>
                                 </div>
+                                ${ownerMarkup}
                                  <p class="desc" data-description-display="${safeProductId}">${escapeHtml(isPremier ? (product.comingSoonDescription || product.description || '') : (hasVersionData ? (primary.description || '') : (primary.description || product.description || '')))}</p>
                             </div>
                         </div>
@@ -8026,6 +8045,8 @@
                     const ownerAvatar = ownerAvatarCandidate && ownerAvatarCandidate !== icon ? ownerAvatarCandidate : '';
                     const dlUrl = String(asset.download_url || '').trim();
                     const meta = [asset.version, asset.badge, asset.loader, asset.platform].filter(Boolean).join(' · ');
+                    const ownerName = asset.owner_name || ownerMedia.displayName || ownerMedia.handle || 'Community';
+                    const ownerHandle = ownerMedia.handle ? '@' + ownerMedia.handle.replace(/^@+/, '') : '';
                     const ownerMarkup = ownerAvatar
                         ? `<img src="${escapeHtml(ownerAvatar)}" alt="" />`
                         : '<i class="fas fa-user"></i>';
@@ -8043,7 +8064,7 @@
                                 </div>
                             </div>
                             <div class="semox-p-footer">
-                                <div class="semox-p-dl-count">${ownerMarkup}<span class="semox-count">${escapeHtml(asset.owner_name || 'Community')}</span></div>
+                                <div class="semox-p-dl-count" data-mf-owner-id="${escapeHtml(asset.owner_id || '')}" data-mf-owner-name="${escapeHtml(ownerName)}" data-mf-owner-avatar="${escapeHtml(ownerAvatar || '')}" data-mf-owner-handle="${escapeHtml(ownerHandle)}">${ownerMarkup}${ownerHandle ? `<span class="mf-owner-handle">${escapeHtml(ownerHandle)}</span>` : ''}</div>
                                 <div class="semox-p-actions">
                                     ${dlUrl
                                         ? `<a class="semox-btn-download" href="${escapeHtml(dlUrl)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-download"></i> Download</a>`
@@ -8074,6 +8095,12 @@
                 });
                 setActiveCategory(currentCategory, { updateUrl: false, refresh: true });
             }
+
+            window.mobForgeRefreshUserAssets = function (categoryId) {
+                if (!userAssetsViewActive) return;
+                const activeCategory = categoryId || window.__mfUserToggleCategory;
+                if (activeCategory) showUserAssetsForCategory(activeCategory);
+            };
 
             function getApiDisplayTags(project, type) {
                 const categoryMap = {
@@ -9639,11 +9666,18 @@
             <button class="modal-close" type="button" data-mf-close="username" aria-label="Close username dialog"><i class="fas fa-times"></i></button>
             <div class="modal-icon"><i class="fas fa-pen-nib"></i></div>
             <h3 id="mfUsernameTitle">Enter Your Username</h3>
-            <p>Choose the name other creators will see beside your releases.</p>
+            <p>Choose the profile details other creators will see beside your releases.</p>
             <form id="mfUsernameForm">
-                <input id="mfUsernameInput" class="mf-form-control" type="text" maxlength="24" autocomplete="nickname" placeholder="e.g. RedstonePilot" required />
+                <label class="mf-form-label">
+                    <span>Display Name</span>
+                    <input id="mfDisplayNameInput" class="mf-form-control" type="text" maxlength="80" autocomplete="name" placeholder="e.g. Redstone Pilot" required />
+                </label>
+                <label class="mf-form-label" style="margin-top:12px;">
+                    <span>Handle <span style="font-weight:500;color:var(--text-muted);">(visible to others)</span></span>
+                    <input id="mfUsernameInput" class="mf-form-control" type="text" maxlength="24" autocomplete="nickname" placeholder="e.g. RedstonePilot" required />
+                </label>
                 <p class="mf-form-error" id="mfUsernameError" hidden></p>
-                <button class="mf-primary-button" type="submit" style="margin-top:14px;width:100%;">Save Username</button>
+                <button class="mf-primary-button" type="submit" style="margin-top:14px;width:100%;">Save Profile</button>
             </form>
         </div>
     </div>
@@ -9737,13 +9771,30 @@
     var USERNAME_KEY = 'mob-forge-username';
     var CREATOR_ASSETS_KEY = 'mob-forge-creator-assets';
     var PROFILE_KEY = 'mob-forge-google-profile';
-    function readStoredProfile() {
+    function accountStorageKey(key, accountId) {
+        return key + ':' + String(accountId || '').trim();
+    }
+    function readStoredProfile(accountId) {
         try {
-            var saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
-            return saved && typeof saved === 'object' ? saved : null;
+            var keys = accountId
+                ? [accountStorageKey(PROFILE_KEY, accountId), PROFILE_KEY]
+                : [PROFILE_KEY];
+            for (var index = 0; index < keys.length; index += 1) {
+                var saved = JSON.parse(localStorage.getItem(keys[index]) || 'null');
+                if (saved && typeof saved === 'object' &&
+                    (!accountId || saved.id === accountId)) return saved;
+            }
+            return null;
         } catch (error) {
             return null;
         }
+    }
+    function storeLocalProfile(value) {
+        if (!value || typeof value !== 'object') return;
+        try {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(value));
+            if (value.id) localStorage.setItem(accountStorageKey(PROFILE_KEY, value.id), JSON.stringify(value));
+        } catch (_) {}
     }
     var profile = null;
     window.__mfAccountId = '';
@@ -9759,6 +9810,7 @@
     var mobileNav = document.getElementById('mobileNav');
     var usernameModal = document.getElementById('mfUsernameModal');
     var uploadModal = document.getElementById('mfUploadModal');
+    var displayNameInput = document.getElementById('mfDisplayNameInput');
     var usernameInput = document.getElementById('mfUsernameInput');
     var usernameForm = document.getElementById('mfUsernameForm');
     var usernameError = document.getElementById('mfUsernameError');
@@ -9777,15 +9829,20 @@
     var CLOUDINARY_PRESET_STORAGE = 'mob-forge-cloudinary-upload-preset-v1';
     var DEFAULT_CLOUDINARY_CLOUD_NAME = 'r4tentfl';
     var DEFAULT_CLOUDINARY_UPLOAD_PRESET = 'ml_default';
+    var profileRealtimeChannel = null;
+    var profileBroadcast = null;
+    var activeAccountPanel = 'home';
+    var profileHydratedAccountId = '';
 
-    async function uploadCommunityLogo(file) {
-        var cloudName = String(localStorage.getItem(CLOUDINARY_CLOUD_NAME_STORAGE) || DEFAULT_CLOUDINARY_CLOUD_NAME).trim();
-        var uploadPreset = String(localStorage.getItem(CLOUDINARY_PRESET_STORAGE) || DEFAULT_CLOUDINARY_UPLOAD_PRESET).trim();
+    async function uploadCommunityLogo(file, folder) {
+        var configured = window.__mfCloudinaryConfig || {};
+        var cloudName = String(configured.cloudName || localStorage.getItem(CLOUDINARY_CLOUD_NAME_STORAGE) || DEFAULT_CLOUDINARY_CLOUD_NAME).trim();
+        var uploadPreset = String(configured.uploadPreset || localStorage.getItem(CLOUDINARY_PRESET_STORAGE) || DEFAULT_CLOUDINARY_UPLOAD_PRESET).trim();
         if (!cloudName || !uploadPreset) throw new Error('Cloudinary upload is not configured.');
         var form = new FormData();
         form.append('file', file);
         form.append('upload_preset', uploadPreset);
-        form.append('folder', 'mob-forge');
+        form.append('folder', folder || 'mob-forge');
         var response = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cloudName) + '/image/upload', {
             method: 'POST',
             body: form
@@ -9810,8 +9867,24 @@
         });
     }
 
+    function profileDisplayName() {
+        return String(profile && (profile.name || profile.displayName) || username || 'Account').trim();
+    }
+
+    function profileHandle() {
+        return String(username || (profile && (profile.handle || profile.username)) || '').trim();
+    }
+
+    function profileProviderLabel() {
+        var provider = String(profile && profile.provider || '').trim().toLowerCase();
+        if (provider === 'discord') return 'Discord';
+        if (provider === 'google') return 'Google';
+        if (provider === 'email') return 'Email';
+        return 'Account';
+    }
+
     function avatarMarkup() {
-        var label = username.slice(0, 1).toUpperCase() || 'A';
+        var label = profileHandle().slice(0, 1).toUpperCase() || profileDisplayName().slice(0, 1).toUpperCase() || 'A';
         return profile && profile.picture ? '<img src="' + escapeHtml(profile.picture) + '" alt="" />' : escapeHtml(label);
     }
 
@@ -9824,7 +9897,7 @@
         var headerAvatar = profile
             ? avatarMarkup()
             : '<i class="fas fa-user" aria-hidden="true"></i>';
-        openAccountButton.innerHTML = '<span class="mf-header-avatar" aria-hidden="true">' + headerAvatar + '</span><span class="mf-account-label">' + escapeHtml(profile ? (username || 'Account') : 'Account') + '</span>';
+        openAccountButton.innerHTML = '<span class="mf-header-avatar" aria-hidden="true">' + headerAvatar + '</span><span class="mf-account-label">' + escapeHtml(profile ? profileDisplayName() : 'Account') + '</span>';
         openAccountButton.setAttribute('aria-label', profile ? 'Open creator account' : 'Sign in to Mob Forge');
     }
 
@@ -10039,7 +10112,7 @@
                         result = await sb.auth.signUp({
                             email: email,
                             password: v('password'),
-                            options: { data: { display_name: displayName, full_name: displayName, name: displayName, username: cleanUsername } }
+                            options: { data: { display_name: displayName, full_name: displayName, name: displayName, username: cleanUsername, handle: cleanUsername } }
                         });
                         if (result.error) { if (!profile) localStorage.removeItem(USERNAME_KEY); throw result.error; }
                         if (!result.data || !result.data.session) {
@@ -10242,6 +10315,7 @@
 
     function renderAccountPanel(panel) {
         if (!accountModal) return;
+        activeAccountPanel = panel || 'home';
         accountModal.classList.remove('mf-dashboard-open');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
@@ -10266,6 +10340,7 @@
 
     async function renderDashboardPanel() {
         if (!accountModal) return;
+        activeAccountPanel = 'dashboard';
         accountModal.classList.add('mf-dashboard-open');
         var box = accountModal.querySelector('.modal-box');
         if (!box) return;
@@ -10298,6 +10373,7 @@
 
     function renderAccount() {
         if (!accountModal) return;
+        activeAccountPanel = 'home';
         accountModal.classList.remove('mf-dashboard-open');
         accountModal.classList.remove('mf-auth-subview-open');
         accountModal.classList.toggle('mf-login-glass', !profile);
@@ -10309,7 +10385,7 @@
         } else {
             var savedCount = storedList('mob-forge-favorites').length;
             var historyCount = storedList('mob-forge-download-history').length;
-            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(profile.name || username || 'Account') + '</div><div class="mf-profile-label">@' + escapeHtml(username || 'handle') + ' · ' + (profile.provider === 'email' ? 'Email' : 'Google') + ' account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
+            box.innerHTML = '<button class="modal-close" type="button" data-mf-account-close aria-label="Close account dialog"><i class="fas fa-times"></i></button><div class="mf-profile"><span class="mf-profile-avatar-wrap"><span class="mf-profile-avatar">' + avatarMarkup() + '</span><button type="button" class="mf-avatar-edit" data-mf-change-avatar aria-label="Change profile picture"><i class="fas fa-pencil"></i></button></span><div><div class="mf-profile-name">' + escapeHtml(profileDisplayName()) + '</div><div class="mf-profile-label">@' + escapeHtml(profileHandle() || 'handle') + ' · ' + escapeHtml(profileProviderLabel()) + ' account</div></div></div><input class="mf-avatar-input" id="mfProfileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><div class="mf-account-summary"><div class="mf-account-stat"><strong>' + savedCount + '</strong><span>Saved</span></div><div class="mf-account-stat"><strong>' + historyCount + '</strong><span>Downloads</span></div></div><div class="mf-account-actions"><button type="button" class="mf-account-action creator" data-mf-open-upload><i class="fas fa-cloud-arrow-up"></i> Upload Plugin / Mod / Pack</button><button type="button" class="mf-account-action" data-mf-show-panel="dashboard"><i class="fas fa-table-columns"></i> Dashboard</button><button type="button" class="mf-account-action" data-mf-show-panel="saved"><i class="fas fa-star"></i> Saved Items</button><button type="button" class="mf-account-action" data-mf-show-panel="history"><i class="fas fa-clock-rotate-left"></i> Download History</button><button type="button" class="mf-account-action" data-mf-edit-username><i class="fas fa-pen"></i> Edit username</button><button type="button" class="mf-account-action danger" data-mf-sign-out><i class="fas fa-right-from-bracket"></i> Sign out</button></div>';
         }
     }
 
@@ -10354,20 +10430,29 @@
     };
 
     function syncProfileFromStorage() {
-        username = localStorage.getItem(USERNAME_KEY) || (profile && profile.name) || '';
+        if (!profile) {
+            username = '';
+            return;
+        }
+        username = localStorage.getItem(accountStorageKey(USERNAME_KEY, profile.id)) ||
+            username ||
+            profile.handle ||
+            profile.username ||
+            '';
     }
 
     function showUsernamePrompt() {
         if (!usernameModal) return;
-        usernameInput.value = username;
+        if (displayNameInput) displayNameInput.value = profileDisplayName() === 'Account' ? '' : profileDisplayName();
+        usernameInput.value = profileHandle();
         usernameError.hidden = true;
         openModal(usernameModal);
-        setTimeout(function () { usernameInput.focus(); }, 80);
+        setTimeout(function () { if (displayNameInput) displayNameInput.focus(); }, 80);
     }
 
     function openUpload() {
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
-        if (!username) { showUsernamePrompt(); return; }
+        if (!profileHandle()) { showUsernamePrompt(); return; }
         uploadForm.reset();
         window.__mfEditingSubmission = null;
         pendingLogoUpload = null;
@@ -10375,7 +10460,7 @@
         document.getElementById('mfUploadTitle').textContent = 'Submit Upload';
         var submitLabel = uploadForm.querySelector('[type="submit"]');
         if (submitLabel) submitLabel.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit Upload';
-        uploadAuthor.value = username;
+        uploadAuthor.value = profileDisplayName();
         resetLogoPreview();
         updateUploadFields();
         uploadError.hidden = true;
@@ -10394,7 +10479,7 @@
 
     function openEditSubmission(item) {
         if (!profile) { openAccountButton && openAccountButton.click(); return; }
-        if (!username) { showUsernamePrompt(); return; }
+        if (!profileHandle()) { showUsernamePrompt(); return; }
         window.__mfEditingSubmission = item;
         pendingLogoUpload = null;
         pendingLogoUrl = storedCommunityLogoUrl(item);
@@ -10446,9 +10531,9 @@
 
     function parseOwnerMedia(value) {
         var raw = String(value || '').trim();
-        if (!raw) return { avatar: '', logo: '', displayName: '', handle: '' };
+        if (!raw) return { avatar: '', logo: '', displayName: '', handle: '', category: '' };
         if (/\/storage\/v1\/object\/public\/user-assets\/logos\//i.test(raw)) {
-            return { avatar: '', logo: raw, displayName: '', handle: '' };
+            return { avatar: '', logo: raw, displayName: '', handle: '', category: '' };
         }
         try {
             var parsed = JSON.parse(raw);
@@ -10457,11 +10542,12 @@
                     avatar: String(parsed.avatar || '').trim(),
                     logo: String(parsed.logo || '').trim(),
                     displayName: String(parsed.displayName || parsed.display_name || '').trim(),
-                    handle: String(parsed.handle || parsed.username || parsed.userName || '').trim()
+                    handle: String(parsed.handle || parsed.username || parsed.userName || '').trim(),
+                    category: String(parsed.category || '').trim()
                 };
             }
         } catch (_) {}
-        return { avatar: raw, logo: '', displayName: '', handle: '' };
+        return { avatar: raw, logo: '', displayName: '', handle: '', category: '' };
     }
 
     function updateUploadFields() {
@@ -10526,7 +10612,7 @@
 
     async function publishAsset(event) {
         event.preventDefault();
-        if (!profile || !username) { uploadError.textContent = 'Sign in and set a username before uploading.'; uploadError.hidden = false; return; }
+        if (!profile || !profileHandle()) { uploadError.textContent = 'Sign in and set your display name and handle before uploading.'; uploadError.hidden = false; return; }
         var editing = window.__mfEditingSubmission || null;
         var title = document.getElementById('mfAssetTitle').value.trim();
         var file = uploadFile.files && uploadFile.files[0];
@@ -10554,7 +10640,7 @@
                     var loaderValue = technical ? document.getElementById('mfAssetLoader').value : '';
                     var editionValue = isResourcePack ? document.getElementById('mfAssetEdition').value : '';
                     var platformValue = technical ? document.getElementById('mfAssetPlatform').value : editionValue;
-                    var ownerName = (document.getElementById('mfAssetAuthor').value || username).trim();
+                    var ownerName = (document.getElementById('mfAssetAuthor').value || profileDisplayName()).trim();
                     var persistentDownloadUrl = editing ? String(editing.download_url || '') : '';
                     var storagePath = editing ? String(editing.storage_path || '') : '';
                     var previousLogoUrl = editing ? storedCommunityLogoUrl(editing) : '';
@@ -10575,8 +10661,9 @@
                     var ownerAvatarValue = JSON.stringify({
                         avatar: profile.picture || existingOwnerMedia.avatar || '',
                         logo: logoImageUrl || existingOwnerMedia.logo || '',
-                        displayName: profile.name || existingOwnerMedia.displayName || ownerName,
-                        handle: username || existingOwnerMedia.handle || ownerName
+                        displayName: profileDisplayName() || existingOwnerMedia.displayName || ownerName,
+                        handle: profileHandle() || existingOwnerMedia.handle || ownerName,
+                        category: profile.category || existingOwnerMedia.category || category
                     });
                     if (file) {
                         var safeAccountId = String(window.__mfAccountId || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'guest';
@@ -10646,9 +10733,10 @@
                             updated_at: new Date().toISOString()
                         });
                     }
+                    window.mobForgeRefreshUserAssets?.();
                     window.__mfEditingSubmission = null;
                     uploadForm.reset();
-                    uploadAuthor.value = username;
+                    uploadAuthor.value = profileDisplayName();
                     pendingLogoUpload = null;
                     pendingLogoUrl = '';
                     resetLogoPreview();
@@ -10672,23 +10760,20 @@
     }
 
     async function changeProfilePicture(file) {
-        if (!file || !profile || !window.mobForgeStorageUpload) return;
+        if (!file || !profile) return;
         if (!/^image\//i.test(file.type) || file.size > 10 * 1024 * 1024) {
             var pictureToast = document.getElementById('semoxToast');
             if (pictureToast) { pictureToast.textContent = 'Use an image up to 10 MB.'; pictureToast.classList.add('show'); setTimeout(function () { pictureToast.classList.remove('show'); }, 2200); }
             return;
         }
         try {
-            var safeAccountId = String(window.__mfAccountId || 'account').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
-            var path = safeAccountId + '/avatar-' + Date.now() + '.' + (file.name.split('.').pop() || 'jpg');
-            var pictureUrl = await window.mobForgeStorageUpload(file, path, 'profile-avatars');
+            var pictureUrl = await uploadCommunityLogo(file, 'mob-forge/profile-avatars/' + String(window.__mfAccountId || 'account'));
             profile.picture = pictureUrl;
-            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-            if (window.mobForgeUpdateProfile) {
-                await window.mobForgeUpdateProfile({ id: window.__mfAccountId, username: username, avatar_url: pictureUrl, updated_at: new Date().toISOString() });
-            }
-            setAccountButton();
-            renderAccount();
+            profile.displayName = profileDisplayName();
+            profile.handle = profileHandle();
+            storeLocalProfile(profile);
+            refreshProfileSurfaces();
+            await persistProfileRecord();
             var successToast = document.getElementById('semoxToast');
             if (successToast) { successToast.textContent = '✓ Profile picture updated.'; successToast.classList.add('show'); setTimeout(function () { successToast.classList.remove('show'); }, 2200); }
         } catch (error) {
@@ -10702,16 +10787,235 @@
         var metadata = user && user.user_metadata && typeof user.user_metadata === 'object'
             ? user.user_metadata
             : {};
+        var displayName = String(metadata.display_name || metadata.full_name || metadata.name ||
+            metadata.global_name || metadata.nickname || metadata.user_name || user.email || '').trim();
+        var handle = String(metadata.handle || metadata.username || metadata.preferred_username || '').trim();
         return {
             id: user && user.id ? user.id : '',
             picture: String(metadata.avatar_url || metadata.picture || '').trim(),
-            name: String(metadata.display_name || metadata.full_name || metadata.name || metadata.user_name || user.email || '').trim(),
-            provider: String((user && user.app_metadata && user.app_metadata.provider) || '').trim()
+            name: displayName,
+            displayName: displayName,
+            handle: handle,
+            username: handle,
+            category: String(metadata.category || '').trim(),
+            email: String(user && user.email || '').trim(),
+            provider: String((user && user.app_metadata && user.app_metadata.provider) || '').trim().toLowerCase()
         };
+    }
+
+    function mergeProfileRecord(row, accountId) {
+        if (!row || !profile || profile.id !== accountId) return false;
+        var nextName = String(row.display_name || row.displayName || row.full_name || row.name || '').trim();
+        var nextHandle = String(row.handle || row.username || '').trim();
+        var nextAvatar = String(row.avatar_url || row.avatarUrl || row.picture || '').trim();
+        var nextCategory = String(row.category || '').trim();
+        if (nextName) {
+            profile.name = nextName;
+            profile.displayName = nextName;
+        }
+        if (nextHandle) {
+            profile.handle = nextHandle;
+            profile.username = nextHandle;
+            username = nextHandle;
+        }
+        if (nextAvatar) profile.picture = nextAvatar;
+        if (nextCategory) profile.category = nextCategory;
+        if (row.email) profile.email = String(row.email).trim();
+        storeLocalProfile(profile);
+        if (username) {
+            try { localStorage.setItem(accountStorageKey(USERNAME_KEY, accountId), username); } catch (_) {}
+        }
+        refreshProfileSurfaces();
+        return true;
+    }
+
+    function profileOwnerMedia() {
+        return JSON.stringify({
+            avatar: profile && profile.picture || '',
+            displayName: profileDisplayName(),
+            handle: profileHandle(),
+            category: profile && profile.category || ''
+        });
+    }
+
+    function updateRenderedProfileOwners() {
+        if (!profile || !window.__mfAccountId) return;
+        var ownerId = String(window.__mfAccountId);
+        var displayName = profileDisplayName();
+        var avatar = String(profile.picture || '').trim();
+        var handle = profileHandle() ? '@' + profileHandle().replace(/^@+/, '') : '';
+        document.querySelectorAll('.mf-card-owner[data-mf-owner-id]').forEach(function (owner) {
+            if (owner.dataset.mfOwnerId !== ownerId) return;
+            owner.dataset.mfOwnerName = displayName;
+            owner.dataset.mfOwnerAvatar = avatar;
+            owner.dataset.mfOwnerHandle = handle;
+            owner.innerHTML = (avatar
+                ? '<img src="' + escapeHtml(avatar) + '" alt="" />'
+                : '<i class="fas fa-user"></i>') +
+                (handle ? '<span class="mf-owner-handle">' + escapeHtml(handle) + '</span>' : '');
+        });
+        document.querySelectorAll('.semox-p-dl-count[data-mf-owner-id]').forEach(function (owner) {
+            if (owner.dataset.mfOwnerId !== ownerId) return;
+            owner.dataset.mfOwnerName = displayName;
+            owner.dataset.mfOwnerAvatar = avatar;
+            owner.dataset.mfOwnerHandle = handle;
+            owner.innerHTML = (avatar
+                ? '<img src="' + escapeHtml(avatar) + '" alt="" />'
+                : '<i class="fas fa-user"></i>') +
+                (handle ? '<span class="mf-owner-handle">' + escapeHtml(handle) + '</span>' : '');
+        });
+    }
+
+    function refreshProfileSurfaces() {
+        setAccountButton();
+        updateRenderedProfileOwners();
+        if (!accountModal || !accountModal.classList.contains('open')) return;
+        if (activeAccountPanel === 'dashboard') {
+            renderDashboardPanel();
+        } else if (activeAccountPanel === 'saved' || activeAccountPanel === 'history') {
+            renderAccountPanel(activeAccountPanel);
+        } else {
+            renderAccount();
+        }
+    }
+
+    async function syncOwnedAssets() {
+        try {
+            var sb = supabaseAuth || await waitForSupabaseClient();
+            if (!sb || !window.__mfAccountId) return;
+            var media = profileOwnerMedia();
+            await sb.from('user_assets').update({
+                owner_name: profileDisplayName(),
+                owner_avatar: media
+            }).eq('owner_id', window.__mfAccountId);
+            try {
+                await sb.from('catalog_products').update({
+                    owner_name: profileDisplayName(),
+                    owner_avatar: media
+                }).eq('owner_id', window.__mfAccountId);
+            } catch (_) {}
+        } catch (error) {
+            console.warn('Could not synchronize profile details to owned releases:', error);
+        }
+    }
+
+    async function persistProfileRecord(options) {
+        options = options || {};
+        if (!profile || !window.__mfAccountId) return;
+        var sb = supabaseAuth || await waitForSupabaseClient();
+        if (!sb || !sb.auth) throw new Error('Supabase authentication is unavailable.');
+        var payload = {
+            id: window.__mfAccountId,
+            email: profile.email || '',
+            display_name: profileDisplayName(),
+            username: profileHandle(),
+            handle: profileHandle(),
+            avatar_url: profile.picture || '',
+            category: profile.category || null,
+            updated_at: new Date().toISOString()
+        };
+        var profileError = null;
+        try {
+            if (window.mobForgeUpdateProfile) {
+                await window.mobForgeUpdateProfile(payload);
+            } else {
+                var directResult = await sb.from('user_profiles').upsert(payload, { onConflict: 'id' });
+                if (directResult.error) throw directResult.error;
+            }
+        } catch (error) {
+            profileError = error;
+            // Keep older profile tables usable while auth metadata remains the
+            // durable source for the newer display-name and handle fields.
+            try {
+                var fallbackPayload = {
+                    id: payload.id,
+                    email: payload.email,
+                    username: payload.username,
+                    avatar_url: payload.avatar_url,
+                    updated_at: payload.updated_at
+                };
+                var fallbackResult = await sb.from('user_profiles').upsert(fallbackPayload, { onConflict: 'id' });
+                if (!fallbackResult.error) profileError = null;
+            } catch (_) {}
+        }
+        var metadataError = null;
+        try {
+            var authUpdate = await sb.auth.updateUser({
+                data: {
+                    display_name: payload.display_name,
+                    full_name: payload.display_name,
+                    name: payload.display_name,
+                    username: payload.username,
+                    handle: payload.handle,
+                    avatar_url: payload.avatar_url,
+                    category: payload.category || ''
+                }
+            });
+            if (authUpdate && authUpdate.error) throw authUpdate.error;
+        } catch (error) {
+            metadataError = error;
+        }
+        storeLocalProfile(profile);
+        try { localStorage.setItem(accountStorageKey(USERNAME_KEY, window.__mfAccountId), profileHandle()); } catch (_) {}
+        if (profileBroadcast) {
+            try { profileBroadcast.postMessage({ type: 'profile-updated', profile: profile, id: window.__mfAccountId }); } catch (_) {}
+        }
+        if (!options.skipAssetSync) syncOwnedAssets();
+        if (profileError && metadataError) throw profileError;
+    }
+
+    async function hydrateProfileRecord(user) {
+        if (!user || !user.id || !supabaseAuth) return;
+        var accountId = user.id;
+        if (profileHydratedAccountId === accountId) return;
+        profileHydratedAccountId = accountId;
+        try {
+            var result = await supabaseAuth.from('user_profiles').select('*').eq('id', accountId).maybeSingle();
+            if (result.error) throw result.error;
+            if (result.data) {
+                mergeProfileRecord(result.data, accountId);
+            } else {
+                await persistProfileRecord({ skipAssetSync: true });
+            }
+            subscribeToProfileRecord(accountId);
+        } catch (error) {
+            console.warn('Could not hydrate persistent profile:', error);
+            subscribeToProfileRecord(accountId);
+        }
+    }
+
+    function subscribeToProfileRecord(accountId) {
+        if (!supabaseAuth || !accountId) return;
+        if (profileRealtimeChannel && profileRealtimeChannel.__accountId === accountId) return;
+        if (profileRealtimeChannel) {
+            try { supabaseAuth.removeChannel(profileRealtimeChannel); } catch (_) {}
+            profileRealtimeChannel = null;
+        }
+        try {
+            profileRealtimeChannel = supabaseAuth.channel('mob-forge-profile-' + accountId)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'user_profiles',
+                    filter: 'id=eq.' + accountId
+                }, function (payload) {
+                    if (payload.eventType === 'DELETE') return;
+                    mergeProfileRecord(payload.new || payload.record, accountId);
+                })
+                .subscribe();
+            profileRealtimeChannel.__accountId = accountId;
+        } catch (error) {
+            console.warn('Could not subscribe to profile updates:', error);
+        }
     }
 
     function clearLocalAuth() {
         passwordRecoveryActive = false;
+        if (profileRealtimeChannel && supabaseAuth) {
+            try { supabaseAuth.removeChannel(profileRealtimeChannel); } catch (_) {}
+        }
+        profileRealtimeChannel = null;
+        profileHydratedAccountId = '';
         profile = null;
         window.__mfAccountId = '';
         username = '';
@@ -10728,21 +11032,36 @@
             return;
         }
         var nextProfile = profileFromSupabaseUser(user);
-        var savedProfile = readStoredProfile();
+        var savedProfile = readStoredProfile(user.id);
         if (savedProfile && savedProfile.id === nextProfile.id) {
             nextProfile.picture = savedProfile.picture || nextProfile.picture;
-            nextProfile.name = nextProfile.name || savedProfile.name;
+            nextProfile.name = nextProfile.name || savedProfile.name || savedProfile.displayName;
+            nextProfile.displayName = nextProfile.name;
+            nextProfile.handle = nextProfile.handle || savedProfile.handle || savedProfile.username;
+            nextProfile.username = nextProfile.handle;
+            nextProfile.category = nextProfile.category || savedProfile.category || '';
         }
         profile = nextProfile;
         window.__mfAccountId = user.id;
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-        username = localStorage.getItem(USERNAME_KEY) || '';
-        var metaUsername = user.user_metadata && typeof user.user_metadata.username === 'string' ? user.user_metadata.username.trim() : '';
-        if (!username && metaUsername) { username = metaUsername; localStorage.setItem(USERNAME_KEY, username); }
+        storeLocalProfile(profile);
+        username = localStorage.getItem(accountStorageKey(USERNAME_KEY, user.id)) ||
+            profile.handle ||
+            '';
+        var metaUsername = user.user_metadata && typeof user.user_metadata.username === 'string'
+            ? user.user_metadata.username.trim()
+            : '';
+        if (!username && metaUsername) {
+            username = metaUsername;
+            profile.handle = metaUsername;
+            profile.username = metaUsername;
+            try { localStorage.setItem(accountStorageKey(USERNAME_KEY, user.id), username); } catch (_) {}
+        }
         setAccountButton();
         renderCreatorNav();
-        if (!passwordRecoveryActive) closeModal(accountModal);
-        if (showUsernamePrompt && !username && profile.name) {
+        subscribeToProfileRecord(user.id);
+        hydrateProfileRecord(user);
+        if (showUsernamePrompt && !passwordRecoveryActive) closeModal(accountModal);
+        if (showUsernamePrompt && (!username || !profile.name) && profile.name) {
             var promptFlagKey = 'mob-forge-username-prompt-shown:' + (profile.id || 'guest');
             if (!localStorage.getItem(promptFlagKey)) {
                 localStorage.setItem(promptFlagKey, '1');
@@ -10771,6 +11090,47 @@
         } finally {
             authInitializing = false;
         }
+    }
+
+    function initializeProfileBroadcast() {
+        if (profileBroadcast || typeof BroadcastChannel === 'undefined') return;
+        try {
+            profileBroadcast = new BroadcastChannel('mob-forge-profile-sync');
+            profileBroadcast.addEventListener('message', function (event) {
+                var message = event && event.data;
+                if (!message || message.type !== 'profile-updated' ||
+                    !profile || message.id !== profile.id) return;
+                if (message.profile) {
+                    profile = Object.assign({}, profile, message.profile);
+                    username = profile.handle || profile.username || username;
+                    storeLocalProfile(profile);
+                    refreshProfileSurfaces();
+                }
+            });
+        } catch (_) {
+            profileBroadcast = null;
+        }
+        window.addEventListener('storage', function (event) {
+            if (!profile || !event.newValue) return;
+            var isProfileKey = event.key === PROFILE_KEY ||
+                event.key === accountStorageKey(PROFILE_KEY, profile.id);
+            var isHandleKey = event.key === accountStorageKey(USERNAME_KEY, profile.id);
+            if (!isProfileKey && !isHandleKey) return;
+            try {
+                if (isProfileKey) {
+                    var next = JSON.parse(event.newValue);
+                    if (next && next.id === profile.id) {
+                        profile = Object.assign({}, profile, next);
+                        username = profile.handle || profile.username || username;
+                    }
+                } else if (isHandleKey) {
+                    username = String(event.newValue || '').trim();
+                    profile.handle = username;
+                    profile.username = username;
+                }
+                refreshProfileSurfaces();
+            } catch (_) {}
+        });
     }
 
     if (openAccountButton) openAccountButton.addEventListener('click', function (event) {
@@ -10860,7 +11220,68 @@
             return;
         }
     });
-    if (usernameForm) usernameForm.addEventListener('submit', function (event) { event.preventDefault(); var clean = usernameInput.value.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 24) { usernameError.textContent = clean.length < 2 ? 'Choose at least 2 characters.' : 'Keep your username under 24 characters.'; usernameError.hidden = false; return; } username = clean; localStorage.setItem(USERNAME_KEY, username); usernameError.hidden = true; closeModal(usernameModal); setAccountButton(); renderAccount(); renderCreatorNav(); });
+    if (usernameForm) usernameForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var displayName = displayNameInput ? displayNameInput.value.trim().replace(/\s+/g, ' ') : '';
+        var cleanHandle = usernameInput.value.trim().replace(/^@+/, '').replace(/\s+/g, '');
+        var saveButton = usernameForm.querySelector('[type="submit"]');
+        if (displayName.length < 2 || displayName.length > 80) {
+            usernameError.textContent = displayName.length < 2
+                ? 'Choose a display name with at least 2 characters.'
+                : 'Keep your display name under 80 characters.';
+            usernameError.hidden = false;
+            return;
+        }
+        if (!/^[A-Za-z0-9._-]{2,24}$/.test(cleanHandle)) {
+            usernameError.textContent = 'Use 2–24 letters, numbers, dots, underscores, or hyphens for your handle.';
+            usernameError.hidden = false;
+            return;
+        }
+        if (!profile || !window.__mfAccountId) {
+            usernameError.textContent = 'Sign in before saving your profile.';
+            usernameError.hidden = false;
+            return;
+        }
+        var previousProfile = Object.assign({}, profile);
+        var previousUsername = username;
+        profile.name = displayName;
+        profile.displayName = displayName;
+        profile.handle = cleanHandle;
+        profile.username = cleanHandle;
+        username = cleanHandle;
+        storeLocalProfile(profile);
+        try { localStorage.setItem(accountStorageKey(USERNAME_KEY, window.__mfAccountId), username); } catch (_) {}
+        usernameError.hidden = true;
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving…';
+        }
+        refreshProfileSurfaces();
+        try {
+            await persistProfileRecord();
+            closeModal(usernameModal);
+            var profileToast = document.getElementById('semoxToast');
+            if (profileToast) {
+                profileToast.textContent = '✓ Profile updated.';
+                profileToast.classList.add('show');
+                setTimeout(function () { profileToast.classList.remove('show'); }, 2200);
+            }
+        } catch (error) {
+            profile = previousProfile;
+            username = previousUsername;
+            storeLocalProfile(profile);
+            refreshProfileSurfaces();
+            usernameError.textContent = error && error.message
+                ? error.message
+                : 'Profile update failed. Please try again.';
+            usernameError.hidden = false;
+        } finally {
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Profile';
+            }
+        }
+    });
     if (uploadForm) uploadForm.addEventListener('submit', publishAsset);
     if (uploadFile) uploadFile.addEventListener('change', function () { uploadError.hidden = true; });
     var logoInput = document.getElementById('mfAssetImage');
@@ -10918,6 +11339,7 @@
             initializeSupabaseAuth();
         }
     }, 250);
+    initializeProfileBroadcast();
     initializeSupabaseAuth();
     setAccountButton();
     renderCreatorNav();
